@@ -4,8 +4,6 @@ A music tracker for the terminal, built with Rust.
 
 ![screenshot](screenshot.png)
 
-[Audio exported from the pattern seen in the screenshot](demo.wav)
-
 ## 🚧 WORK IN PROGRESS
 
 ### TODO
