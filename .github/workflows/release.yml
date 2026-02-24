@@ -15,16 +15,16 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact: trakatui-linux-x86_64
+            artifact: psikat-linux-x86_64
           - target: x86_64-apple-darwin
             os: macos-latest
-            artifact: trakatui-macos-x86_64
+            artifact: psikat-macos-x86_64
           - target: aarch64-apple-darwin
             os: macos-latest
-            artifact: trakatui-macos-aarch64
+            artifact: psikat-macos-aarch64
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            artifact: trakatui-windows-x86_64
+            artifact: psikat-windows-x86_64
 
     runs-on: ${{ matrix.os }}
 
@@ -55,15 +55,15 @@ jobs:
       - name: Package (unix)
         if: matrix.os != 'windows-latest'
         run: |
-          chmod +x target/${{ matrix.target }}/release/trakatui
-          tar czf ${{ matrix.artifact }}.tar.gz -C target/${{ matrix.target }}/release trakatui
+          chmod +x target/${{ matrix.target }}/release/psikat
+          tar czf ${{ matrix.artifact }}.tar.gz -C target/${{ matrix.target }}/release psikat
 
       - name: Package (windows)
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ../../../${{ matrix.artifact }}.zip trakatui.exe
+          7z a ../../../${{ matrix.artifact }}.zip psikat.exe
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

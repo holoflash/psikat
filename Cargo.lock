@@ -2618,6 +2618,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3eb8486b569e12e2c32ad3e204dbaba5e4b5b216e9367044f25f1dba42341773"
 
 [[package]]
+name = "psikat"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "fastrand",
+ "hound",
+ "rodio",
+]
+
+[[package]]
 name = "pxfm"
 version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3437,16 +3447,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
-]
-
-[[package]]
-name = "trakatui"
-version = "0.1.0"
-dependencies = [
- "eframe",
- "fastrand",
- "hound",
- "rodio",
 ]
 
 [[package]]

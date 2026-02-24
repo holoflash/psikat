@@ -1,4 +1,4 @@
-# Contributing to trakatui
+# Contributing to psikat
 
 Thank you for your interest in contributing!
 
@@ -8,8 +8,8 @@ Thank you for your interest in contributing!
    - Click the "Fork" button at the top right of this repo's GitHub page.
 
 2. **Clone your fork**
-   - `git clone https://github.com/<your-username>/trakatui.git`
-   - `cd trakatui`
+   - `git clone https://github.com/<your-username>/psikat.git`
+   - `cd psikat`
 
 3. **Create a new branch**
    - `git checkout -b your-feature-or-fix`
@@ -31,4 +31,4 @@ Thank you for your interest in contributing!
 
 ## Questions or Suggestions?
 
-- Feel free to suggest new features or improvements by [creating an issue](https://github.com/holoflash/trakatui/issues).
+- Feel free to suggest new features or improvements by [creating an issue](https://github.com/holoflash/psikat/issues).

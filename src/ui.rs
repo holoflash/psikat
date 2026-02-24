@@ -44,7 +44,7 @@ fn draw_header(ctx: &egui::Context, app: &App) {
             ui.horizontal(|ui| {
                 ui.add_space(4.0);
                 ui.label(
-                    RichText::new("TRAKATUI")
+                    RichText::new("PSIKAT")
                         .font(FontId::monospace(16.0))
                         .color(CYAN)
                         .strong(),

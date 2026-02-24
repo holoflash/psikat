@@ -14,13 +14,13 @@ fn main() -> eframe::Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1100.0, 700.0])
             .with_min_inner_size([800.0, 500.0])
-            .with_title("TRAKATUI")
+            .with_title("PSIKAT")
             .with_icon(make_icon()),
         ..Default::default()
     };
 
     eframe::run_native(
-        "trakatui",
+        "psikat",
         options,
         Box::new(|cc| {
             cc.egui_ctx.set_visuals(egui::Visuals::dark());
@@ -74,17 +74,50 @@ fn make_icon() -> egui::IconData {
         rgba[i..i + 4].copy_from_slice(color);
     };
 
-    // top bar of T: row 6-9, cols 6-25
-    for y in 6..10 {
-        for x in 6..26 {
+    // Greek Psi (Ψ) letter
+
+    // central vertical stem: rows 4-27, cols 14-17
+    for y in 4..28 {
+        for x in 14..18 {
             set(&mut rgba, x, y, &fg);
         }
     }
 
-    // vertical stem of T: rows 10-25, cols 14-17
-    for y in 10..26 {
-        for x in 14..18 {
-            set(&mut rgba, x, y, &fg);
+    // left arm of Ψ (curves outward and up)
+    let left_arm: &[(u32, u32, u32, u32)] = &[
+        (5, 8, 18, 20), // bottom of left arm
+        (5, 8, 16, 18),
+        (4, 7, 14, 16),
+        (4, 7, 12, 14),
+        (4, 7, 10, 12),
+        (4, 7, 8, 10),
+        (5, 8, 6, 8),
+        (6, 9, 4, 6),
+    ];
+    for &(x0, x1, y0, y1) in left_arm {
+        for y in y0..y1 {
+            for x in x0..x1 {
+                set(&mut rgba, x, y, &fg);
+            }
+        }
+    }
+
+    // right arm of Ψ (mirror of left)
+    let right_arm: &[(u32, u32, u32, u32)] = &[
+        (24, 27, 18, 20),
+        (24, 27, 16, 18),
+        (25, 28, 14, 16),
+        (25, 28, 12, 14),
+        (25, 28, 10, 12),
+        (25, 28, 8, 10),
+        (24, 27, 6, 8),
+        (23, 26, 4, 6),
+    ];
+    for &(x0, x1, y0, y1) in right_arm {
+        for y in y0..y1 {
+            for x in x0..x1 {
+                set(&mut rgba, x, y, &fg);
+            }
         }
     }
 
