@@ -2,6 +2,8 @@
 
 A music tracker for the terminal, built with Rust.
 
+![screenshot](screenshot.png)
+
 ## 🚧 WORK IN PROGRESS
 
 ### TODO
@@ -26,7 +28,6 @@ A music tracker for the terminal, built with Rust.
 - [ ] Save/load from file
 - [ ] Sampler channel
 
-![screenshot](screenshot.png)
 
 ## Install
 
