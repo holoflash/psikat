@@ -3,6 +3,7 @@ mod audio;
 mod export;
 mod keys;
 mod pattern;
+mod scale;
 mod synth;
 mod ui;
 

@@ -12,7 +12,11 @@ A music tracker for the terminal, built with Rust.
 - [x] WAV export (44.1kHz, 16-bit)
 - [x] Settings panel
 - [x] Chromatic keyboard note input
-- [ ] Transpose keys by scale intervals
+- [x] Scale selection
+- [x] Octave control
+- [x] BPM control
+- [x] Pattern length control
+- [x] Transpose control
 - [ ] Allow more channels
 - [ ] Stable audio playback
 - [ ] Instrument editing

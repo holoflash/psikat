@@ -6,6 +6,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 
 use crate::app::{App, Mode, SettingsField};
 use crate::pattern::Cell;
+use crate::scale::root_name;
 use crate::synth::CHANNEL_INSTRUMENTS;
 
 pub fn draw(frame: &mut Frame, app: &App) {
@@ -39,6 +40,9 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
         Mode::Settings => Color::Yellow,
     };
 
+    let root = root_name(app.transpose);
+    let scale_name = app.scale_index.scale().name;
+    let key_label = format!("{} {}", root, scale_name);
     let header = Paragraph::new(Line::from(vec![
         Span::styled(
             " TRAKATUI ",
@@ -61,6 +65,8 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
             format!("BPM:{}", app.bpm),
             Style::default().fg(Color::Magenta),
         ),
+        Span::raw("  "),
+        Span::styled(key_label, Style::default().fg(Color::Green)),
     ]))
     .block(
         Block::default()
@@ -210,6 +216,8 @@ fn draw_settings(frame: &mut Frame, app: &App, area: Rect) {
 
     let is_bpm = app.settings_field == SettingsField::Bpm;
     let is_len = app.settings_field == SettingsField::PatternLength;
+    let is_scale = app.settings_field == SettingsField::Scale;
+    let is_trans = app.settings_field == SettingsField::Transpose;
     let is_export = app.settings_field == SettingsField::ExportWav;
 
     let cursor = |active: bool| -> Span {
@@ -242,6 +250,13 @@ fn draw_settings(frame: &mut Frame, app: &App, area: Rect) {
     let mut len_spans = vec![cursor(is_len), Span::styled("Len   ", label_style)];
     len_spans.extend(arrows(is_len, &format!("{:>3}", app.pattern.rows)));
 
+    let scale_name = app.scale_index.scale().name;
+    let mut scale_spans = vec![cursor(is_scale), Span::styled("Scale ", label_style)];
+    scale_spans.extend(arrows(is_scale, &format!("{:>9}", scale_name)));
+
+    let mut trans_spans = vec![cursor(is_trans), Span::styled("Trans ", label_style)];
+    trans_spans.extend(arrows(is_trans, &format!("{:>3}", app.transpose)));
+
     let export_style = if is_export {
         Style::default()
             .fg(Color::Black)
@@ -263,6 +278,10 @@ fn draw_settings(frame: &mut Frame, app: &App, area: Rect) {
         Line::from(bpm_spans),
         Line::from(""),
         Line::from(len_spans),
+        Line::from(""),
+        Line::from(scale_spans),
+        Line::from(""),
+        Line::from(trans_spans),
         Line::from(""),
         Line::from(Span::styled(" ─────────────────────────────", dim)),
         Line::from(""),

@@ -1,41 +1,46 @@
 use crate::pattern::Note;
+use crate::scale::{Scale, map_key_index_to_midi};
 use crossterm::event::KeyCode;
 
-pub fn key_to_note(key: KeyCode, octave: u8) -> Option<Note> {
-    let semitone = match key {
-        KeyCode::Char('z') => Some((0, 0)),  // C
-        KeyCode::Char('x') => Some((0, 1)),  // C#
-        KeyCode::Char('c') => Some((0, 2)),  // D
-        KeyCode::Char('v') => Some((0, 3)),  // D#
-        KeyCode::Char('b') => Some((0, 4)),  // E
-        KeyCode::Char('n') => Some((0, 5)),  // F
-        KeyCode::Char('m') => Some((0, 6)),  // F#
-        KeyCode::Char('a') => Some((0, 7)),  // G
-        KeyCode::Char('s') => Some((0, 8)),  // G#
-        KeyCode::Char('d') => Some((0, 9)),  // A
-        KeyCode::Char('f') => Some((0, 10)), // A#
-        KeyCode::Char('g') => Some((0, 11)), // B
+/// Map a keyboard key to a `Note` using the current scale.
+///
+/// Keys are assigned a linear index (0, 1, 2, …) which is then
+/// translated through the scale to the correct MIDI pitch.
+pub fn key_to_note(key: KeyCode, octave: u8, scale: &Scale, transpose: i8) -> Option<Note> {
+    let key_index = match key {
+        KeyCode::Char('z') => Some((0, 0)),
+        KeyCode::Char('x') => Some((0, 1)),
+        KeyCode::Char('c') => Some((0, 2)),
+        KeyCode::Char('v') => Some((0, 3)),
+        KeyCode::Char('b') => Some((0, 4)),
+        KeyCode::Char('n') => Some((0, 5)),
+        KeyCode::Char('m') => Some((0, 6)),
+        KeyCode::Char('a') => Some((0, 7)),
+        KeyCode::Char('s') => Some((0, 8)),
+        KeyCode::Char('d') => Some((0, 9)),
+        KeyCode::Char('f') => Some((0, 10)),
+        KeyCode::Char('g') => Some((0, 11)),
 
-        KeyCode::Char('h') => Some((1, 0)),  // C
-        KeyCode::Char('j') => Some((1, 1)),  // C#
-        KeyCode::Char('k') => Some((1, 2)),  // D
-        KeyCode::Char('l') => Some((1, 3)),  // D#
-        KeyCode::Char('q') => Some((1, 4)),  // E
-        KeyCode::Char('w') => Some((1, 5)),  // F
-        KeyCode::Char('e') => Some((1, 6)),  // F#
-        KeyCode::Char('r') => Some((1, 7)),  // G
-        KeyCode::Char('t') => Some((1, 8)),  // G#
-        KeyCode::Char('y') => Some((1, 9)),  // A
-        KeyCode::Char('u') => Some((1, 10)), // A#
-        KeyCode::Char('i') => Some((1, 11)), // B
-        KeyCode::Char('o') => Some((1, 12)), // C
-        KeyCode::Char('p') => Some((1, 13)), // C#
+        KeyCode::Char('h') => Some((0, 12)),
+        KeyCode::Char('j') => Some((0, 13)),
+        KeyCode::Char('k') => Some((0, 14)),
+        KeyCode::Char('l') => Some((0, 15)),
+        KeyCode::Char('q') => Some((0, 16)),
+        KeyCode::Char('w') => Some((0, 17)),
+        KeyCode::Char('e') => Some((0, 18)),
+        KeyCode::Char('r') => Some((0, 19)),
+        KeyCode::Char('t') => Some((0, 20)),
+        KeyCode::Char('y') => Some((0, 21)),
+        KeyCode::Char('u') => Some((0, 22)),
+        KeyCode::Char('i') => Some((0, 23)),
+        KeyCode::Char('o') => Some((0, 24)),
+        KeyCode::Char('p') => Some((0, 25)),
 
         _ => None,
     };
 
-    semitone.map(|(oct_offset, semi)| {
-        let midi = ((octave + oct_offset) as u8 + 1) * 12 + semi;
+    key_index.map(|(_oct_offset, idx)| {
+        let midi = map_key_index_to_midi(idx, octave, scale, transpose);
         Note::new(midi)
     })
 }
@@ -43,28 +48,29 @@ pub fn key_to_note(key: KeyCode, octave: u8) -> Option<Note> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::scale::CHROMATIC;
 
     #[test]
-    fn c4() {
-        let note = key_to_note(KeyCode::Char('z'), 4).unwrap();
+    fn chromatic_c4() {
+        let note = key_to_note(KeyCode::Char('z'), 4, &CHROMATIC, 0).unwrap();
         assert_eq!(note.pitch, 60);
         assert_eq!(note.name(), "C-4");
     }
 
     #[test]
-    fn a4() {
-        let note = key_to_note(KeyCode::Char('d'), 4).unwrap();
+    fn chromatic_a4() {
+        let note = key_to_note(KeyCode::Char('d'), 4, &CHROMATIC, 0).unwrap();
         assert_eq!(note.pitch, 69);
     }
 
     #[test]
-    fn upper_octave() {
-        let note = key_to_note(KeyCode::Char('h'), 4).unwrap();
-        assert_eq!(note.pitch, 72); // C-5
+    fn chromatic_upper_octave() {
+        let note = key_to_note(KeyCode::Char('h'), 4, &CHROMATIC, 0).unwrap();
+        assert_eq!(note.pitch, 72);
     }
 
     #[test]
     fn unknown_key() {
-        assert!(key_to_note(KeyCode::Char('0'), 4).is_none());
+        assert!(key_to_note(KeyCode::Char('0'), 4, &CHROMATIC, 0).is_none());
     }
 }

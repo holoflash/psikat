@@ -6,6 +6,7 @@ use crate::audio::AudioEngine;
 use crate::export;
 use crate::keys::key_to_note;
 use crate::pattern::{Cell, Pattern};
+use crate::scale::ScaleIndex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
@@ -18,6 +19,8 @@ pub enum Mode {
 pub enum SettingsField {
     Bpm,
     PatternLength,
+    Scale,
+    Transpose,
     ExportWav,
 }
 
@@ -25,7 +28,9 @@ impl SettingsField {
     pub fn next(&self) -> Self {
         match self {
             SettingsField::Bpm => SettingsField::PatternLength,
-            SettingsField::PatternLength => SettingsField::ExportWav,
+            SettingsField::PatternLength => SettingsField::Scale,
+            SettingsField::Scale => SettingsField::Transpose,
+            SettingsField::Transpose => SettingsField::ExportWav,
             SettingsField::ExportWav => SettingsField::Bpm,
         }
     }
@@ -34,7 +39,9 @@ impl SettingsField {
         match self {
             SettingsField::Bpm => SettingsField::ExportWav,
             SettingsField::PatternLength => SettingsField::Bpm,
-            SettingsField::ExportWav => SettingsField::PatternLength,
+            SettingsField::Scale => SettingsField::PatternLength,
+            SettingsField::Transpose => SettingsField::Scale,
+            SettingsField::ExportWav => SettingsField::Transpose,
         }
     }
 }
@@ -50,6 +57,8 @@ pub struct App {
     pub running: bool,
     pub audio: AudioEngine,
     pub settings_field: SettingsField,
+    pub scale_index: ScaleIndex,
+    pub transpose: i8,
     pub status_message: Option<String>,
     last_step_time: Option<Instant>,
 }
@@ -67,6 +76,8 @@ impl App {
             running: true,
             audio: AudioEngine::new(),
             settings_field: SettingsField::Bpm,
+            scale_index: ScaleIndex::default(),
+            transpose: 0,
             status_message: None,
             last_step_time: None,
         }
@@ -155,7 +166,8 @@ impl App {
             }
 
             other => {
-                if let Some(note) = key_to_note(other, self.octave) {
+                let scale = self.scale_index.scale();
+                if let Some(note) = key_to_note(other, self.octave, scale, self.transpose) {
                     self.pattern
                         .set(self.cursor_channel, self.cursor_row, Cell::NoteOn(note));
                     self.audio
@@ -197,6 +209,12 @@ impl App {
                     let new_len = (self.pattern.rows + 1).min(128);
                     self.pattern.resize(new_len);
                 }
+                SettingsField::Scale => {
+                    self.scale_index = self.scale_index.next();
+                }
+                SettingsField::Transpose => {
+                    self.transpose = (self.transpose + 1).min(12);
+                }
                 SettingsField::ExportWav => {}
             },
             KeyCode::Left => match self.settings_field {
@@ -209,6 +227,12 @@ impl App {
                     if self.cursor_row >= self.pattern.rows {
                         self.cursor_row = self.pattern.rows - 1;
                     }
+                }
+                SettingsField::Scale => {
+                    self.scale_index = self.scale_index.prev();
+                }
+                SettingsField::Transpose => {
+                    self.transpose = (self.transpose - 1).max(-12);
                 }
                 SettingsField::ExportWav => {}
             },
