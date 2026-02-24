@@ -11,7 +11,8 @@ A music tracker for the terminal, built with Rust.
 - [x] Real-time playback
 - [x] WAV export (44.1kHz, 16-bit)
 - [x] Settings panel
-- [x] Piano-roll keyboard
+- [x] Chromatic keyboard note input
+- [ ] Transpose keys by scale intervals
 - [ ] Allow more channels
 - [ ] Stable audio playback
 - [ ] Instrument editing
