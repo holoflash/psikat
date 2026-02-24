@@ -21,19 +21,19 @@ pub fn draw(frame: &mut Frame, app: &App) {
     .split(area);
 
     draw_header(frame, app, chunks[0]);
-    if app.mode == Mode::Settings {
-        draw_settings(frame, app, chunks[1]);
-    } else {
-        draw_pattern(frame, app, chunks[1]);
-    }
+
+    let content = Layout::horizontal([Constraint::Min(1), Constraint::Length(40)]).split(chunks[1]);
+    draw_pattern(frame, app, content[0]);
+    draw_settings(frame, app, content[1]);
+
     draw_footer(frame, app, chunks[2]);
 }
 
 fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
     let mode_str = match app.mode {
         Mode::Edit => "EDIT",
-        Mode::Play => "▶ PLAY",
-        Mode::Settings => "⚙ SETTINGS",
+        Mode::Play => "▶ PLAYING",
+        Mode::Settings => "SETTINGS",
     };
     let mode_color = match app.mode {
         Mode::Edit => Color::Cyan,
@@ -192,65 +192,93 @@ fn calculate_scroll(app: &App, visible_rows: usize) -> usize {
 }
 
 fn draw_settings(frame: &mut Frame, app: &App, area: Rect) {
+    let border_color = if app.mode == Mode::Settings {
+        Color::Yellow
+    } else {
+        Color::DarkGray
+    };
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Yellow));
+        .border_style(Style::default().fg(border_color));
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    let vertical = Layout::vertical([Constraint::Length(11)])
-        .flex(Flex::Center)
-        .split(inner);
-    let horizontal = Layout::horizontal([Constraint::Length(40)])
-        .flex(Flex::Center)
-        .split(vertical[0]);
-    let settings_area = horizontal[0];
-
-    let selected_style = Style::default()
-        .fg(Color::Black)
-        .bg(Color::Yellow)
+    let dim = Style::default().fg(Color::DarkGray);
+    let label_style = Style::default().fg(Color::Gray);
+    let value_style = Style::default()
+        .fg(Color::White)
         .add_modifier(Modifier::BOLD);
-    let normal_style = Style::default().fg(Color::White);
+    let selected_value = Style::default()
+        .fg(Color::Yellow)
+        .add_modifier(Modifier::BOLD);
+    let cursor_style = Style::default()
+        .fg(Color::Yellow)
+        .add_modifier(Modifier::BOLD);
 
-    let bpm_style = if app.settings_field == SettingsField::Bpm {
-        selected_style
-    } else {
-        normal_style
+    let is_bpm = app.settings_field == SettingsField::Bpm;
+    let is_len = app.settings_field == SettingsField::PatternLength;
+    let is_export = app.settings_field == SettingsField::ExportWav;
+
+    let cursor = |active: bool| -> Span {
+        if active {
+            Span::styled(" ▸ ", cursor_style)
+        } else {
+            Span::raw("   ")
+        }
     };
-    let len_style = if app.settings_field == SettingsField::PatternLength {
-        selected_style
-    } else {
-        normal_style
+
+    let arrows = |active: bool, val: &str| -> Vec<Span> {
+        if active {
+            vec![
+                Span::styled("◄ ", Style::default().fg(Color::DarkGray)),
+                Span::styled(val.to_string(), selected_value),
+                Span::styled(" ►", Style::default().fg(Color::DarkGray)),
+            ]
+        } else {
+            vec![
+                Span::raw("  "),
+                Span::styled(val.to_string(), value_style),
+                Span::raw("  "),
+            ]
+        }
     };
-    let export_style = if app.settings_field == SettingsField::ExportWav {
-        selected_style
+
+    let mut bpm_spans = vec![cursor(is_bpm), Span::styled("BPM   ", label_style)];
+    bpm_spans.extend(arrows(is_bpm, &format!("{:>3}", app.bpm)));
+
+    let mut len_spans = vec![cursor(is_len), Span::styled("Len   ", label_style)];
+    len_spans.extend(arrows(is_len, &format!("{:>3}", app.pattern.rows)));
+
+    let export_style = if is_export {
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::Green)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::Green)
     };
 
     let mut lines = vec![
-        Line::from(""),
         Line::from(Span::styled(
-            "PROJECT SETTINGS",
+            " Settings",
             Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         )),
+        Line::from(Span::styled(" ─────────────────────────────", dim)),
         Line::from(""),
-        Line::from(Span::styled(
-            format!("BPM:            {:<6}", app.bpm),
-            bpm_style,
-        )),
+        Line::from(bpm_spans),
         Line::from(""),
-        Line::from(Span::styled(
-            format!("Pattern Length: {:<6}", app.pattern.rows),
-            len_style,
-        )),
+        Line::from(len_spans),
         Line::from(""),
-        Line::from(Span::styled("[ Export as WAV ]", export_style)),
+        Line::from(Span::styled(" ─────────────────────────────", dim)),
         Line::from(""),
+        Line::from(vec![
+            cursor(is_export),
+            Span::styled(" Export WAV ", export_style),
+        ]),
     ];
 
     if let Some(ref msg) = app.status_message {
@@ -259,14 +287,15 @@ fn draw_settings(frame: &mut Frame, app: &App, area: Rect) {
         } else {
             Color::Red
         };
+        lines.push(Line::from(""));
         lines.push(Line::from(Span::styled(
-            format!("  {}", msg),
+            format!("   {}", msg),
             Style::default().fg(color),
         )));
     }
 
     let paragraph = Paragraph::new(lines);
-    frame.render_widget(paragraph, settings_area);
+    frame.render_widget(paragraph, inner);
 }
 
 fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {
@@ -276,11 +305,11 @@ fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {
 
     let help_text = match app.mode {
         Mode::Edit => {
-            "Z..M/Q..U:note  TAB:off  DEL:clear  ,/.:oct  SHIFT+\u{2190}\u{2191}\u{2193}\u{2192}:select  \u{2318}1:settings  ESC:quit"
+            "Z..M/Q..U:note  TAB:off  DEL:clear  ,/.:oct  SHIFT+\u{2190}\u{2191}\u{2193}\u{2192}:select  2:settings  ESC:quit"
         }
         Mode::Play => "SPACE:stop  ESC:stop",
         Mode::Settings => {
-            "\u{2191}\u{2193}:select  \u{2190}\u{2192}:adjust  ENTER:confirm  ESC:back"
+            "\u{2191}\u{2193}:select  \u{2190}\u{2192}:adjust  ENTER:confirm  1:pattern  ESC:back"
         }
     };
 

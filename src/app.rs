@@ -101,7 +101,7 @@ impl App {
     }
 
     fn handle_edit_key(&mut self, key: KeyEvent) {
-        if key.code == KeyCode::Char('1') {
+        if key.code == KeyCode::Char('2') {
             self.clear_selection();
             self.mode = Mode::Settings;
             self.settings_field = SettingsField::Bpm;
@@ -222,6 +222,7 @@ impl App {
             KeyCode::Esc | KeyCode::Char('1') => {
                 self.mode = Mode::Edit;
             }
+            KeyCode::Char('2') => {}
             KeyCode::Down => {
                 self.settings_field = self.settings_field.next();
             }
