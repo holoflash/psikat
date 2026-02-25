@@ -45,7 +45,7 @@ fn draw_header(ctx: &egui::Context, app: &App) {
                 ui.add_space(4.0);
                 ui.label(
                     RichText::new("PSIKAT")
-                        .font(FontId::monospace(16.0))
+                        .font(FontId::monospace(24.0))
                         .color(CYAN)
                         .strong(),
                 );
@@ -128,6 +128,7 @@ fn draw_settings_panel(ctx: &egui::Context, app: &mut App) {
     };
 
     egui::SidePanel::right("settings")
+        .resizable(false)
         .exact_width(280.0)
         .frame(
             egui::Frame::new()
