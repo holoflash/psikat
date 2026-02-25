@@ -19,6 +19,7 @@ A lightweight cross-platform music tracker built with Rust.
 - [x] BPM control
 - [x] Pattern length control
 - [x] Transpose control
+- [ ] A nice color theme (dark and light)
 - [ ] More sensible default settings
 - [ ] Stable audio playback
 - [ ] Instrument/Synth editing
