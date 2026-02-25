@@ -137,7 +137,7 @@ impl App {
             }
         } else if input.key_pressed(Key::Delete) || input.key_pressed(Key::Backspace) {
             self.pattern.clear(self.cursor_channel, self.cursor_row);
-            self.cursor_row = (self.cursor_row + 1) % self.pattern.rows;
+            self.cursor_row = self.cursor_row.wrapping_sub(1) % self.pattern.rows;
         } else if input.key_pressed(Key::Tab) {
             self.pattern
                 .set(self.cursor_channel, self.cursor_row, Cell::NoteOff);

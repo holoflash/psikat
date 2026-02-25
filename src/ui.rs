@@ -5,25 +5,35 @@ use crate::pattern::Cell;
 use crate::scale::root_name;
 use crate::synth::CHANNEL_INSTRUMENTS;
 
-const BG_DARK: Color32 = Color32::from_rgb(0, 0, 0);
-const BG_PANEL: Color32 = Color32::from_rgb(150, 150, 150);
-const BG_HEADER: Color32 = Color32::from_rgb(150, 150, 150);
-const BORDER: Color32 = Color32::from_rgb(80, 80, 80);
-const BORDER_ACTIVE: Color32 = Color32::from_rgb(255, 255, 255);
-const DIM: Color32 = Color32::from_rgb(80, 80, 80);
-const TEXT: Color32 = Color32::from_rgb(0, 0, 0);
-const CYAN: Color32 = Color32::from_rgb(0, 0, 0);
-const YELLOW: Color32 = Color32::from_rgb(255, 255, 255);
-const GREEN: Color32 = Color32::from_rgb(0, 0, 0);
-const MAGENTA: Color32 = Color32::from_rgb(0, 0, 0);
-const RED: Color32 = Color32::from_rgb(220, 80, 80);
-const NOTE_BLUE: Color32 = Color32::from_rgb(80, 80, 255);
-const CURSOR_BG: Color32 = Color32::from_rgb(255, 50, 120);
-const CURSOR_TEXT: Color32 = Color32::from_rgb(255, 255, 255);
-const PLAYBACK_BG: Color32 = Color32::from_rgb(160, 160, 160);
-const PLAYBACK_TEXT: Color32 = Color32::from_rgb(0, 0, 0);
+const COLOR_LAYOUT_BG_DARK: Color32 = Color32::from_rgb(255, 255, 255);
+const COLOR_LAYOUT_BG_PANEL: Color32 = Color32::from_rgb(192, 192, 192);
+const COLOR_LAYOUT_BG_HEADER: Color32 = Color32::from_rgb(192, 192, 192);
 
-const INST_COLORS: [Color32; 4] = [NOTE_BLUE, NOTE_BLUE, NOTE_BLUE, NOTE_BLUE];
+const COLOR_LAYOUT_BORDER: Color32 = Color32::from_rgb(128, 128, 128);
+const COLOR_LAYOUT_BORDER_ACTIVE: Color32 = Color32::from_rgb(0, 0, 128);
+
+const COLOR_TEXT_DIM: Color32 = Color32::from_rgb(128, 128, 128);
+const COLOR_TEXT: Color32 = Color32::from_rgb(0, 0, 0);
+
+const COLOR_MODE_EDIT: Color32 = Color32::from_rgb(0, 0, 128);
+const COLOR_MODE_SETTINGS: Color32 = Color32::from_rgb(128, 0, 128);
+const COLOR_MODE_PLAYING: Color32 = Color32::from_rgb(0, 128, 0);
+
+const COLOR_ERROR: Color32 = Color32::from_rgb(255, 0, 0);
+const COLOR_PATTERN_NOTE: Color32 = Color32::from_rgb(0, 0, 128);
+const COLOR_PATTERN_NOTE_OFF: Color32 = Color32::from_rgb(128, 128, 128);
+const COLOR_PATTERN_CURSOR_BG: Color32 = Color32::from_rgb(0, 0, 128);
+const COLOR_PATTERN_CURSOR_TEXT: Color32 = Color32::from_rgb(255, 255, 255);
+
+const COLOR_PATTERN_PLAYBACK_HIGHLIGHT: Color32 = Color32::from_rgb(0, 128, 128);
+const COLOR_PATTERN_PLAYBACK_TEXT: Color32 = Color32::from_rgb(255, 255, 255);
+
+const INST_COLORS: [Color32; 4] = [
+    COLOR_PATTERN_NOTE,
+    COLOR_PATTERN_NOTE,
+    COLOR_PATTERN_NOTE,
+    COLOR_PATTERN_NOTE,
+];
 
 pub fn draw(ctx: &egui::Context, app: &mut App) {
     draw_header(ctx, app);
@@ -36,9 +46,9 @@ fn draw_header(ctx: &egui::Context, app: &App) {
     egui::TopBottomPanel::top("header")
         .frame(
             egui::Frame::new()
-                .fill(BG_HEADER)
+                .fill(COLOR_LAYOUT_BG_HEADER)
                 .inner_margin(egui::Margin::symmetric(12, 8))
-                .stroke(Stroke::new(1.0, BORDER)),
+                .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER)),
         )
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -46,17 +56,17 @@ fn draw_header(ctx: &egui::Context, app: &App) {
                 ui.label(
                     RichText::new("PSIKAT")
                         .font(FontId::monospace(24.0))
-                        .color(CYAN)
+                        .color(COLOR_MODE_EDIT)
                         .strong(),
                 );
                 ui.add_space(16.0);
 
                 let (mode_str, mode_color) = if app.playing {
-                    ("PLAYING", GREEN)
+                    ("PLAYING", COLOR_MODE_PLAYING)
                 } else {
                     match app.mode {
-                        Mode::Edit => ("EDIT", CYAN),
-                        Mode::Settings => ("SETTINGS", YELLOW),
+                        Mode::Edit => ("EDIT", COLOR_MODE_EDIT),
+                        Mode::Settings => ("SETTINGS", COLOR_MODE_SETTINGS),
                     }
                 };
                 ui.label(
@@ -69,13 +79,13 @@ fn draw_header(ctx: &egui::Context, app: &App) {
                 ui.label(
                     RichText::new(format!("Oct:{}", app.octave))
                         .font(FontId::monospace(13.0))
-                        .color(YELLOW),
+                        .color(COLOR_MODE_SETTINGS),
                 );
                 ui.add_space(12.0);
                 ui.label(
                     RichText::new(format!("BPM:{}", app.bpm))
                         .font(FontId::monospace(13.0))
-                        .color(MAGENTA),
+                        .color(COLOR_TEXT),
                 );
                 ui.add_space(12.0);
 
@@ -84,7 +94,7 @@ fn draw_header(ctx: &egui::Context, app: &App) {
                 ui.label(
                     RichText::new(format!("{} {}", root, scale_name))
                         .font(FontId::monospace(13.0))
-                        .color(GREEN),
+                        .color(COLOR_MODE_PLAYING),
                 );
             });
         });
@@ -94,9 +104,9 @@ fn draw_footer(ctx: &egui::Context, app: &App) {
     egui::TopBottomPanel::bottom("footer")
         .frame(
             egui::Frame::new()
-                .fill(BG_HEADER)
+                .fill(COLOR_LAYOUT_BG_HEADER)
                 .inner_margin(egui::Margin::symmetric(12, 6))
-                .stroke(Stroke::new(1.0, BORDER)),
+                .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER)),
         )
         .show(ctx, |ui| {
             let help_text = match app.mode {
@@ -113,7 +123,7 @@ fn draw_footer(ctx: &egui::Context, app: &App) {
                     ui.label(
                         RichText::new(help_text)
                             .font(FontId::monospace(12.0))
-                            .color(DIM),
+                            .color(COLOR_TEXT_DIM),
                     );
                 });
             });
@@ -122,9 +132,9 @@ fn draw_footer(ctx: &egui::Context, app: &App) {
 
 fn draw_settings_panel(ctx: &egui::Context, app: &mut App) {
     let border_color = if app.mode == Mode::Settings {
-        BORDER_ACTIVE
+        COLOR_LAYOUT_BORDER_ACTIVE
     } else {
-        BORDER
+        COLOR_LAYOUT_BORDER
     };
 
     egui::SidePanel::right("settings")
@@ -132,7 +142,7 @@ fn draw_settings_panel(ctx: &egui::Context, app: &mut App) {
         .exact_width(280.0)
         .frame(
             egui::Frame::new()
-                .fill(BG_PANEL)
+                .fill(COLOR_LAYOUT_BG_PANEL)
                 .inner_margin(egui::Margin::symmetric(16, 12))
                 .stroke(Stroke::new(1.0, border_color)),
         )
@@ -141,11 +151,11 @@ fn draw_settings_panel(ctx: &egui::Context, app: &mut App) {
             ui.label(
                 RichText::new("Settings")
                     .font(FontId::monospace(15.0))
-                    .color(YELLOW)
+                    .color(COLOR_MODE_SETTINGS)
                     .strong(),
             );
             ui.add_space(2.0);
-            let sep_color = DIM;
+            let sep_color = COLOR_TEXT_DIM;
             ui.painter().line_segment(
                 [
                     ui.cursor().left_top(),
@@ -200,32 +210,36 @@ fn draw_settings_panel(ctx: &egui::Context, app: &mut App) {
                     ui.label(
                         RichText::new(cursor_str)
                             .font(FontId::monospace(13.0))
-                            .color(YELLOW)
+                            .color(COLOR_MODE_SETTINGS)
                             .strong(),
                     );
                 } else {
                     ui.label(
                         RichText::new(cursor_str)
                             .font(FontId::monospace(13.0))
-                            .color(DIM),
+                            .color(COLOR_TEXT_DIM),
                     );
                 }
                 let export_text = RichText::new(" Export WAV ")
                     .font(FontId::monospace(13.0))
                     .strong();
                 if is_export {
-                    ui.label(export_text.color(CURSOR_TEXT).background_color(GREEN));
+                    ui.label(
+                        export_text
+                            .color(COLOR_PATTERN_CURSOR_TEXT)
+                            .background_color(COLOR_MODE_PLAYING),
+                    );
                 } else {
-                    ui.label(export_text.color(GREEN));
+                    ui.label(export_text.color(COLOR_MODE_PLAYING));
                 }
             });
 
             if let Some(ref msg) = app.status_message {
                 ui.add_space(8.0);
                 let color = if msg.starts_with("Exported") {
-                    GREEN
+                    COLOR_MODE_PLAYING
                 } else {
-                    RED
+                    COLOR_ERROR
                 };
                 ui.label(
                     RichText::new(msg.as_str())
@@ -239,7 +253,11 @@ fn draw_settings_panel(ctx: &egui::Context, app: &mut App) {
 fn settings_row(ui: &mut egui::Ui, label: &str, value: &str, active: bool) {
     ui.horizontal(|ui| {
         let cursor_str = if active { " ▸ " } else { "   " };
-        let cursor_color = if active { YELLOW } else { DIM };
+        let cursor_color = if active {
+            COLOR_MODE_SETTINGS
+        } else {
+            COLOR_TEXT_DIM
+        };
         ui.label(
             RichText::new(cursor_str)
                 .font(FontId::monospace(13.0))
@@ -249,23 +267,31 @@ fn settings_row(ui: &mut egui::Ui, label: &str, value: &str, active: bool) {
         ui.label(
             RichText::new(format!("{:<10}", label))
                 .font(FontId::monospace(13.0))
-                .color(TEXT),
+                .color(COLOR_TEXT),
         );
         if active {
-            ui.label(RichText::new("◄").font(FontId::monospace(12.0)).color(DIM));
+            ui.label(
+                RichText::new("◄")
+                    .font(FontId::monospace(12.0))
+                    .color(COLOR_TEXT_DIM),
+            );
             ui.label(
                 RichText::new(value)
                     .font(FontId::monospace(13.0))
-                    .color(YELLOW)
+                    .color(COLOR_MODE_SETTINGS)
                     .strong(),
             );
-            ui.label(RichText::new("►").font(FontId::monospace(12.0)).color(DIM));
+            ui.label(
+                RichText::new("►")
+                    .font(FontId::monospace(12.0))
+                    .color(COLOR_TEXT_DIM),
+            );
         } else {
             ui.label(RichText::new(" ").font(FontId::monospace(12.0)));
             ui.label(
                 RichText::new(value)
                     .font(FontId::monospace(13.0))
-                    .color(TEXT)
+                    .color(COLOR_TEXT)
                     .strong(),
             );
         }
@@ -274,15 +300,15 @@ fn settings_row(ui: &mut egui::Ui, label: &str, value: &str, active: bool) {
 
 fn draw_pattern(ctx: &egui::Context, app: &mut App) {
     let border_color = if app.mode == Mode::Edit {
-        BORDER_ACTIVE
+        COLOR_LAYOUT_BORDER_ACTIVE
     } else {
-        BORDER
+        COLOR_LAYOUT_BORDER
     };
 
     egui::CentralPanel::default()
         .frame(
             egui::Frame::new()
-                .fill(BG_DARK)
+                .fill(COLOR_LAYOUT_BG_DARK)
                 .inner_margin(egui::Margin::symmetric(8, 6))
                 .stroke(Stroke::new(1.0, border_color)),
         )
@@ -296,17 +322,30 @@ fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                         ui.label(
                             RichText::new("     ")
                                 .font(FontId::monospace(13.0))
-                                .color(DIM),
+                                .color(COLOR_TEXT_DIM),
                         );
                         for ch in 0..app.pattern.channels {
                             let waveform = CHANNEL_INSTRUMENTS[ch % CHANNEL_INSTRUMENTS.len()];
                             let color = INST_COLORS[ch % INST_COLORS.len()];
-                            ui.label(
-                                RichText::new(format!("│ {} ", waveform.name()))
-                                    .font(FontId::monospace(13.0))
-                                    .color(color)
-                                    .strong(),
-                            );
+
+                            ui.horizontal(|ui| {
+                                ui.label(
+                                    RichText::new("│ ")
+                                        .font(FontId::monospace(13.0))
+                                        .color(COLOR_TEXT_DIM),
+                                );
+                                ui.label(
+                                    RichText::new(waveform.name())
+                                        .font(FontId::monospace(13.0))
+                                        .color(color)
+                                        .strong(),
+                                );
+                                ui.label(
+                                    RichText::new(" ")
+                                        .font(FontId::monospace(13.0))
+                                        .color(COLOR_TEXT_DIM),
+                                );
+                            });
                         }
                     });
 
@@ -316,12 +355,12 @@ fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                         ui.horizontal(|ui| {
                             let is_playback_row = app.playing && row == app.playback_row;
                             let row_text_color = if is_playback_row {
-                                PLAYBACK_TEXT
+                                COLOR_PATTERN_PLAYBACK_TEXT
                             } else {
-                                NOTE_BLUE
+                                COLOR_PATTERN_NOTE
                             };
                             let row_bg_color = if is_playback_row {
-                                PLAYBACK_BG
+                                COLOR_PATTERN_PLAYBACK_HIGHLIGHT
                             } else {
                                 egui::Color32::TRANSPARENT
                             };
@@ -345,29 +384,54 @@ fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                                     Cell::Empty => "···".to_string(),
                                 };
 
-                                let display = format!("│ {} ", cell_text);
-                                let text = RichText::new(display).font(FontId::monospace(13.0));
+                                let left = "│ ";
+                                let right = " ";
 
-                                let text = if is_cursor {
-                                    text.color(CURSOR_TEXT).background_color(CURSOR_BG).strong()
+                                let note_text = if is_cursor {
+                                    RichText::new(&cell_text)
+                                        .font(FontId::monospace(13.0))
+                                        .color(COLOR_PATTERN_CURSOR_TEXT)
+                                        .background_color(COLOR_PATTERN_CURSOR_BG)
+                                        .strong()
                                 } else if is_playback {
-                                    text.color(PLAYBACK_TEXT).background_color(PLAYBACK_BG)
+                                    RichText::new(&cell_text)
+                                        .font(FontId::monospace(13.0))
+                                        .color(COLOR_PATTERN_PLAYBACK_TEXT)
+                                        .background_color(COLOR_PATTERN_PLAYBACK_HIGHLIGHT)
                                 } else {
                                     match cell {
-                                        Cell::NoteOn(_) => text.color(NOTE_BLUE),
-                                        Cell::NoteOff => text.color(RED),
-                                        Cell::Empty => text.color(NOTE_BLUE),
+                                        Cell::NoteOn(_) => RichText::new(&cell_text)
+                                            .font(FontId::monospace(13.0))
+                                            .color(COLOR_PATTERN_NOTE),
+                                        Cell::NoteOff => RichText::new(&cell_text)
+                                            .font(FontId::monospace(13.0))
+                                            .color(COLOR_PATTERN_NOTE_OFF),
+                                        Cell::Empty => RichText::new(&cell_text)
+                                            .font(FontId::monospace(13.0))
+                                            .color(COLOR_PATTERN_NOTE),
                                     }
                                 };
 
-                                let response = ui.label(text);
+                                ui.horizontal(|ui| {
+                                    ui.label(
+                                        RichText::new(left)
+                                            .font(FontId::monospace(13.0))
+                                            .color(COLOR_TEXT_DIM),
+                                    );
+                                    let response = ui.label(note_text);
+                                    ui.label(
+                                        RichText::new(right)
+                                            .font(FontId::monospace(13.0))
+                                            .color(COLOR_TEXT_DIM),
+                                    );
 
-                                if response.clicked() {
-                                    app.set_cursor(ch, row);
-                                    if app.mode != Mode::Edit {
-                                        app.mode = Mode::Edit;
+                                    if response.clicked() {
+                                        app.set_cursor(ch, row);
+                                        if app.mode != Mode::Edit {
+                                            app.mode = Mode::Edit;
+                                        }
                                     }
-                                }
+                                });
                             }
                         });
                     }
