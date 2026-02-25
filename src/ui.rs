@@ -5,25 +5,25 @@ use crate::pattern::Cell;
 use crate::scale::root_name;
 use crate::synth::CHANNEL_INSTRUMENTS;
 
-const BG_DARK: Color32 = Color32::from_rgb(18, 18, 24);
-const BG_PANEL: Color32 = Color32::from_rgb(24, 24, 32);
-const BG_HEADER: Color32 = Color32::from_rgb(28, 28, 38);
-const BORDER: Color32 = Color32::from_rgb(50, 50, 65);
-const BORDER_ACTIVE: Color32 = Color32::from_rgb(220, 180, 50);
-const DIM: Color32 = Color32::from_rgb(80, 80, 100);
-const TEXT: Color32 = Color32::from_rgb(200, 200, 210);
-const CYAN: Color32 = Color32::from_rgb(80, 200, 220);
-const YELLOW: Color32 = Color32::from_rgb(220, 180, 50);
-const GREEN: Color32 = Color32::from_rgb(80, 200, 100);
-const MAGENTA: Color32 = Color32::from_rgb(200, 100, 200);
+const BG_DARK: Color32 = Color32::from_rgb(0, 0, 0);
+const BG_PANEL: Color32 = Color32::from_rgb(150, 150, 150);
+const BG_HEADER: Color32 = Color32::from_rgb(150, 150, 150);
+const BORDER: Color32 = Color32::from_rgb(80, 80, 80);
+const BORDER_ACTIVE: Color32 = Color32::from_rgb(255, 255, 255);
+const DIM: Color32 = Color32::from_rgb(80, 80, 80);
+const TEXT: Color32 = Color32::from_rgb(0, 0, 0);
+const CYAN: Color32 = Color32::from_rgb(0, 0, 0);
+const YELLOW: Color32 = Color32::from_rgb(255, 255, 255);
+const GREEN: Color32 = Color32::from_rgb(0, 0, 0);
+const MAGENTA: Color32 = Color32::from_rgb(0, 0, 0);
 const RED: Color32 = Color32::from_rgb(220, 80, 80);
-const NOTE_WHITE: Color32 = Color32::from_rgb(230, 230, 240);
-const CURSOR_BG: Color32 = Color32::from_rgb(60, 180, 200);
-const CURSOR_TEXT: Color32 = Color32::from_rgb(10, 10, 15);
-const PLAYBACK_BG: Color32 = Color32::from_rgb(40, 160, 80);
-const PLAYBACK_TEXT: Color32 = Color32::from_rgb(10, 10, 15);
+const NOTE_BLUE: Color32 = Color32::from_rgb(80, 80, 255);
+const CURSOR_BG: Color32 = Color32::from_rgb(255, 50, 120);
+const CURSOR_TEXT: Color32 = Color32::from_rgb(255, 255, 255);
+const PLAYBACK_BG: Color32 = Color32::from_rgb(160, 160, 160);
+const PLAYBACK_TEXT: Color32 = Color32::from_rgb(0, 0, 0);
 
-const INST_COLORS: [Color32; 4] = [CYAN, YELLOW, RED, MAGENTA];
+const INST_COLORS: [Color32; 4] = [NOTE_BLUE, NOTE_BLUE, NOTE_BLUE, NOTE_BLUE];
 
 pub fn draw(ctx: &egui::Context, app: &mut App) {
     draw_header(ctx, app);
@@ -265,7 +265,7 @@ fn settings_row(ui: &mut egui::Ui, label: &str, value: &str, active: bool) {
             ui.label(
                 RichText::new(value)
                     .font(FontId::monospace(13.0))
-                    .color(NOTE_WHITE)
+                    .color(TEXT)
                     .strong(),
             );
         }
@@ -314,15 +314,22 @@ fn draw_pattern(ctx: &egui::Context, app: &mut App) {
 
                     for row in 0..app.pattern.rows {
                         ui.horizontal(|ui| {
-                            let row_style = if app.playing && row == app.playback_row {
-                                (GREEN, true)
+                            let is_playback_row = app.playing && row == app.playback_row;
+                            let row_text_color = if is_playback_row {
+                                PLAYBACK_TEXT
                             } else {
-                                (DIM, false)
+                                NOTE_BLUE
+                            };
+                            let row_bg_color = if is_playback_row {
+                                PLAYBACK_BG
+                            } else {
+                                egui::Color32::TRANSPARENT
                             };
                             ui.label(
                                 RichText::new(format!("  {:02} ", row))
                                     .font(FontId::monospace(13.0))
-                                    .color(row_style.0)
+                                    .color(row_text_color)
+                                    .background_color(row_bg_color)
                                     .strong(),
                             );
 
@@ -347,9 +354,9 @@ fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                                     text.color(PLAYBACK_TEXT).background_color(PLAYBACK_BG)
                                 } else {
                                     match cell {
-                                        Cell::NoteOn(_) => text.color(NOTE_WHITE),
+                                        Cell::NoteOn(_) => text.color(NOTE_BLUE),
                                         Cell::NoteOff => text.color(RED),
-                                        Cell::Empty => text.color(DIM),
+                                        Cell::Empty => text.color(NOTE_BLUE),
                                     }
                                 };
 
