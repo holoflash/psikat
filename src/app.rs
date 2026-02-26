@@ -18,6 +18,7 @@ pub enum Mode {
 pub enum SettingsField {
     Bpm,
     PatternLength,
+    Subdivision,
     Scale,
     Transpose,
     ExportWav,
@@ -26,7 +27,8 @@ pub enum SettingsField {
 impl SettingsField {
     pub fn next(&self) -> Self {
         match self {
-            SettingsField::Bpm => SettingsField::PatternLength,
+            SettingsField::Bpm => SettingsField::Subdivision,
+            SettingsField::Subdivision => SettingsField::PatternLength,
             SettingsField::PatternLength => SettingsField::Scale,
             SettingsField::Scale => SettingsField::Transpose,
             SettingsField::Transpose => SettingsField::ExportWav,
@@ -37,7 +39,8 @@ impl SettingsField {
     pub fn prev(&self) -> Self {
         match self {
             SettingsField::Bpm => SettingsField::ExportWav,
-            SettingsField::PatternLength => SettingsField::Bpm,
+            SettingsField::Subdivision => SettingsField::Bpm,
+            SettingsField::PatternLength => SettingsField::Subdivision,
             SettingsField::Scale => SettingsField::PatternLength,
             SettingsField::Transpose => SettingsField::Scale,
             SettingsField::ExportWav => SettingsField::Transpose,
@@ -55,6 +58,7 @@ pub struct App {
     pub playing: bool,
     pub playback_row: usize,
     pub bpm: u16,
+    pub subdivision: usize,
     pub audio: AudioEngine,
     pub settings_field: SettingsField,
     pub scale_index: ScaleIndex,
@@ -75,6 +79,7 @@ impl App {
             playing: false,
             playback_row: 0,
             bpm: 120,
+            subdivision: 4,
             audio: AudioEngine::new(),
             settings_field: SettingsField::Bpm,
             scale_index: ScaleIndex::default(),
@@ -268,6 +273,9 @@ impl App {
             self.settings_field = self.settings_field.prev();
         } else if input.key_pressed(Key::ArrowRight) {
             match self.settings_field {
+                SettingsField::Subdivision => {
+                    self.subdivision = (self.subdivision + 1).min(64);
+                }
                 SettingsField::Bpm => {
                     self.bpm = (self.bpm + 1).min(300);
                 }
@@ -285,6 +293,9 @@ impl App {
             }
         } else if input.key_pressed(Key::ArrowLeft) {
             match self.settings_field {
+                SettingsField::Subdivision => {
+                    self.subdivision = self.subdivision.saturating_sub(1).max(2);
+                }
                 SettingsField::Bpm => {
                     self.bpm = self.bpm.saturating_sub(1).max(20);
                 }

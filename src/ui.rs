@@ -88,6 +88,12 @@ fn draw_header(ctx: &egui::Context, app: &App) {
                         .color(COLOR_TEXT),
                 );
                 ui.add_space(12.0);
+                ui.label(
+                    RichText::new(format!("Division:{}", app.subdivision))
+                        .font(FontId::monospace(13.0))
+                        .color(COLOR_TEXT),
+                );
+                ui.add_space(12.0);
 
                 let root = root_name(app.transpose);
                 let scale_name = app.scale_index.scale().name;
@@ -170,6 +176,13 @@ fn draw_settings_panel(ctx: &egui::Context, app: &mut App) {
                 "BPM",
                 &format!("{:>3}", app.bpm),
                 app.settings_field == SettingsField::Bpm,
+            );
+            ui.add_space(6.0);
+            settings_row(
+                ui,
+                "Division",
+                &format!("{:>3}", app.subdivision),
+                app.settings_field == SettingsField::Subdivision,
             );
             ui.add_space(6.0);
             settings_row(
@@ -354,7 +367,7 @@ fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                     for row in 0..app.pattern.rows {
                         ui.horizontal(|ui| {
                             let is_playback_row = app.playing && row == app.playback_row;
-                            let is_subdivision = row.is_multiple_of(4);
+                            let is_subdivision = row.is_multiple_of(app.subdivision);
 
                             let row_bg_color = if is_playback_row {
                                 COLOR_PATTERN_PLAYBACK_HIGHLIGHT
