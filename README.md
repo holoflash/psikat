@@ -21,10 +21,10 @@ All features are subject to change without notice before version 1.0.0
 - [x] BPM control
 - [x] Pattern length control
 - [x] Transpose control
+- [x] Instrument/Synth editing
 - [ ] Multiple color themes
 - [ ] More sensible default settings
 - [ ] Stable audio playback
-- [ ] Instrument/Synth editing
 - [ ] Effects channels
 - [ ] Patterns
 - [ ] Keybinding settings

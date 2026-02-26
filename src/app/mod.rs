@@ -150,14 +150,21 @@ impl App {
     }
 
     pub fn do_export(&mut self) {
-        let path = std::path::PathBuf::from("output.wav");
-        match export::export_wav(&self.pattern, self.bpm, &path, &self.channel_settings) {
-            Ok(()) => {
-                self.status_message = Some(format!("Exported to {}", path.display()));
+        let mut dialog = rfd::FileDialog::new()
+            .add_filter("WAV Audio", &["wav"])
+            .set_file_name("new_song.wav")
+            .set_title("Export WAV")
+            .set_can_create_directories(true);
+
+        if let Some(home) = dirs::home_dir() {
+            dialog = dialog.set_directory(home);
+        }
+
+        if let Some(mut path) = dialog.save_file() {
+            if path.extension().is_none() {
+                path.set_extension("wav");
             }
-            Err(e) => {
-                self.status_message = Some(format!("Export failed: {}", e));
-            }
+            let _ = export::export_wav(&self.pattern, self.bpm, &path, &self.channel_settings);
         }
     }
 
