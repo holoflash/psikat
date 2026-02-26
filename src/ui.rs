@@ -5,30 +5,31 @@ use crate::pattern::Cell;
 use crate::scale::root_name;
 use crate::synth::CHANNEL_INSTRUMENTS;
 
-const COLOR_LAYOUT_BG_DARK: Color32 = Color32::from_rgb(65, 65, 86);
-const COLOR_LAYOUT_BG_PANEL: Color32 = Color32::from_rgb(170, 170, 170);
+const COLOR_LAYOUT_BG_DARK: Color32 = Color32::from_rgb(18, 16, 28);
+const COLOR_LAYOUT_BG_PANEL: Color32 = Color32::from_rgb(26, 23, 38);
 
-const COLOR_LAYOUT_BORDER: Color32 = Color32::from_rgb(145, 145, 161);
-const COLOR_LAYOUT_BORDER_ACTIVE: Color32 = Color32::from_rgb(255, 255, 255);
+const COLOR_LAYOUT_BORDER: Color32 = Color32::from_rgb(120, 100, 60);
+const COLOR_LAYOUT_BORDER_ACTIVE: Color32 = Color32::from_rgb(210, 185, 120);
 
-const COLOR_TEXT_DIM: Color32 = Color32::from_rgb(145, 145, 161);
-const COLOR_TEXT: Color32 = Color32::from_rgb(0, 0, 0);
+const COLOR_TEXT_DIM: Color32 = Color32::from_rgb(110, 95, 70);
+const COLOR_TEXT: Color32 = Color32::from_rgb(210, 190, 140);
 
-const COLOR_MODE_EDIT: Color32 = Color32::from_rgb(0, 0, 0);
-const COLOR_MODE_SETTINGS: Color32 = Color32::from_rgb(0, 0, 0);
-const COLOR_MODE_PLAYING: Color32 = Color32::from_rgb(0, 0, 0);
+const COLOR_MODE_EDIT: Color32 = Color32::from_rgb(210, 190, 140);
+const COLOR_MODE_SETTINGS: Color32 = Color32::from_rgb(190, 170, 120);
+const COLOR_MODE_PLAYING: Color32 = Color32::from_rgb(230, 205, 140);
 
-const COLOR_ERROR: Color32 = Color32::from_rgb(255, 86, 85);
-const COLOR_PATTERN_NOTE: Color32 = Color32::from_rgb(255, 255, 85);
-const COLOR_PATTERN_NOTE_OFF: Color32 = Color32::from_rgb(255, 86, 85);
-const COLOR_PATTERN_CURSOR_BG: Color32 = Color32::from_rgb(93, 93, 143);
-const COLOR_PATTERN_CURSOR_TEXT: Color32 = Color32::from_rgb(255, 255, 255);
+const COLOR_ERROR: Color32 = Color32::from_rgb(220, 80, 70);
+const COLOR_PATTERN_NOTE: Color32 = Color32::from_rgb(210, 190, 130);
+const COLOR_PATTERN_NOTE_OFF: Color32 = Color32::from_rgb(200, 130, 120);
+const COLOR_PATTERN_SUBDIVISION: Color32 = Color32::from_rgb(32, 28, 48);
+const COLOR_PATTERN_CURSOR_BG: Color32 = Color32::from_rgb(140, 115, 60);
+const COLOR_PATTERN_CURSOR_TEXT: Color32 = Color32::from_rgb(255, 250, 235);
 
-const COLOR_PATTERN_PLAYBACK_HIGHLIGHT: Color32 = Color32::from_rgb(93, 93, 143);
-const COLOR_PATTERN_PLAYBACK_TEXT: Color32 = Color32::from_rgb(255, 255, 255);
+const COLOR_PATTERN_PLAYBACK_HIGHLIGHT: Color32 = Color32::from_rgb(90, 75, 40);
+const COLOR_PATTERN_PLAYBACK_TEXT: Color32 = Color32::from_rgb(255, 245, 220);
 
-const COLOR_PATTERN_SELECTION_BG: Color32 = Color32::from_rgb(80, 80, 140);
-const COLOR_PATTERN_SELECTION_TEXT: Color32 = Color32::from_rgb(220, 220, 255);
+const COLOR_PATTERN_SELECTION_BG: Color32 = Color32::from_rgb(100, 85, 50);
+const COLOR_PATTERN_SELECTION_TEXT: Color32 = Color32::from_rgb(245, 235, 200);
 
 const INST_COLORS: [Color32; 4] = [
     COLOR_PATTERN_NOTE,
@@ -353,16 +354,22 @@ fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                     for row in 0..app.pattern.rows {
                         ui.horizontal(|ui| {
                             let is_playback_row = app.playing && row == app.playback_row;
+                            let is_subdivision = row.is_multiple_of(4);
+
+                            let row_bg_color = if is_playback_row {
+                                COLOR_PATTERN_PLAYBACK_HIGHLIGHT
+                            } else if is_subdivision {
+                                COLOR_PATTERN_SUBDIVISION
+                            } else {
+                                egui::Color32::TRANSPARENT
+                            };
+
                             let row_text_color = if is_playback_row {
                                 COLOR_PATTERN_PLAYBACK_TEXT
                             } else {
                                 COLOR_PATTERN_NOTE
                             };
-                            let row_bg_color = if is_playback_row {
-                                COLOR_PATTERN_PLAYBACK_HIGHLIGHT
-                            } else {
-                                egui::Color32::TRANSPARENT
-                            };
+
                             ui.label(
                                 RichText::new(format!("  {:02} ", row + 1))
                                     .font(FontId::monospace(13.0))
@@ -415,13 +422,16 @@ fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                                     match cell {
                                         Cell::NoteOn(_) => RichText::new(&cell_text)
                                             .font(FontId::monospace(13.0))
-                                            .color(COLOR_PATTERN_NOTE),
+                                            .color(COLOR_PATTERN_NOTE)
+                                            .background_color(row_bg_color),
                                         Cell::NoteOff => RichText::new(&cell_text)
                                             .font(FontId::monospace(13.0))
-                                            .color(COLOR_PATTERN_NOTE_OFF),
+                                            .color(COLOR_PATTERN_NOTE_OFF)
+                                            .background_color(row_bg_color),
                                         Cell::Empty => RichText::new(&cell_text)
                                             .font(FontId::monospace(13.0))
-                                            .color(COLOR_PATTERN_NOTE),
+                                            .color(COLOR_PATTERN_NOTE)
+                                            .background_color(row_bg_color),
                                     }
                                 };
 
@@ -429,13 +439,15 @@ fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                                     ui.label(
                                         RichText::new(left)
                                             .font(FontId::monospace(13.0))
-                                            .color(COLOR_TEXT_DIM),
+                                            .color(COLOR_TEXT_DIM)
+                                            .background_color(row_bg_color),
                                     );
                                     let response = ui.label(note_text);
                                     ui.label(
                                         RichText::new(right)
                                             .font(FontId::monospace(13.0))
-                                            .color(COLOR_TEXT_DIM),
+                                            .color(COLOR_TEXT_DIM)
+                                            .background_color(row_bg_color),
                                     );
 
                                     if response.clicked() {
