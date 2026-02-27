@@ -49,43 +49,107 @@ impl App {
         }
 
         let alt = input.modifiers.alt;
+        let shift = input.modifiers.shift;
 
         let arrow_pressed = input.key_pressed(Key::ArrowUp)
             || input.key_pressed(Key::ArrowDown)
             || input.key_pressed(Key::ArrowLeft)
             || input.key_pressed(Key::ArrowRight);
 
-        if arrow_pressed && alt && self.selection_anchor.is_none() {
+        if arrow_pressed && shift {
+            let (dr, dc): (isize, isize) = if input.key_pressed(Key::ArrowUp) {
+                (-1, 0)
+            } else if input.key_pressed(Key::ArrowDown) {
+                (1, 0)
+            } else if input.key_pressed(Key::ArrowLeft) {
+                (0, -1)
+            } else {
+                (0, 1)
+            };
+
+            if let Some((min_ch, max_ch, min_row, max_row)) = self.selection_bounds() {
+                let new_min_row = min_row as isize + dr;
+                let new_max_row = max_row as isize + dr;
+                let new_min_ch = min_ch as isize + dc;
+                let new_max_ch = max_ch as isize + dc;
+
+                if new_min_row >= 0
+                    && new_max_row < self.pattern.rows as isize
+                    && new_min_ch >= 0
+                    && new_max_ch < self.pattern.channels as isize
+                {
+                    let mut cells = Vec::new();
+                    for ch in min_ch..=max_ch {
+                        for row in min_row..=max_row {
+                            cells.push((ch, row, self.pattern.get(ch, row)));
+                            self.pattern.clear(ch, row);
+                        }
+                    }
+                    for (ch, row, cell) in cells {
+                        let new_ch = (ch as isize + dc) as usize;
+                        let new_row = (row as isize + dr) as usize;
+                        self.pattern.set(new_ch, new_row, cell);
+                    }
+                    self.cursor_channel = (self.cursor_channel as isize + dc) as usize;
+                    self.cursor_row = (self.cursor_row as isize + dr) as usize;
+                    if let Some((ach, arow)) = self.selection_anchor.as_mut() {
+                        *ach = (*ach as isize + dc) as usize;
+                        *arow = (*arow as isize + dr) as usize;
+                    }
+                }
+            } else {
+                let new_row = self.cursor_row as isize + dr;
+                let new_ch = self.cursor_channel as isize + dc;
+
+                if new_row >= 0
+                    && new_row < self.pattern.rows as isize
+                    && new_ch >= 0
+                    && new_ch < self.pattern.channels as isize
+                {
+                    let cell = self.pattern.get(self.cursor_channel, self.cursor_row);
+                    self.pattern.clear(self.cursor_channel, self.cursor_row);
+                    let new_ch = new_ch as usize;
+                    let new_row = new_row as usize;
+                    self.pattern.set(new_ch, new_row, cell);
+                    self.cursor_channel = new_ch;
+                    self.cursor_row = new_row;
+                }
+            }
+        } else if arrow_pressed && alt && self.selection_anchor.is_none() {
             self.selection_anchor = Some((self.cursor_channel, self.cursor_row));
         } else if arrow_pressed && !alt {
             self.clear_selection();
         }
 
-        if input.key_pressed(Key::ArrowUp) {
-            if self.cursor_row > 0 {
-                self.cursor_row -= 1;
-            } else {
-                self.cursor_row = self.pattern.rows - 1;
+        if arrow_pressed && !shift {
+            if input.key_pressed(Key::ArrowUp) {
+                if self.cursor_row > 0 {
+                    self.cursor_row -= 1;
+                } else {
+                    self.cursor_row = self.pattern.rows - 1;
+                }
+            } else if input.key_pressed(Key::ArrowDown) {
+                if self.cursor_row < self.pattern.rows - 1 {
+                    self.cursor_row += 1;
+                } else {
+                    self.cursor_row = 0;
+                }
+            } else if input.key_pressed(Key::ArrowLeft) {
+                if self.cursor_channel > 0 {
+                    self.cursor_channel -= 1;
+                } else {
+                    self.cursor_channel = self.pattern.channels - 1;
+                }
+            } else if input.key_pressed(Key::ArrowRight) {
+                if self.cursor_channel < self.pattern.channels - 1 {
+                    self.cursor_channel += 1;
+                } else {
+                    self.cursor_channel = 0;
+                }
             }
-        } else if input.key_pressed(Key::ArrowDown) {
-            if self.cursor_row < self.pattern.rows - 1 {
-                self.cursor_row += 1;
-            } else {
-                self.cursor_row = 0;
-            }
-        } else if input.key_pressed(Key::ArrowLeft) {
-            if self.cursor_channel > 0 {
-                self.cursor_channel -= 1;
-            } else {
-                self.cursor_channel = self.pattern.channels - 1;
-            }
-        } else if input.key_pressed(Key::ArrowRight) {
-            if self.cursor_channel < self.pattern.channels - 1 {
-                self.cursor_channel += 1;
-            } else {
-                self.cursor_channel = 0;
-            }
-        } else if input.key_pressed(Key::Delete) || input.key_pressed(Key::Backspace) {
+        }
+
+        if input.key_pressed(Key::Delete) || input.key_pressed(Key::Backspace) {
             if let Some((min_ch, max_ch, min_row, max_row)) = self.selection_bounds() {
                 for ch in min_ch..=max_ch {
                     for row in min_row..=max_row {

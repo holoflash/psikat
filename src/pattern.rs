@@ -59,8 +59,10 @@ impl Pattern {
     }
 
     pub fn resize(&mut self, new_rows: usize) {
-        for ch in self.data.iter_mut() {
-            ch.resize(new_rows, Cell::Empty);
+        if new_rows > self.data[0].len() {
+            for ch in self.data.iter_mut() {
+                ch.resize(new_rows, Cell::Empty);
+            }
         }
         self.rows = new_rows;
     }
