@@ -117,7 +117,6 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                                     Cell::Empty => "···".to_string(),
                                 };
 
-                                let left = "│ ";
                                 let right = " ";
 
                                 let note_text = if is_cursor {
@@ -153,19 +152,53 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                                     }
                                 };
 
+                                let cell_bg = if is_cursor {
+                                    COLOR_PATTERN_CURSOR_BG
+                                } else if is_selected {
+                                    COLOR_PATTERN_SELECTION_BG
+                                } else {
+                                    row_bg_color
+                                };
+
                                 ui.horizontal(|ui| {
+                                    let prev_selected = ch > 0
+                                        && sel_bounds.is_some_and(
+                                            |(min_ch, max_ch, min_row, max_row)| {
+                                                (ch - 1) >= min_ch
+                                                    && (ch - 1) <= max_ch
+                                                    && row >= min_row
+                                                    && row <= max_row
+                                            },
+                                        );
+                                    let prev_cursor = ch > 0
+                                        && app.mode == Mode::Edit
+                                        && (ch - 1) == app.cursor_channel
+                                        && row == app.cursor_row;
+                                    let sep_bg =
+                                        if is_cursor || is_selected || prev_selected || prev_cursor
+                                        {
+                                            egui::Color32::TRANSPARENT
+                                        } else {
+                                            row_bg_color
+                                        };
                                     ui.label(
-                                        RichText::new(left)
+                                        RichText::new("│")
                                             .font(FontId::monospace(13.0))
                                             .color(COLOR_TEXT_DIM)
-                                            .background_color(row_bg_color),
+                                            .background_color(sep_bg),
+                                    );
+                                    ui.label(
+                                        RichText::new(" ")
+                                            .font(FontId::monospace(13.0))
+                                            .color(COLOR_TEXT_DIM)
+                                            .background_color(cell_bg),
                                     );
                                     let response = ui.label(note_text);
                                     ui.label(
                                         RichText::new(right)
                                             .font(FontId::monospace(13.0))
                                             .color(COLOR_TEXT_DIM)
-                                            .background_color(row_bg_color),
+                                            .background_color(cell_bg),
                                     );
 
                                     if response.clicked() {

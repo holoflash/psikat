@@ -27,13 +27,13 @@ pub const COLOR_ERROR: Color32 = Color32::from_rgb(220, 80, 70);
 pub const COLOR_PATTERN_NOTE: Color32 = Color32::from_rgb(210, 190, 130);
 pub const COLOR_PATTERN_NOTE_OFF: Color32 = Color32::from_rgb(200, 130, 120);
 pub const COLOR_PATTERN_SUBDIVISION: Color32 = Color32::from_rgb(32, 28, 48);
-pub const COLOR_PATTERN_CURSOR_BG: Color32 = Color32::from_rgb(140, 115, 60);
-pub const COLOR_PATTERN_CURSOR_TEXT: Color32 = Color32::from_rgb(255, 250, 235);
+pub const COLOR_PATTERN_CURSOR_BG: Color32 = Color32::from_rgb(160, 115, 35);
+pub const COLOR_PATTERN_CURSOR_TEXT: Color32 = Color32::from_rgb(255, 248, 225);
 
 pub const COLOR_PATTERN_PLAYBACK_HIGHLIGHT: Color32 = Color32::from_rgb(90, 75, 40);
 pub const COLOR_PATTERN_PLAYBACK_TEXT: Color32 = Color32::from_rgb(255, 245, 220);
 
-pub const COLOR_PATTERN_SELECTION_BG: Color32 = Color32::from_rgb(100, 85, 50);
+pub const COLOR_PATTERN_SELECTION_BG: Color32 = Color32::from_rgb(110, 85, 28);
 pub const COLOR_PATTERN_SELECTION_TEXT: Color32 = Color32::from_rgb(245, 235, 200);
 
 pub const INST_COLORS: [Color32; 4] = [
