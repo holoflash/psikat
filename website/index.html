@@ -3,15 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PSIKAT — A Lightweight Music Tracker</title>
+    <title>psikat — A free, open-source, cross-platform music tracker.</title>
     <meta
       name="description"
-      content="PSIKAT is a lightweight cross-platform music tracker built with Rust. Currently under development."
+      content="psikat is a free, open-source, cross-platform music tracker built with Rust. Currently under development."
     />
-    <meta property="og:title" content="PSIKAT — A Lightweight Music Tracker" />
+    <meta
+      property="og:title"
+      content="psikat — A free, open-source, cross-platform music tracker."
+    />
     <meta
       property="og:description"
-      content="A lightweight cross-platform music tracker built with Rust."
+      content="A free, open-source, cross-platform music tracker built with Rust."
     />
     <meta property="og:image" content="screenshot.png" />
     <meta property="og:type" content="website" />
@@ -32,7 +35,7 @@
         --border: rgb(120, 100, 60);
         --border-active: rgb(210, 185, 120);
         --text: rgb(210, 190, 140);
-        --text-dim: rgb(110, 95, 70);
+        --text-dim: rgb(165, 143, 104);
         --subdivision: rgb(32, 28, 48);
       }
 
@@ -49,113 +52,119 @@
       }
 
       .container {
-        max-width: 780px;
         width: 100%;
-        padding: 3rem 1.5rem;
+        padding: 2rem;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 2rem;
       }
-
+      header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
       .logo {
-        width: 64px;
-        height: 64px;
+        width: 128px;
+        height: 128px;
         image-rendering: pixelated;
+        margin: 0;
       }
 
-      h1 {
-        font-size: 2rem;
+      pre {
+        font-size: 6px;
         font-weight: 700;
-        letter-spacing: 0.2em;
-        color: var(--text);
       }
 
       .tagline {
-        font-size: 0.85rem;
-        color: var(--text-dim);
         text-align: center;
+        font-size: 14px;
+        letter-spacing: 0.01em;
       }
 
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.4rem 1rem;
-        border: 1px solid var(--border);
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.1em;
-        color: var(--text);
-      }
-
-      .screenshot {
-        width: 100%;
-        border: 1px solid var(--border);
-        display: block;
-      }
-
-      .screenshot img {
+      img {
+        max-width: 800px;
         width: 100%;
         display: block;
       }
 
-      .links {
-        display: flex;
-        gap: 1.5rem;
-      }
-
-      .links a {
-        font-family: inherit;
+      #github-btn {
         font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
         color: var(--text);
         text-decoration: none;
-        padding: 0.5rem 1.25rem;
-        border: 1px solid var(--border);
+        padding: 0.3rem 0.5rem;
         background: var(--bg-panel);
+        border: 1px solid var(--border-active);
+        text-transform: uppercase;
+        cursor: pointer;
       }
 
-      .footer {
-        font-size: 0.7rem;
+      #github-btn:hover {
+        filter: brightness(1.25);
+        border-color: var(--border-active);
+      }
+
+      #github-btn:active {
+        border-top-color: rgba(0, 0, 0, 0.4);
+        border-left-color: rgba(0, 0, 0, 0.4);
+        border-bottom-color: var(--border-active);
+        border-right-color: var(--border-active);
+        filter: brightness(0.9);
+      }
+
+      footer {
+        font-size: 0.75rem;
         color: var(--text-dim);
       }
 
-      .footer a {
-        color: var(--text-dim);
+      footer a {
+        color: var(--text);
         text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
       }
     </style>
   </head>
   <body>
     <main class="container">
-      <img src="psikat.png" alt="PSIKAT" class="logo" />
-
-      <h1>PSIKAT</h1>
+      <header>
+        <img
+          src="psikat.png"
+          alt="PSIKAT"
+          class="logo"
+          height="128px"
+          width="128px"
+        />
+        <pre>
+  ▄███████▄    ▄████████  ▄█     ▄█   ▄█▄    ▄████████     ███     
+  ███    ███   ███    ███ ███    ███ ▄███▀   ███    ███ ▀█████████▄ 
+  ███    ███   ███    █▀  ███▌   ███▐██▀     ███    ███    ▀███▀▀██ 
+  ███    ███   ███        ███▌  ▄█████▀      ███    ███     ███   ▀ 
+▀█████████▀  ▀███████████ ███▌ ▀▀█████▄    ▀███████████     ███     
+  ███                 ███ ███    ███▐██▄     ███    ███     ███     
+  ███           ▄█    ███ ███    ███ ▀███▄   ███    ███     ███     
+▄████▀       ▄████████▀  █▀     ███   ▀█▀   ███    █▀     ▄████▀   
+                                ▀                                </pre
+        >
+      </header>
 
       <p class="tagline">
-        A lightweight cross-platform music tracker built with Rust
-      </p>
-
-      <div class="badge">UNDER DEVELOPMENT</div>
-
-      <div class="screenshot">
-        <img src="screenshot.png" alt="PSIKAT interface" />
-      </div>
-
-      <div class="links">
+        A free, open-source, cross-platform music tracker.<br /><br /><br />
         <a
-          href="https://github.com/holoflash/psikat/releases/latest"
-          id="download-btn"
-          >Download</a
+          href="https://github.com/holoflash/psikat"
+          id="github-btn"
+          title="GitHub"
+          >Under Active Development</a
         >
-        <a href="https://github.com/holoflash/psikat" id="github-btn">GitHub</a>
-      </div>
-
-      <p class="footer">
-        MIT License · <a href="https://github.com/holoflash">holoflash</a>
       </p>
+
+      <img src="screenshot.png" alt="psikat interface" width="800" />
+      <footer>
+        Made by <a href="https://github.com/holoflash">holoflash</a>
+      </footer>
     </main>
   </body>
 </html>
