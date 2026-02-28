@@ -14,6 +14,7 @@ use super::{
 const FONT: FontId = FontId::monospace(14.0);
 const ROW_HEIGHT: f32 = 18.0;
 const CELL_PAD: f32 = 8.0;
+const CELL_PAD_HALF: f32 = 4.0;
 
 fn fill_cell(ui: &egui::Ui, color: egui::Color32) {
     if color != egui::Color32::TRANSPARENT {
@@ -182,6 +183,7 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
 
             ui.add_space(CELL_PAD);
             let response = ui.label(note_rt);
+            ui.add_space(CELL_PAD_HALF);
 
             if response.clicked() {
                 app.cursor.sub_column = SubColumn::Note;
@@ -220,6 +222,7 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                 fx_rt = fx_rt.strong();
             }
 
+            ui.add_space(CELL_PAD_HALF);
             let response = ui.label(fx_rt);
             ui.add_space(CELL_PAD);
 
