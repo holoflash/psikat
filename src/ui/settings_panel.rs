@@ -44,6 +44,13 @@ pub fn draw_settings(ui: &mut egui::Ui, app: &App) {
             ui.add_space(6.0);
             settings_row(
                 ui,
+                "Step",
+                &app.step.to_string(),
+                sa && app.settings_field == SettingsField::Step,
+            );
+            ui.add_space(6.0);
+            settings_row(
+                ui,
                 "Length",
                 &app.pattern.rows.to_string(),
                 sa && app.settings_field == SettingsField::PatternLength,

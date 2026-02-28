@@ -176,8 +176,12 @@ impl App {
             self.clear_selection();
             self.pattern
                 .set(self.cursor_channel, self.cursor_row, Cell::NoteOff);
-            if self.cursor_row < self.pattern.rows - 1 {
-                self.cursor_row += 1;
+            if self.cursor_row < self.pattern.rows - 1
+                && self.cursor_row + self.step < self.pattern.rows
+            {
+                self.cursor_row += self.step;
+            } else {
+                self.cursor_row = self.pattern.rows - 1;
             }
         } else if cmnd && physical_key_pressed(input, Key::Period)
             || cmnd && physical_key_pressed(input, Key::Comma)
@@ -292,8 +296,12 @@ impl App {
                             );
                         }
                         self.clear_selection();
-                        if self.cursor_row < self.pattern.rows - 1 {
-                            self.cursor_row += 1;
+                        if self.cursor_row < self.pattern.rows - 1
+                            && self.cursor_row + self.step < self.pattern.rows
+                        {
+                            self.cursor_row += self.step;
+                        } else {
+                            self.cursor_row = self.pattern.rows - 1;
                         }
                     }
                     break;
@@ -326,6 +334,9 @@ impl App {
                 SettingsField::Subdivision => {
                     self.subdivision = (self.subdivision + 1).min(64);
                 }
+                SettingsField::Step => {
+                    self.step = (self.step + 1).min(64);
+                }
                 SettingsField::Bpm => {
                     self.bpm = (self.bpm + 1).min(666);
                 }
@@ -344,6 +355,9 @@ impl App {
             match self.settings_field {
                 SettingsField::Subdivision => {
                     self.subdivision = self.subdivision.saturating_sub(1).max(2);
+                }
+                SettingsField::Step => {
+                    self.step = self.step.saturating_sub(1).max(1);
                 }
                 SettingsField::Bpm => {
                     self.bpm = self.bpm.saturating_sub(1).max(20);

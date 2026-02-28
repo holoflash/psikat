@@ -59,6 +59,7 @@ pub enum SettingsField {
     Bpm,
     PatternLength,
     Subdivision,
+    Step,
     Scale,
     Transpose,
 }
@@ -67,7 +68,8 @@ impl SettingsField {
     pub fn next(&self) -> Self {
         match self {
             SettingsField::Bpm => SettingsField::Subdivision,
-            SettingsField::Subdivision => SettingsField::PatternLength,
+            SettingsField::Subdivision => SettingsField::Step,
+            SettingsField::Step => SettingsField::PatternLength,
             SettingsField::PatternLength => SettingsField::Scale,
             SettingsField::Scale => SettingsField::Transpose,
             SettingsField::Transpose => SettingsField::Bpm,
@@ -78,7 +80,8 @@ impl SettingsField {
         match self {
             SettingsField::Bpm => SettingsField::Transpose,
             SettingsField::Subdivision => SettingsField::Bpm,
-            SettingsField::PatternLength => SettingsField::Subdivision,
+            SettingsField::Step => SettingsField::Subdivision,
+            SettingsField::PatternLength => SettingsField::Step,
             SettingsField::Scale => SettingsField::PatternLength,
             SettingsField::Transpose => SettingsField::Scale,
         }
@@ -96,6 +99,7 @@ pub struct App {
     pub playback_row: usize,
     pub bpm: u16,
     pub subdivision: usize,
+    pub step: usize,
     pub audio: AudioEngine,
     pub settings_field: SettingsField,
     pub synth_field: SynthSettingsField,
@@ -125,6 +129,7 @@ impl App {
             playback_row: 0,
             bpm: 120,
             subdivision: 4,
+            step: 1,
             audio,
             settings_field: SettingsField::Bpm,
             synth_field: SynthSettingsField::Waveform,
