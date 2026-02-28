@@ -122,7 +122,7 @@ impl App {
         let audio = AudioEngine::new();
         let peak_level = audio.peak_level.clone();
         Self {
-            pattern: Pattern::new(8, 16),
+            pattern: Pattern::new(8, 32),
             cursor_channel: 0,
             cursor_row: 0,
             selection_anchor: None,

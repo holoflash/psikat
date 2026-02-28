@@ -1,5 +1,15 @@
 use eframe::egui::{self, Key};
 
+fn physical_key_pressed(input: &egui::InputState, key: Key) -> bool {
+    input.events.iter().any(|e| {
+        matches!(e, egui::Event::Key {
+            physical_key: Some(pk),
+            pressed: true,
+            ..
+        } if *pk == key)
+    })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KeyCombo {
     pub key: Key,
@@ -122,7 +132,7 @@ impl KeyBindings {
                 b.combo.shift == shift
                     && b.combo.ctrl == ctrl
                     && b.combo.alt == alt
-                    && input.key_pressed(b.combo.key)
+                    && physical_key_pressed(input, b.combo.key)
             })
             .map(|b| b.action)
             .collect()
