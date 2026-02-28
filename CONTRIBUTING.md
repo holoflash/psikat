@@ -16,6 +16,7 @@ Thank you for your interest in contributing!
 
 4. **Build and test**
    - Run `cargo build` to compile.
+   - Run `cargo clippy` and fix any linting errors/warnings.
    - Run `cargo test` to make sure all tests pass.
    - Run `cargo build --release` and confirm that the built version is working as expected.
 

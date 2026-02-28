@@ -63,6 +63,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        gap: 1rem;
         flex-direction: column;
       }
       .logo {
@@ -76,20 +77,25 @@
         font-weight: 100;
         font-family: fantasy;
       }
-
       .tagline {
         text-align: center;
         font-size: 14px;
         letter-spacing: 0.01em;
       }
-
       img {
         max-width: 800px;
         width: 100%;
         display: block;
+        margin: -1rem;
       }
-
-      #github-btn {
+      .links {
+        display: flex;
+        flex-direction: column;
+        width: fit-content;
+        align-items: center;
+        gap: 1rem;
+      }
+      .links a {
         font-size: 0.8rem;
         color: var(--text);
         text-decoration: none;
@@ -99,31 +105,40 @@
         text-transform: uppercase;
         cursor: pointer;
       }
-
-      #github-btn:hover {
+      .links a:hover {
         filter: brightness(1.25);
         border-color: var(--border-active);
       }
-
-      #github-btn:active {
+      .links a:active {
         border-top-color: rgba(0, 0, 0, 0.4);
         border-left-color: rgba(0, 0, 0, 0.4);
         border-bottom-color: var(--border-active);
         border-right-color: var(--border-active);
         filter: brightness(0.9);
       }
-
       footer {
         font-size: 0.75rem;
         color: var(--text-dim);
       }
-
       footer a {
         color: var(--text);
         text-decoration: none;
       }
-
       footer a:hover {
+        text-decoration: underline;
+      }
+      .description {
+        text-align: center;
+        font-size: 13px;
+        max-width: 520px;
+        line-height: 1.6;
+        color: var(--text-dim);
+      }
+      .description a {
+        color: var(--text);
+        text-decoration: none;
+      }
+      .description a:hover {
         text-decoration: underline;
       }
     </style>
@@ -132,19 +147,26 @@
     <main class="container">
       <header>
         <img src="psikat_full.png" alt="PSIKAT" class="logo" width="128px" />
+        <p class="tagline">
+          A free, open-source, cross-platform music tracker.
+        </p>
+        <p><strong>UNDER DEVELOPMENT</strong></p>
       </header>
 
-      <p class="tagline">
-        A free, open-source, cross-platform music tracker.<br /><br /><br />
-        <a
-          href="https://github.com/holoflash/psikat"
-          id="github-btn"
-          title="GitHub"
-          >Under Active Development</a
-        >
-      </p>
-
       <img src="screenshot.png" alt="psikat interface" width="800" />
+      <section class="links">
+        <a
+          href="https://github.com/holoflash/psikat/releases/latest"
+          title="GitHub"
+          >Download the latest release</a
+        >
+        <a href="https://github.com/holoflash/psikat/issues" title="GitHub"
+          >Report an issue or request a feature</a
+        >
+        <a href="https://github.com/holoflash/psikat/blob/main/CONTRIBUTING.md"
+          >Contribute</a
+        >
+      </section>
       <footer>
         Made by <a href="https://github.com/holoflash">holoflash</a>
       </footer>
