@@ -2,7 +2,7 @@ pub mod input;
 pub mod playback;
 
 use std::sync::Arc;
-use std::sync::atomic::AtomicU32;
+use std::sync::atomic::{AtomicU32, AtomicUsize};
 
 use crate::audio::AudioEngine;
 use crate::keybindings::KeyBindings;
@@ -110,8 +110,10 @@ pub struct App {
     pub cursor: Cursor,
     pub mode: Mode,
     pub playback: playback::PlaybackState,
+    pub playback_row_display: usize,
     pub audio: AudioEngine,
     pub peak_level: Arc<AtomicU32>,
+    pub playback_row: Arc<AtomicUsize>,
     pub display_peak: f32,
     pub settings_field: SettingsField,
     pub synth_field: SynthSettingsField,
@@ -124,6 +126,7 @@ impl App {
     pub fn new() -> Self {
         let audio = AudioEngine::new();
         let peak_level = audio.peak_level.clone();
+        let playback_row = audio.playback_row.clone();
         Self {
             project: Project::new(),
             cursor: Cursor {
@@ -137,8 +140,10 @@ impl App {
             },
             mode: Mode::Edit,
             playback: playback::PlaybackState::new(),
+            playback_row_display: 0,
             audio,
             peak_level,
+            playback_row,
             display_peak: 0.0,
             settings_field: SettingsField::Scale,
             synth_field: SynthSettingsField::Waveform,

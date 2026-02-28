@@ -102,7 +102,7 @@ fn draw_header_row(header: &mut egui_extras::TableRow<'_, '_>, app: &App, channe
 
 fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channels: usize) {
     let row_idx = row.index();
-    let is_playback_row = app.playback.playing && row_idx == app.playback.row;
+    let is_playback_row = app.playback.playing && row_idx == app.playback_row_display;
     let is_subdivision = row_idx.is_multiple_of(app.project.subdivision);
 
     let row_bg = if is_playback_row {

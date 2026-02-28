@@ -88,6 +88,47 @@ impl Waveform {
     }
 }
 
+impl Waveform {
+    pub fn sample(self, phase: f32) -> f32 {
+        match self {
+            Self::Sine => (std::f32::consts::TAU * phase).sin(),
+            Self::Triangle => 4.0f32.mul_add((phase - (phase + 0.5).floor()).abs(), -1.0),
+            Self::Square => {
+                if phase < 0.5 {
+                    1.0
+                } else {
+                    -1.0
+                }
+            }
+            Self::Saw => 2.0f32.mul_add(phase, -1.0),
+            Self::Noise => fastrand::f32().mul_add(2.0, -1.0),
+            Self::Sampler => 0.0,
+        }
+    }
+}
+
+impl Envelope {
+    pub fn amplitude(&self, time: f32, note_duration: f32) -> f32 {
+        let release_start = note_duration - self.release;
+
+        if self.attack > 0.0 && time < self.attack {
+            time / self.attack
+        } else if self.decay > 0.0 && time < self.attack + self.decay {
+            let decay_progress = (time - self.attack) / self.decay;
+            (1.0 - self.sustain).mul_add(-decay_progress, 1.0)
+        } else if time < release_start {
+            self.sustain
+        } else if self.release > 0.0 && time < note_duration {
+            let release_progress = (time - release_start) / self.release;
+            self.sustain * (1.0 - release_progress)
+        } else if time >= note_duration {
+            0.0
+        } else {
+            self.sustain
+        }
+    }
+}
+
 pub const DEFAULT_INSTRUMENTS: [Waveform; 8] = [
     Waveform::Square,
     Waveform::Saw,
