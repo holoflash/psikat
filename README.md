@@ -10,6 +10,14 @@ All features are subject to change without notice before version 1.0.0
 
 ### TODO
 
+- [ ] More effect commands
+- [ ] Synth Filter
+- [ ] Synth LFO
+- [ ] Patterns
+- [ ] Save/load from file
+- [ ] Sampler channel
+- [x] Pitch Up and Pitch Down effect 
+- [x] Effects channel
 - [x] Pattern editor
 - [x] Built-in synthesizer
 - [x] Real-time playback
@@ -22,14 +30,6 @@ All features are subject to change without notice before version 1.0.0
 - [x] Pattern length control
 - [x] Transpose control
 - [x] Instrument/Synth editing
-- [ ] Multiple color themes
-- [ ] More sensible default settings
-- [ ] Stable audio playback
-- [ ] Effects channels
-- [ ] Patterns
-- [ ] Keybinding settings
-- [ ] Save/load from file
-- [ ] Sampler channel
 
 ## Install
 
