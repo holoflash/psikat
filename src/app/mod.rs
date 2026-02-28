@@ -1,15 +1,12 @@
 pub mod input;
+pub mod playback;
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicU32;
-use std::time::{Duration, Instant};
 
 use crate::audio::AudioEngine;
-use crate::export;
 use crate::keybindings::KeyBindings;
-use crate::pattern::Pattern;
-use crate::scale::ScaleIndex;
-use crate::synth::ChannelSettings;
+use crate::project::Project;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
@@ -89,30 +86,25 @@ impl SettingsField {
     }
 }
 
-pub struct App {
-    pub pattern: Pattern,
-    pub cursor_channel: usize,
-    pub cursor_row: usize,
+pub struct Cursor {
+    pub channel: usize,
+    pub row: usize,
     pub selection_anchor: Option<(usize, usize)>,
     pub octave: u8,
-    pub mode: Mode,
-    pub playing: bool,
-    pub playback_row: usize,
-    pub bpm: u16,
-    pub subdivision: usize,
-    pub step: usize,
-    pub audio: AudioEngine,
-    pub settings_field: SettingsField,
-    pub synth_field: SynthSettingsField,
-    pub channel_settings: Vec<ChannelSettings>,
-    pub scale_index: ScaleIndex,
-    pub transpose: i8,
-    pub status_message: Option<String>,
     pub synth_channel: usize,
-    pub master_volume_db: f32,
+}
+
+pub struct App {
+    pub project: Project,
+    pub cursor: Cursor,
+    pub mode: Mode,
+    pub playback: playback::PlaybackState,
+    pub audio: AudioEngine,
     pub peak_level: Arc<AtomicU32>,
     pub display_peak: f32,
-    pub(crate) last_step_time: Option<Instant>,
+    pub settings_field: SettingsField,
+    pub synth_field: SynthSettingsField,
+    pub status_message: Option<String>,
     pub keybindings: KeyBindings,
     pub show_controls_modal: bool,
 }
@@ -122,59 +114,39 @@ impl App {
         let audio = AudioEngine::new();
         let peak_level = audio.peak_level.clone();
         Self {
-            pattern: Pattern::new(8, 32),
-            cursor_channel: 0,
-            cursor_row: 0,
-            selection_anchor: None,
-            octave: 4,
+            project: Project::new(),
+            cursor: Cursor {
+                channel: 0,
+                row: 0,
+                selection_anchor: None,
+                octave: 4,
+                synth_channel: 0,
+            },
             mode: Mode::Edit,
-            playing: false,
-            playback_row: 0,
-            bpm: 120,
-            subdivision: 4,
-            step: 1,
+            playback: playback::PlaybackState::new(),
             audio,
-            settings_field: SettingsField::Bpm,
-            synth_field: SynthSettingsField::Waveform,
-            channel_settings: ChannelSettings::defaults(),
-            scale_index: ScaleIndex::default(),
-            transpose: 0,
-            status_message: None,
-            synth_channel: 0,
-            master_volume_db: 0.0,
             peak_level,
             display_peak: 0.0,
-            last_step_time: None,
+            settings_field: SettingsField::Bpm,
+            synth_field: SynthSettingsField::Waveform,
+            status_message: None,
             keybindings: KeyBindings::defaults(),
             show_controls_modal: false,
         }
     }
 
     pub fn selection_bounds(&self) -> Option<(usize, usize, usize, usize)> {
-        self.selection_anchor.map(|(ach, arow)| {
-            let min_ch = ach.min(self.cursor_channel);
-            let max_ch = ach.max(self.cursor_channel);
-            let min_row = arow.min(self.cursor_row);
-            let max_row = arow.max(self.cursor_row);
+        self.cursor.selection_anchor.map(|(ach, arow)| {
+            let min_ch = ach.min(self.cursor.channel);
+            let max_ch = ach.max(self.cursor.channel);
+            let min_row = arow.min(self.cursor.row);
+            let max_row = arow.max(self.cursor.row);
             (min_ch, max_ch, min_row, max_row)
         })
     }
 
     pub const fn clear_selection(&mut self) {
-        self.selection_anchor = None;
-    }
-
-    pub fn step_duration(&self) -> Duration {
-        let seconds = 60.0 / f64::from(self.bpm) / 4.0;
-        Duration::from_secs_f64(seconds)
-    }
-
-    pub fn master_volume_linear(&self) -> f32 {
-        if self.master_volume_db <= -60.0 {
-            0.0
-        } else {
-            10.0_f32.powf(self.master_volume_db / 20.0)
-        }
+        self.cursor.selection_anchor = None;
     }
 
     pub fn do_export(&self) {
@@ -192,59 +164,20 @@ impl App {
             if path.extension().is_none() {
                 path.set_extension("wav");
             }
-            let _ = export::export_wav(
-                &self.pattern,
-                self.bpm,
+            let _ = crate::audio::export::export_wav(
+                &self.project.pattern,
+                self.project.bpm,
                 &path,
-                &self.channel_settings,
-                self.master_volume_linear(),
+                &self.project.channel_settings,
+                self.project.master_volume_linear(),
             );
-        }
-    }
-
-    pub(crate) fn start_playback(&mut self, from_cursor: bool) {
-        self.playing = true;
-        self.playback_row = if from_cursor { self.cursor_row } else { 0 };
-        self.last_step_time = Some(Instant::now());
-        self.audio.play_row(
-            &self.pattern,
-            self.playback_row,
-            self.step_duration(),
-            &self.channel_settings,
-            self.master_volume_linear(),
-        );
-    }
-
-    pub(crate) fn stop_playback(&mut self) {
-        self.playing = false;
-        self.last_step_time = None;
-        self.audio.stop_all();
-    }
-
-    pub fn tick(&mut self) {
-        if !self.playing {
-            return;
-        }
-
-        if let Some(last) = self.last_step_time
-            && last.elapsed() >= self.step_duration()
-        {
-            self.playback_row = (self.playback_row + 1) % self.pattern.rows;
-            self.audio.play_row(
-                &self.pattern,
-                self.playback_row,
-                self.step_duration(),
-                &self.channel_settings,
-                self.master_volume_linear(),
-            );
-            self.last_step_time = Some(Instant::now());
         }
     }
 
     pub const fn set_cursor(&mut self, channel: usize, row: usize) {
-        if channel < self.pattern.channels && row < self.pattern.rows {
-            self.cursor_channel = channel;
-            self.cursor_row = row;
+        if channel < self.project.pattern.channels && row < self.project.pattern.rows {
+            self.cursor.channel = channel;
+            self.cursor.row = row;
         }
     }
 }

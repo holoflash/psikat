@@ -1,6 +1,7 @@
 use eframe::egui::{self, FontId, RichText};
 
 use crate::app::App;
+use crate::keybindings::KeyBindings;
 
 use super::{
     COLOR_LAYOUT_BG_PANEL, COLOR_LAYOUT_BORDER_ACTIVE, COLOR_MODE_PLAYING, COLOR_TEXT,
@@ -26,8 +27,6 @@ pub fn draw_controls_modal(ctx: &egui::Context, app: &mut App) {
                 .corner_radius(4.0),
         )
         .show(ctx, |ui| {
-            let category_order = ["Global", "Mode", "Edit", "Settings"];
-
             egui::ScrollArea::vertical().show(ui, |ui| {
                 egui::Frame::new()
                     .inner_margin(egui::Margin {
@@ -37,84 +36,92 @@ pub fn draw_controls_modal(ctx: &egui::Context, app: &mut App) {
                         bottom: 0,
                     })
                     .show(ui, |ui| {
-                        for &cat in &category_order {
-                            let entries: Vec<_> = app
-                                .keybindings
-                                .bindings
-                                .iter()
-                                .filter(|b| b.category == cat)
-                                .collect();
-
-                            if entries.is_empty() {
-                                continue;
-                            }
-
-                            ui.add_space(12.0);
-                            ui.label(
-                                RichText::new(cat)
-                                    .font(FontId::monospace(13.0))
-                                    .color(COLOR_MODE_PLAYING)
-                                    .strong(),
-                            );
-                            ui.add_space(4.0);
-
-                            egui::Grid::new(format!("controls_grid_{cat}"))
-                                .num_columns(3)
-                                .striped(true)
-                                .spacing([12.0, 4.0])
-                                .show(ui, |ui| {
-                                    for binding in &entries {
-                                        ui.label(
-                                            RichText::new(binding.combo.label())
-                                                .font(FontId::monospace(12.0))
-                                                .color(COLOR_TEXT_ACTIVE),
-                                        );
-                                        ui.label(
-                                            RichText::new(binding.title)
-                                                .font(FontId::monospace(12.0))
-                                                .color(COLOR_TEXT),
-                                        );
-                                        ui.label(
-                                            RichText::new(binding.description)
-                                                .font(FontId::monospace(11.0))
-                                                .color(COLOR_TEXT_DIM),
-                                        );
-                                        ui.end_row();
-                                    }
-                                });
-                        }
-
-                        ui.add_space(12.0);
-                        ui.label(
-                            RichText::new("Notes")
-                                .font(FontId::monospace(13.0))
-                                .color(COLOR_MODE_PLAYING)
-                                .strong(),
-                        );
-                        ui.add_space(4.0);
-
-                        egui::Grid::new("controls_grid_notes")
-                            .num_columns(3)
-                            .spacing([12.0, 4.0])
-                            .show(ui, |ui| {
-                                ui.label(
-                                    RichText::new("Z .. P")
-                                        .font(FontId::monospace(12.0))
-                                        .color(COLOR_TEXT_ACTIVE),
-                                );
-                                ui.label(
-                                    RichText::new("Insert note")
-                                        .font(FontId::monospace(12.0))
-                                        .color(COLOR_TEXT),
-                                );
-                                ui.label(
-                                    RichText::new("Insert note at cursor using keyboard layout")
-                                        .font(FontId::monospace(11.0))
-                                        .color(COLOR_TEXT_DIM),
-                                );
-                                ui.end_row();
-                            });
+                        draw_keybinding_categories(ui, &app.keybindings);
+                        draw_notes_section(ui);
                     });
             });
+        });
+}
+
+fn draw_keybinding_categories(ui: &mut egui::Ui, keybindings: &KeyBindings) {
+    let category_order = ["Global", "Mode", "Edit", "Settings"];
+
+    for &cat in &category_order {
+        let entries: Vec<_> = keybindings
+            .bindings
+            .iter()
+            .filter(|b| b.category == cat)
+            .collect();
+
+        if entries.is_empty() {
+            continue;
+        }
+
+        ui.add_space(12.0);
+        ui.label(
+            RichText::new(cat)
+                .font(FontId::monospace(13.0))
+                .color(COLOR_MODE_PLAYING)
+                .strong(),
+        );
+        ui.add_space(4.0);
+
+        egui::Grid::new(format!("controls_grid_{cat}"))
+            .num_columns(3)
+            .striped(true)
+            .spacing([12.0, 4.0])
+            .show(ui, |ui| {
+                for binding in &entries {
+                    ui.label(
+                        RichText::new(binding.combo.label())
+                            .font(FontId::monospace(12.0))
+                            .color(COLOR_TEXT_ACTIVE),
+                    );
+                    ui.label(
+                        RichText::new(binding.title)
+                            .font(FontId::monospace(12.0))
+                            .color(COLOR_TEXT),
+                    );
+                    ui.label(
+                        RichText::new(binding.description)
+                            .font(FontId::monospace(11.0))
+                            .color(COLOR_TEXT_DIM),
+                    );
+                    ui.end_row();
+                }
+            });
+    }
+}
+
+fn draw_notes_section(ui: &mut egui::Ui) {
+    ui.add_space(12.0);
+    ui.label(
+        RichText::new("Notes")
+            .font(FontId::monospace(13.0))
+            .color(COLOR_MODE_PLAYING)
+            .strong(),
+    );
+    ui.add_space(4.0);
+
+    egui::Grid::new("controls_grid_notes")
+        .num_columns(3)
+        .spacing([12.0, 4.0])
+        .show(ui, |ui| {
+            ui.label(
+                RichText::new("Z .. P")
+                    .font(FontId::monospace(12.0))
+                    .color(COLOR_TEXT_ACTIVE),
+            );
+            ui.label(
+                RichText::new("Insert note")
+                    .font(FontId::monospace(12.0))
+                    .color(COLOR_TEXT),
+            );
+            ui.label(
+                RichText::new("Insert note at cursor using keyboard layout")
+                    .font(FontId::monospace(11.0))
+                    .color(COLOR_TEXT_DIM),
+            );
+            ui.end_row();
         });
 }

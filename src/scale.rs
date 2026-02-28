@@ -155,12 +155,12 @@ pub const fn root_name(transpose: i8) -> &'static str {
 }
 
 pub fn map_key_index_to_midi(key_index: u8, octave: u8, scale: &Scale, transpose: i8) -> u8 {
-    let len = scale.intervals.len() as u8;
+    let len = u8::try_from(scale.intervals.len()).expect("scale too large");
     let scale_octave = key_index / len;
     let scale_degree = key_index % len;
     let semitone = scale.intervals[scale_degree as usize];
 
     let midi =
         (i16::from(octave + scale_octave) + 1) * 12 + i16::from(semitone) + i16::from(transpose);
-    midi.clamp(0, 127) as u8
+    u8::try_from(midi.clamp(0, 127)).expect("clamped to 0..=127")
 }

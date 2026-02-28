@@ -10,6 +10,11 @@ use super::{
     COLOR_MODE_PLAYING, COLOR_MODE_SETTINGS, COLOR_PATTERN_CURSOR_TEXT, COLOR_TEXT, COLOR_TEXT_DIM,
 };
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+const fn clamp_to_u8(v: f32) -> u8 {
+    v.round().clamp(0.0, 255.0) as u8
+}
+
 pub fn draw_header(ctx: &egui::Context, app: &mut App) {
     let raw_peak = f32::from_bits(app.peak_level.swap(0, Ordering::Relaxed));
     let target = raw_peak.min(1.5);
@@ -37,26 +42,26 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 );
                 ui.add_space(16.0);
                 ui.label(
-                    RichText::new(format!("Oct:{}", app.octave))
+                    RichText::new(format!("Oct:{}", app.cursor.octave))
                         .font(FontId::monospace(13.0))
                         .color(COLOR_MODE_SETTINGS),
                 );
                 ui.add_space(12.0);
                 ui.label(
-                    RichText::new(format!("BPM:{}", app.bpm))
+                    RichText::new(format!("BPM:{}", app.project.bpm))
                         .font(FontId::monospace(13.0))
                         .color(COLOR_TEXT),
                 );
                 ui.add_space(12.0);
                 ui.label(
-                    RichText::new(format!("Division:{}", app.subdivision))
+                    RichText::new(format!("Division:{}", app.project.subdivision))
                         .font(FontId::monospace(13.0))
                         .color(COLOR_TEXT),
                 );
                 ui.add_space(12.0);
 
-                let root = root_name(app.transpose);
-                let scale_name = app.scale_index.scale().name;
+                let root = root_name(app.project.transpose);
+                let scale_name = app.project.scale_index.scale().name;
                 ui.label(
                     RichText::new(format!("{root} {scale_name}"))
                         .font(FontId::monospace(13.0))
@@ -68,7 +73,7 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 draw_volume_control(ui, app);
 
                 ui.add_space(4.0);
-                let (mode_str, mode_color) = if app.playing {
+                let (mode_str, mode_color) = if app.playback.playing {
                     ("PLAYING", COLOR_MODE_PLAYING)
                 } else {
                     match app.mode {
@@ -127,13 +132,13 @@ fn draw_volume_control(ui: &mut egui::Ui, app: &mut App) {
     );
 
     let slider_response = ui.add(
-        egui::Slider::new(&mut app.master_volume_db, -60.0..=6.0)
+        egui::Slider::new(&mut app.project.master_volume_db, -60.0..=6.0)
             .step_by(0.1)
             .clamping(egui::SliderClamping::Always),
     );
     slider_response.surrender_focus();
     if slider_response.double_clicked() {
-        app.master_volume_db = 0.0;
+        app.project.master_volume_db = 0.0;
     }
 
     ui.add_space(4.0);
@@ -165,13 +170,17 @@ fn draw_volume_control(ui: &mut egui::Ui, app: &mut App) {
         } else if peak_db < -3.0 {
             let t = ((peak_db + 12.0) / 9.0).clamp(0.0, 1.0);
             egui::Color32::from_rgb(
-                (60.0 + t * 180.0) as u8,
-                (190.0 + t * 30.0) as u8,
-                (80.0 - t * 50.0) as u8,
+                clamp_to_u8(60.0 + t * 180.0),
+                clamp_to_u8(190.0 + t * 30.0),
+                clamp_to_u8(80.0 - t * 50.0),
             )
         } else if peak_db < 0.0 {
             let t = ((peak_db + 3.0) / 3.0).clamp(0.0, 1.0);
-            egui::Color32::from_rgb((240.0 + t * 15.0) as u8, (220.0 - t * 120.0) as u8, 30)
+            egui::Color32::from_rgb(
+                clamp_to_u8(240.0 + t * 15.0),
+                clamp_to_u8(220.0 - t * 120.0),
+                30,
+            )
         } else {
             egui::Color32::from_rgb(255, 60, 50)
         };

@@ -138,6 +138,7 @@ impl KeyBindings {
             .collect()
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn defaults() -> Self {
         Self {
             bindings: vec![

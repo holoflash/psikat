@@ -3,7 +3,9 @@ use eframe::egui::{self, FontId, RichText, Stroke, Vec2};
 use crate::app::{App, Mode, SettingsField};
 
 use super::widgets::settings_row;
-use super::{COLOR_LAYOUT_BG_PANEL, COLOR_MODE_SETTINGS, COLOR_TEXT_DIM, COLOR_MODE_PLAYING, COLOR_ERROR};
+use super::{
+    COLOR_ERROR, COLOR_LAYOUT_BG_PANEL, COLOR_MODE_PLAYING, COLOR_MODE_SETTINGS, COLOR_TEXT_DIM,
+};
 
 pub fn draw_settings(ui: &mut egui::Ui, app: &App) {
     egui::Frame::new()
@@ -31,42 +33,42 @@ pub fn draw_settings(ui: &mut egui::Ui, app: &App) {
             settings_row(
                 ui,
                 "BPM",
-                &app.bpm.to_string(),
+                &app.project.bpm.to_string(),
                 sa && app.settings_field == SettingsField::Bpm,
             );
             ui.add_space(6.0);
             settings_row(
                 ui,
                 "Division",
-                &app.subdivision.to_string(),
+                &app.project.subdivision.to_string(),
                 sa && app.settings_field == SettingsField::Subdivision,
             );
             ui.add_space(6.0);
             settings_row(
                 ui,
                 "Step",
-                &app.step.to_string(),
+                &app.project.step.to_string(),
                 sa && app.settings_field == SettingsField::Step,
             );
             ui.add_space(6.0);
             settings_row(
                 ui,
                 "Length",
-                &app.pattern.rows.to_string(),
+                &app.project.pattern.rows.to_string(),
                 sa && app.settings_field == SettingsField::PatternLength,
             );
             ui.add_space(6.0);
             settings_row(
                 ui,
                 "Scale",
-                app.scale_index.scale().name,
+                app.project.scale_index.scale().name,
                 sa && app.settings_field == SettingsField::Scale,
             );
             ui.add_space(6.0);
             settings_row(
                 ui,
                 "Transpose",
-                &app.transpose.to_string(),
+                &app.project.transpose.to_string(),
                 sa && app.settings_field == SettingsField::Transpose,
             );
             if let Some(ref msg) = app.status_message {

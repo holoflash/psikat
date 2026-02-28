@@ -1,11 +1,9 @@
 mod app;
 mod audio;
-mod export;
 mod keybindings;
 mod keys;
-mod pattern;
+mod project;
 mod scale;
-mod synth;
 mod ui;
 
 use eframe::egui::{self, Color32, Stroke};
@@ -61,7 +59,7 @@ impl eframe::App for PsikatApp {
 
         ui::draw(ctx, &mut self.app);
 
-        if self.app.playing {
+        if self.app.playback.playing {
             ctx.request_repaint();
         }
     }

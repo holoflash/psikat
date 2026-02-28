@@ -11,8 +11,8 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &App) {
         .inner_margin(egui::Margin::symmetric(12, 10))
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
-            let ch = app.synth_channel;
-            let cs = &app.channel_settings[ch];
+            let ch = app.cursor.synth_channel;
+            let cs = &app.project.channel_settings[ch];
             let synth_active = app.mode == Mode::SynthEdit;
 
             ui.label(

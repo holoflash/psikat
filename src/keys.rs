@@ -1,6 +1,6 @@
 use eframe::egui::Key;
 
-use crate::pattern::Note;
+use crate::project::Note;
 use crate::scale::{Scale, map_key_index_to_midi};
 
 /// Map a keyboard key to a `Note` using the current scale.

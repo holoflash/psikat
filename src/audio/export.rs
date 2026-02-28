@@ -3,8 +3,9 @@ use std::time::Duration;
 
 use hound::{SampleFormat, WavSpec, WavWriter};
 
-use crate::pattern::{Cell, Pattern};
-use crate::synth::{ChannelSettings, SynthSource};
+use crate::project::{Cell, ChannelSettings, Pattern};
+
+use super::render_note;
 
 const SAMPLE_RATE: u32 = 44100;
 const BITS_PER_SAMPLE: u16 = 16;
@@ -18,7 +19,8 @@ pub fn export_wav(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let step_duration_secs = 60.0 / f64::from(bpm) / 4.0;
     let step_duration = Duration::from_secs_f64(step_duration_secs);
-    let samples_per_step = (step_duration_secs * f64::from(SAMPLE_RATE)) as usize;
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    let samples_per_step = (step_duration_secs * f64::from(SAMPLE_RATE)).round() as usize;
     let total_samples = samples_per_step * pattern.rows;
 
     let spec = WavSpec {
@@ -35,16 +37,11 @@ pub fn export_wav(
         for ch in 0..pattern.channels {
             if let Cell::NoteOn(note) = pattern.get(ch, row) {
                 let cs = &channel_settings[ch % channel_settings.len()];
-                let gate = pattern.gate_rows(ch, row);
-                let gate_duration = step_duration.mul_f32(gate as f32);
+                #[allow(clippy::cast_precision_loss)]
+                let gate_f64 = pattern.gate_rows(ch, row) as f64;
+                let gate_duration = step_duration.mul_f64(gate_f64);
                 let note_duration = gate_duration + Duration::from_secs_f32(cs.envelope.release);
-                let source = SynthSource::new(
-                    cs.waveform,
-                    note.frequency(),
-                    note_duration,
-                    cs.volume,
-                    cs.envelope,
-                );
+                let source = render_note(note, cs, note_duration);
 
                 for (i, sample) in source.enumerate() {
                     let pos = row_offset + i;
@@ -61,7 +58,8 @@ pub fn export_wav(
     for &sample in &buffer {
         let scaled = sample * master_volume;
         let clamped = scaled.clamp(-1.0, 1.0);
-        let value = (clamped * f32::from(i16::MAX)) as i16;
+        #[allow(clippy::cast_possible_truncation)]
+        let value = (clamped * f32::from(i16::MAX)).round() as i16;
         writer.write_sample(value)?;
     }
 

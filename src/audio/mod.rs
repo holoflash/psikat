@@ -1,3 +1,6 @@
+pub mod export;
+pub mod synth;
+
 use std::num::NonZero;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -5,8 +8,19 @@ use std::time::Duration;
 
 use rodio::{DeviceSinkBuilder, MixerDeviceSink, Source};
 
-use crate::pattern::{Cell, Pattern};
-use crate::synth::{ChannelSettings, SynthSource};
+use crate::project::{Cell, ChannelSettings, Note, Pattern};
+
+use synth::SynthSource;
+
+pub fn render_note(note: Note, cs: &ChannelSettings, duration: Duration) -> SynthSource {
+    SynthSource::new(
+        cs.waveform,
+        note.frequency(),
+        duration,
+        cs.volume,
+        cs.envelope,
+    )
+}
 
 pub struct PeakMonitor<S> {
     source: S,
@@ -100,17 +114,12 @@ impl AudioEngine {
             match pattern.get(ch, row) {
                 Cell::NoteOn(note) => {
                     let cs = &channel_settings[ch % channel_settings.len()];
-                    let gate = pattern.gate_rows(ch, row);
-                    let gate_duration = step_duration.mul_f32(gate as f32);
+                    #[allow(clippy::cast_precision_loss)]
+                    let gate_f64 = pattern.gate_rows(ch, row) as f64;
+                    let gate_duration = step_duration.mul_f64(gate_f64);
                     let note_duration =
                         gate_duration + Duration::from_secs_f32(cs.envelope.release);
-                    let source = SynthSource::new(
-                        cs.waveform,
-                        note.frequency(),
-                        note_duration,
-                        cs.volume,
-                        cs.envelope,
-                    );
+                    let source = render_note(note, cs, note_duration);
                     let monitored =
                         PeakMonitor::new(source.amplify(master_volume), self.peak_level.clone());
                     self.device_sink.as_ref().unwrap().mixer().add(monitored);
