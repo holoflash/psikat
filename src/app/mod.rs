@@ -112,7 +112,7 @@ impl SettingsField {
             Self::Bpm => Self::Subdivision,
             Self::Subdivision => Self::Step,
             Self::Step => Self::PatternLength,
-            Self::PatternLength => Self::Scale,
+            Self::PatternLength => Self::Transpose,
             Self::Transpose => Self::Scale,
         }
     }
@@ -124,7 +124,7 @@ impl SettingsField {
             Self::Subdivision => Self::Bpm,
             Self::Step => Self::Subdivision,
             Self::PatternLength => Self::Step,
-            Self::Transpose => Self::Scale,
+            Self::Transpose => Self::PatternLength,
         }
     }
 
