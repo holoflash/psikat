@@ -1,48 +1,15 @@
-pub type EffectCommand = Option<[u8; 4]>;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Effect {
+    pub kind: u8,
+    pub param: u8,
+}
+
+pub type EffectCommand = Option<Effect>;
 
 pub fn effect_display(cmd: EffectCommand) -> String {
-    cmd.map_or_else(
-        || "····".to_string(),
-        |bytes| {
-            let mut s = String::with_capacity(4);
-            for &b in &bytes {
-                s.push(if b.is_ascii_graphic() {
-                    b as char
-                } else {
-                    '·'
-                });
-            }
-            s
-        },
-    )
-}
-
-/// Parse a pitch-bend effect command.
-/// Returns `Some((semitones, steps))` for valid PU/PD commands, `None` otherwise.
-/// - `PUxy` = pitch up, `x` semitones in `y` steps (hex digits).
-/// - `PDxy` = pitch down, `x` semitones in `y` steps (hex digits).
-/// - Semitones are signed: positive for PU, negative for PD.
-/// - `PU00` / `PD00` = stop ongoing bend (returns `Some((0, 0))`).
-pub fn parse_pitch_bend(cmd: [u8; 4]) -> Option<(i8, u8)> {
-    if cmd[0] != b'P' {
-        return None;
-    }
-    let direction: i8 = match cmd[1] {
-        b'U' => 1,
-        b'D' => -1,
-        _ => return None,
-    };
-    let semitones = hex_digit(cmd[2])?;
-    let steps = hex_digit(cmd[3])?;
-    Some((direction * semitones as i8, steps))
-}
-
-const fn hex_digit(b: u8) -> Option<u8> {
-    match b {
-        b'0'..=b'9' => Some(b - b'0'),
-        b'A'..=b'F' => Some(b - b'A' + 10),
-        b'a'..=b'f' => Some(b - b'a' + 10),
-        _ => None,
+    match cmd {
+        Some(fx) => format!("{:X}{:02X}", fx.kind, fx.param),
+        None => "···".to_string(),
     }
 }
 
@@ -180,7 +147,10 @@ mod tests {
         let mut pat = Pattern::new(2, 8);
         assert_eq!(pat.get_effect(0, 0), None);
 
-        let cmd = Some([b'P', b'U', b'2', b'1']);
+        let cmd = Some(Effect {
+            kind: 1,
+            param: 0x20,
+        });
         pat.set_effect(0, 0, cmd);
         assert_eq!(pat.get_effect(0, 0), cmd);
 
@@ -190,19 +160,27 @@ mod tests {
 
     #[test]
     fn effect_display_formatting() {
-        assert_eq!(effect_display(None), "····");
-        assert_eq!(effect_display(Some([b'P', b'U', b'2', b'1'])), "PU21");
-        assert_eq!(effect_display(Some([b'P', b'D', b'A', b'F'])), "PDAF");
-    }
-
-    #[test]
-    fn pitch_bend_parsing() {
-        assert_eq!(parse_pitch_bend([b'P', b'U', b'2', b'1']), Some((2, 1)));
-        assert_eq!(parse_pitch_bend([b'P', b'D', b'3', b'4']), Some((-3, 4)));
-        assert_eq!(parse_pitch_bend([b'P', b'U', b'0', b'0']), Some((0, 0)));
-        assert_eq!(parse_pitch_bend([b'P', b'U', b'A', b'F']), Some((10, 15)));
-        assert_eq!(parse_pitch_bend([b'X', b'Y', b'0', b'0']), None);
-        assert_eq!(parse_pitch_bend([b'P', b'X', b'0', b'0']), None);
-        assert_eq!(parse_pitch_bend([b'P', b'U', b'G', b'0']), None);
+        assert_eq!(effect_display(None), "···");
+        assert_eq!(
+            effect_display(Some(Effect {
+                kind: 1,
+                param: 0xFF
+            })),
+            "1FF"
+        );
+        assert_eq!(
+            effect_display(Some(Effect {
+                kind: 0xA,
+                param: 0x04
+            })),
+            "A04"
+        );
+        assert_eq!(
+            effect_display(Some(Effect {
+                kind: 2,
+                param: 0x30
+            })),
+            "230"
+        );
     }
 }

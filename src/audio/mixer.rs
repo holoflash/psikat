@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use rodio::Source;
 
-use crate::project::{Cell, ChannelSettings, Envelope, SampleData, Waveform, parse_pitch_bend};
+use crate::project::{Cell, ChannelSettings, Effect, Envelope, SampleData, Waveform};
 
 pub const SAMPLE_RATE: u32 = 44100;
 const SAMPLE_RATE_F: f32 = SAMPLE_RATE as f32;
@@ -46,7 +46,7 @@ pub struct PatternSnapshot {
     pub channels: usize,
     pub rows: usize,
     data: Vec<Vec<Cell>>,
-    effects: Vec<Vec<Option<[u8; 4]>>>,
+    effects: Vec<Vec<Option<Effect>>>,
 }
 
 impl PatternSnapshot {
@@ -86,9 +86,8 @@ struct Channel {
     total_samples: u32,
     note_duration: f32,
     base_frequency: f32,
-    bend_target: f32,
-    bend_step_per_tick: f32,
-    bend_ticks_remaining: u16,
+    period: f32,
+    porta_speed: i16,
 }
 
 impl Channel {
@@ -113,10 +112,21 @@ impl Channel {
             total_samples: 0,
             note_duration: 0.0,
             base_frequency: 0.0,
-            bend_target: 0.0,
-            bend_step_per_tick: 0.0,
-            bend_ticks_remaining: 0,
+            period: 0.0,
+            porta_speed: 0,
         }
+    }
+
+    fn freq_to_period(freq: f32) -> f32 {
+        if freq > 0.0 {
+            7680.0 - (freq / 8.1758).log2() * 768.0
+        } else {
+            0.0
+        }
+    }
+
+    fn period_to_freq(period: f32) -> f32 {
+        8.1758 * 2.0_f32.powf((7680.0 - period) / 768.0)
     }
 
     fn trigger(
@@ -132,6 +142,7 @@ impl Channel {
         self.waveform = waveform;
         self.frequency = frequency;
         self.base_frequency = frequency;
+        self.period = Self::freq_to_period(frequency);
         self.volume = volume;
         self.envelope = envelope;
         self.phase = 0.0;
@@ -139,9 +150,7 @@ impl Channel {
         self.total_samples = total_samples;
         self.note_duration = total_samples as f32 / SAMPLE_RATE_F;
         self.noise_held = fastrand::f32().mul_add(2.0, -1.0);
-        self.bend_target = 0.0;
-        self.bend_step_per_tick = 0.0;
-        self.bend_ticks_remaining = 0;
+        self.porta_speed = 0;
 
         if waveform == Waveform::Sampler {
             if let Some(data) = sample_data {
@@ -214,14 +223,11 @@ impl Channel {
     }
 
     fn tick_update(&mut self) {
-        if !self.active || self.bend_ticks_remaining == 0 {
+        if !self.active || self.porta_speed == 0 {
             return;
         }
-        self.frequency += self.bend_step_per_tick;
-        self.bend_ticks_remaining -= 1;
-        if self.bend_ticks_remaining == 0 {
-            self.frequency = self.bend_target;
-        }
+        self.period = (self.period + self.porta_speed as f32).clamp(50.0, 7680.0);
+        self.frequency = Self::period_to_freq(self.period);
         if self.waveform == Waveform::Sampler
             && let Some(data) = self.sample_data.as_ref()
         {
@@ -229,20 +235,6 @@ impl Channel {
             let rate = f64::from(self.frequency) / f64::from(base_freq);
             self.sample_step = (f64::from(data.sample_rate) / f64::from(SAMPLE_RATE)) * rate;
         }
-    }
-
-    fn setup_pitch_bend(&mut self, semitones: i8, steps: u16, speed: u16) {
-        if semitones == 0 || steps == 0 {
-            self.bend_ticks_remaining = 0;
-            self.bend_step_per_tick = 0.0;
-            self.frequency = self.base_frequency;
-            return;
-        }
-        let target = self.base_frequency * (f32::from(semitones) / 12.0).exp2();
-        let total_ticks = steps * speed;
-        self.bend_target = target;
-        self.bend_step_per_tick = (target - self.frequency) / total_ticks as f32;
-        self.bend_ticks_remaining = total_ticks;
     }
 }
 
@@ -392,30 +384,26 @@ impl TrackerSource {
                         &cs.sample_data,
                         gate_samples + release_samples,
                     );
-
-                    if let Some(cmd) = effect
-                        && let Some((semitones, steps)) = parse_pitch_bend(cmd)
-                    {
-                        channel.setup_pitch_bend(semitones, steps as u16, self.speed);
-                    }
                 }
                 Cell::NoteOff => channel.note_off(),
-                Cell::Empty => {
-                    if let Some(cmd) = effect
-                        && let Some((semitones, steps)) = parse_pitch_bend(cmd)
-                    {
-                        channel.setup_pitch_bend(semitones, steps as u16, self.speed);
-                    }
+                Cell::Empty => {}
+            }
+
+            match effect {
+                Some(Effect { kind: 1, param }) => {
+                    channel.porta_speed = -(param as i16);
+                }
+                Some(Effect { kind: 2, param }) => {
+                    channel.porta_speed = param as i16;
+                }
+                _ => {
+                    channel.porta_speed = 0;
                 }
             }
         }
     }
 
     fn tick(&mut self) {
-        for ch in &mut self.channels {
-            ch.tick_update();
-        }
-
         self.tick_in_row += 1;
         if self.tick_in_row >= self.speed {
             self.tick_in_row = 0;
@@ -424,6 +412,10 @@ impl TrackerSource {
                 self.playback_row.store(self.current_row, Ordering::Relaxed);
             }
             self.process_row();
+        } else {
+            for ch in &mut self.channels {
+                ch.tick_update();
+            }
         }
     }
 }

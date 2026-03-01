@@ -467,60 +467,46 @@ impl App {
     }
 
     fn handle_effect_keys(&mut self, input: &egui::InputState) {
-        let effect_keys = [
-            (Key::A, b'A'),
-            (Key::B, b'B'),
-            (Key::C, b'C'),
-            (Key::D, b'D'),
-            (Key::E, b'E'),
-            (Key::F, b'F'),
-            (Key::G, b'G'),
-            (Key::H, b'H'),
-            (Key::I, b'I'),
-            (Key::J, b'J'),
-            (Key::K, b'K'),
-            (Key::L, b'L'),
-            (Key::M, b'M'),
-            (Key::N, b'N'),
-            (Key::O, b'O'),
-            (Key::P, b'P'),
-            (Key::Q, b'Q'),
-            (Key::R, b'R'),
-            (Key::S, b'S'),
-            (Key::T, b'T'),
-            (Key::U, b'U'),
-            (Key::V, b'V'),
-            (Key::W, b'W'),
-            (Key::X, b'X'),
-            (Key::Y, b'Y'),
-            (Key::Z, b'Z'),
-            (Key::Num0, b'0'),
-            (Key::Num1, b'1'),
-            (Key::Num2, b'2'),
-            (Key::Num3, b'3'),
-            (Key::Num4, b'4'),
-            (Key::Num5, b'5'),
-            (Key::Num6, b'6'),
-            (Key::Num7, b'7'),
-            (Key::Num8, b'8'),
-            (Key::Num9, b'9'),
+        let hex_keys = [
+            (Key::Num0, 0x0),
+            (Key::Num1, 0x1),
+            (Key::Num2, 0x2),
+            (Key::Num3, 0x3),
+            (Key::Num4, 0x4),
+            (Key::Num5, 0x5),
+            (Key::Num6, 0x6),
+            (Key::Num7, 0x7),
+            (Key::Num8, 0x8),
+            (Key::Num9, 0x9),
+            (Key::A, 0xA),
+            (Key::B, 0xB),
+            (Key::C, 0xC),
+            (Key::D, 0xD),
+            (Key::E, 0xE),
+            (Key::F, 0xF),
         ];
 
-        for &(key, byte) in &effect_keys {
+        for &(key, value) in &hex_keys {
             if input.key_pressed(key) {
                 let ch = self.cursor.channel;
                 let row = self.cursor.row;
                 let pos = self.cursor.effect_edit_pos;
 
-                let mut cmd = self
+                let mut fx = self
                     .project
                     .pattern
                     .get_effect(ch, row)
-                    .unwrap_or([b'.', b'.', b'.', b'.']);
-                cmd[pos] = byte;
-                self.project.pattern.set_effect(ch, row, Some(cmd));
+                    .unwrap_or(crate::project::Effect { kind: 0, param: 0 });
 
-                if pos < 3 {
+                match pos {
+                    0 => fx.kind = value,
+                    1 => fx.param = (fx.param & 0x0F) | (value << 4),
+                    _ => fx.param = (fx.param & 0xF0) | value,
+                }
+
+                self.project.pattern.set_effect(ch, row, Some(fx));
+
+                if pos < 2 {
                     self.cursor.effect_edit_pos = pos + 1;
                 } else {
                     self.cursor.effect_edit_pos = 0;

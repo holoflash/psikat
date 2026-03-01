@@ -9,16 +9,12 @@ struct CmdEntry {
 
 const COMMANDS: &[CmdEntry] = &[
     CmdEntry {
-        code: "PUxy",
-        description: "Pitch up x semitones in y steps",
+        code: "1xx",
+        description: "Portamento up (speed xx per tick)",
     },
     CmdEntry {
-        code: "PDxy",
-        description: "Pitch down x semitones in y steps",
-    },
-    CmdEntry {
-        code: "PU00",
-        description: "Stop ongoing pitch bend",
+        code: "2xx",
+        description: "Portamento down (speed xx per tick)",
     },
 ];
 
