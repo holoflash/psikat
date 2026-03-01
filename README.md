@@ -14,14 +14,20 @@ If you're looking for a great modern alternative, check out [**Furnace**](https:
 
 ### TODO
 
-- [ ] More effect commands
-- [ ] Synth Filter
+- [ ] Multi-pattern support with order table
+- [ ] Standard effects system (portamento, vibrato, arpeggio, volume slide, etc.)
+- [ ] Instrument model (multi-sample, volume/panning envelopes)
+- [ ] Sample loops (forward, ping-pong)
+- [ ] XM import
+- [ ] MOD import
+- [ ] Native project format save/load
+- [ ] XM export
+- [ ] Synth filter
 - [ ] Synth LFO
-- [ ] Patterns
-- [ ] Save/load from file
+- [ ] IT import
 - [x] Sampler channel
-- [x] Pitch Up and Pitch Down effect
-- [x] Effects channel
+- [x] Pitch bend effect
+- [x] Effects column
 - [x] Pattern editor
 - [x] Built-in synthesizer
 - [x] Real-time playback
