@@ -36,5 +36,12 @@ impl App {
         }
         let row = self.playback_row.load(Ordering::Relaxed);
         self.playback_row_display = row;
+
+        self.audio.update_settings(
+            &self.project.channel_settings,
+            self.project.bpm,
+            self.project.master_volume_linear(),
+        );
+        self.audio.update_pattern(&self.project.pattern);
     }
 }

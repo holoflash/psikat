@@ -122,6 +122,27 @@ impl AudioEngine {
         let _ = self.sender.send(Command::Stop);
     }
 
+    pub fn update_settings(
+        &self,
+        channel_settings: &[ChannelSettings],
+        bpm: u16,
+        master_volume: f32,
+    ) {
+        let settings = Arc::new(PlaybackSettings {
+            bpm,
+            master_volume,
+            channel_settings: channel_settings.to_vec(),
+        });
+        let _ = self.sender.send(Command::UpdateSettings { settings });
+    }
+
+    pub fn update_pattern(&self, pattern: &Pattern) {
+        let snapshot = Arc::new(PatternSnapshot::from_pattern(pattern));
+        let _ = self
+            .sender
+            .send(Command::UpdatePattern { pattern: snapshot });
+    }
+
     pub fn preview_note(
         &self,
         freq: f32,

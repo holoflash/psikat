@@ -20,6 +20,12 @@ pub enum Command {
         settings: Arc<PlaybackSettings>,
     },
     Stop,
+    UpdateSettings {
+        settings: Arc<PlaybackSettings>,
+    },
+    UpdatePattern {
+        pattern: Arc<PatternSnapshot>,
+    },
     PreviewNote {
         frequency: f32,
         waveform: Waveform,
@@ -287,6 +293,22 @@ impl TrackerSource {
                     self.playing = false;
                     for ch in &mut self.channels {
                         ch.active = false;
+                    }
+                }
+                Command::UpdateSettings { settings } => {
+                    if self.playing {
+                        self.samples_per_tick =
+                            f64::from(SAMPLE_RATE) * 5.0 / (f64::from(settings.bpm) * 2.0);
+                        self.master_volume = settings.master_volume;
+                        self.settings = Some(settings);
+                    }
+                }
+                Command::UpdatePattern { pattern } => {
+                    if self.playing {
+                        if self.current_row >= pattern.rows {
+                            self.current_row = 0;
+                        }
+                        self.pattern = Some(pattern);
                     }
                 }
                 Command::PreviewNote {
