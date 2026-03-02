@@ -19,7 +19,7 @@ impl App {
         self.audio.start_playback(
             row,
             &self.project.pattern,
-            &self.project.channel_settings,
+            &self.project.instruments,
             self.project.bpm,
             self.project.master_volume_linear(),
         );
@@ -38,7 +38,7 @@ impl App {
         self.playback_row_display = row;
 
         self.audio.update_settings(
-            &self.project.channel_settings,
+            &self.project.instruments,
             self.project.bpm,
             self.project.master_volume_linear(),
         );

@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use rodio::{DeviceSinkBuilder, MixerDeviceSink, Source};
 
-use crate::project::{ChannelSettings, Pattern};
+use crate::project::{Instrument, Pattern};
 
 use mixer::{Command, PatternSnapshot, PlaybackSettings, TrackerSource};
 
@@ -101,7 +101,7 @@ impl AudioEngine {
         &self,
         row: usize,
         pattern: &Pattern,
-        channel_settings: &[ChannelSettings],
+        instruments: &[Instrument],
         bpm: u16,
         master_volume: f32,
     ) {
@@ -109,7 +109,7 @@ impl AudioEngine {
         let settings = Arc::new(PlaybackSettings {
             bpm,
             master_volume,
-            channel_settings: channel_settings.to_vec(),
+            instruments: instruments.to_vec(),
         });
         let _ = self.sender.send(Command::Play {
             start_row: row,
@@ -124,14 +124,14 @@ impl AudioEngine {
 
     pub fn update_settings(
         &self,
-        channel_settings: &[ChannelSettings],
+        instruments: &[Instrument],
         bpm: u16,
         master_volume: f32,
     ) {
         let settings = Arc::new(PlaybackSettings {
             bpm,
             master_volume,
-            channel_settings: channel_settings.to_vec(),
+            instruments: instruments.to_vec(),
         });
         let _ = self.sender.send(Command::UpdateSettings { settings });
     }
@@ -147,10 +147,10 @@ impl AudioEngine {
         &self,
         freq: f32,
         channel: usize,
-        channel_settings: &[ChannelSettings],
+        instruments: &[Instrument],
         master_volume: f32,
     ) {
-        let cs = &channel_settings[channel % channel_settings.len()];
+        let cs = &instruments[channel % instruments.len()];
         let _ = self.sender.send(Command::PreviewNote {
             frequency: freq,
             waveform: cs.waveform,

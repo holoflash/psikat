@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use rodio::Source;
 
-use crate::project::{Cell, ChannelSettings, Effect, Envelope, SampleData, Waveform};
+use crate::project::{Cell, Effect, Envelope, Instrument, SampleData, Waveform};
 
 pub const SAMPLE_RATE: u32 = 44100;
 const SAMPLE_RATE_F: f32 = SAMPLE_RATE as f32;
@@ -39,13 +39,14 @@ pub enum Command {
 pub struct PlaybackSettings {
     pub bpm: u16,
     pub master_volume: f32,
-    pub channel_settings: Vec<ChannelSettings>,
+    pub instruments: Vec<Instrument>,
 }
 
 pub struct PatternSnapshot {
     pub channels: usize,
     pub rows: usize,
     data: Vec<Vec<Cell>>,
+    instruments: Vec<Vec<Option<u8>>>,
     volumes: Vec<Vec<Option<u8>>>,
     effects: Vec<Vec<Option<Effect>>>,
 }
@@ -56,6 +57,7 @@ impl PatternSnapshot {
             channels: pattern.channels,
             rows: pattern.rows,
             data: pattern.data.clone(),
+            instruments: pattern.instruments.clone(),
             volumes: pattern.volumes.clone(),
             effects: pattern.effects.clone(),
         }
@@ -90,6 +92,7 @@ struct Channel {
     base_frequency: f32,
     period: f32,
     porta_speed: i16,
+    current_instrument: usize,
 }
 
 impl Channel {
@@ -116,6 +119,7 @@ impl Channel {
             base_frequency: 0.0,
             period: 0.0,
             porta_speed: 0,
+            current_instrument: 0,
         }
     }
 
@@ -367,7 +371,12 @@ impl TrackerSource {
         let samples_per_row = (self.samples_per_tick * f64::from(self.speed)).round() as u32;
 
         for ch_idx in 0..pattern.channels.min(self.channels.len()) {
-            let cs = &settings.channel_settings[ch_idx % settings.channel_settings.len()];
+            let inst_num = pattern.instruments[ch_idx][self.current_row];
+            if let Some(n) = inst_num {
+                self.channels[ch_idx].current_instrument = n as usize;
+            }
+            let ci = self.channels[ch_idx].current_instrument;
+            let inst = &settings.instruments[ci % settings.instruments.len()];
             let effect = pattern.effects[ch_idx][self.current_row];
             let volume = pattern.volumes[ch_idx][self.current_row];
             let cell = pattern.data[ch_idx][self.current_row];
@@ -377,15 +386,15 @@ impl TrackerSource {
                 Cell::NoteOn(note) => {
                     let gate_rows = pattern.gate_rows(ch_idx, self.current_row);
                     let gate_samples = samples_per_row * gate_rows as u32;
-                    let release_samples = (cs.envelope.release * SAMPLE_RATE_F).round() as u32;
+                    let release_samples = (inst.envelope.release * SAMPLE_RATE_F).round() as u32;
                     let vol = volume.map_or(1.0, |v| v.min(64) as f32 / 64.0);
 
                     channel.trigger(
                         note.frequency(),
-                        cs.waveform,
+                        inst.waveform,
                         vol,
-                        cs.envelope,
-                        &cs.sample_data,
+                        inst.envelope,
+                        &inst.sample_data,
                         gate_samples + release_samples,
                     );
                 }
@@ -474,7 +483,7 @@ impl Source for TrackerSource {
 pub fn export_source(
     pattern: &crate::project::Pattern,
     bpm: u16,
-    channel_settings: &[ChannelSettings],
+    instruments: &[Instrument],
     master_volume: f32,
 ) -> (TrackerSource, usize) {
     let (sender, receiver) = mpsc::channel();
@@ -484,7 +493,7 @@ pub fn export_source(
     let settings = Arc::new(PlaybackSettings {
         bpm,
         master_volume,
-        channel_settings: channel_settings.to_vec(),
+        instruments: instruments.to_vec(),
     });
 
     let samples_per_tick = f64::from(SAMPLE_RATE) * 5.0 / (f64::from(bpm) * 2.0);
@@ -524,7 +533,7 @@ mod tests {
         let settings = Arc::new(PlaybackSettings {
             bpm: 125,
             master_volume: 1.0,
-            channel_settings: vec![ChannelSettings::default_for(Waveform::Sine)],
+            instruments: vec![Instrument::default_for(Waveform::Sine)],
         });
 
         tx.send(Command::Play {
@@ -552,7 +561,7 @@ mod tests {
         let settings = Arc::new(PlaybackSettings {
             bpm: 125,
             master_volume: 1.0,
-            channel_settings: vec![ChannelSettings::default_for(Waveform::Sine)],
+            instruments: vec![Instrument::default_for(Waveform::Sine)],
         });
 
         tx.send(Command::Play {

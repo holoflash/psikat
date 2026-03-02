@@ -112,6 +112,8 @@ impl App {
             self.handle_effect_keys(input);
         } else if self.cursor.sub_column == SubColumn::Volume {
             self.handle_volume_keys(input);
+        } else if self.cursor.sub_column == SubColumn::Instrument {
+            self.handle_instrument_keys(input);
         } else {
             self.handle_note_keys(input);
         }
@@ -159,21 +161,26 @@ impl App {
                 for ch in min_ch..=max_ch {
                     for row in min_row..=max_row {
                         let cell = self.project.pattern.get(ch, row);
+                        let inst = self.project.pattern.get_instrument(ch, row);
                         let vol = self.project.pattern.get_volume(ch, row);
                         let fx = self.project.pattern.get_effect(ch, row);
-                        cells.push((ch, row, cell, vol, fx));
+                        cells.push((ch, row, cell, inst, vol, fx));
                         match on_note {
                             SubColumn::Note => self.project.pattern.clear(ch, row),
+                            SubColumn::Instrument => self.project.pattern.clear_instrument(ch, row),
                             SubColumn::Volume => self.project.pattern.clear_volume(ch, row),
                             SubColumn::Effect => self.project.pattern.clear_effect(ch, row),
                         }
                     }
                 }
-                for (ch, row, cell, vol, fx) in cells {
+                for (ch, row, cell, inst, vol, fx) in cells {
                     let new_ch = ch.checked_add_signed(dc).unwrap();
                     let new_row = row.checked_add_signed(dr).unwrap();
                     match on_note {
                         SubColumn::Note => self.project.pattern.set(new_ch, new_row, cell),
+                        SubColumn::Instrument => {
+                            self.project.pattern.set_instrument(new_ch, new_row, inst)
+                        }
                         SubColumn::Volume => self.project.pattern.set_volume(new_ch, new_row, vol),
                         SubColumn::Effect => self.project.pattern.set_effect(new_ch, new_row, fx),
                     }
@@ -200,6 +207,15 @@ impl App {
                     .pattern
                     .clear(self.cursor.channel, self.cursor.row);
                 self.project.pattern.set(new_ch, new_row, cell);
+            } else if on_note == SubColumn::Instrument {
+                let inst = self
+                    .project
+                    .pattern
+                    .get_instrument(self.cursor.channel, self.cursor.row);
+                self.project
+                    .pattern
+                    .clear_instrument(self.cursor.channel, self.cursor.row);
+                self.project.pattern.set_instrument(new_ch, new_row, inst);
             } else if on_note == SubColumn::Volume {
                 let vol = self
                     .project
@@ -288,6 +304,9 @@ impl App {
                     self.cursor.sub_column = SubColumn::Volume;
                     self.cursor.volume_edit_pos = 0;
                 } else if self.cursor.sub_column == SubColumn::Volume {
+                    self.cursor.sub_column = SubColumn::Instrument;
+                    self.cursor.instrument_edit_pos = 0;
+                } else if self.cursor.sub_column == SubColumn::Instrument {
                     self.cursor.sub_column = SubColumn::Note;
                 } else if self.cursor.channel > 0 {
                     self.cursor.channel -= 1;
@@ -301,6 +320,9 @@ impl App {
             }
             Action::CursorRight => {
                 if self.cursor.sub_column == SubColumn::Note {
+                    self.cursor.sub_column = SubColumn::Instrument;
+                    self.cursor.instrument_edit_pos = 0;
+                } else if self.cursor.sub_column == SubColumn::Instrument {
                     self.cursor.sub_column = SubColumn::Volume;
                     self.cursor.volume_edit_pos = 0;
                 } else if self.cursor.sub_column == SubColumn::Volume {
@@ -338,6 +360,7 @@ impl App {
                 for row in min_row..=max_row {
                     match self.cursor.sub_column {
                         SubColumn::Note => self.project.pattern.clear(ch, row),
+                        SubColumn::Instrument => self.project.pattern.clear_instrument(ch, row),
                         SubColumn::Volume => self.project.pattern.clear_volume(ch, row),
                         SubColumn::Effect => self.project.pattern.clear_effect(ch, row),
                     }
@@ -350,6 +373,11 @@ impl App {
                     self.project
                         .pattern
                         .clear(self.cursor.channel, self.cursor.row);
+                }
+                SubColumn::Instrument => {
+                    self.project
+                        .pattern
+                        .clear_instrument(self.cursor.channel, self.cursor.row);
                 }
                 SubColumn::Volume => {
                     self.project
@@ -473,7 +501,7 @@ impl App {
                         self.audio.preview_note(
                             note.frequency(),
                             self.cursor.channel,
-                            &self.project.channel_settings,
+                            &self.project.instruments,
                             self.project.master_volume_linear(),
                         );
                     }
@@ -594,6 +622,53 @@ impl App {
         }
     }
 
+    fn handle_instrument_keys(&mut self, input: &egui::InputState) {
+        let hex_keys = [
+            (Key::Num0, 0x0),
+            (Key::Num1, 0x1),
+            (Key::Num2, 0x2),
+            (Key::Num3, 0x3),
+            (Key::Num4, 0x4),
+            (Key::Num5, 0x5),
+            (Key::Num6, 0x6),
+            (Key::Num7, 0x7),
+            (Key::Num8, 0x8),
+            (Key::Num9, 0x9),
+            (Key::A, 0xA),
+            (Key::B, 0xB),
+            (Key::C, 0xC),
+            (Key::D, 0xD),
+            (Key::E, 0xE),
+            (Key::F, 0xF),
+        ];
+
+        for &(key, value) in &hex_keys {
+            if input.key_pressed(key) {
+                let ch = self.cursor.channel;
+                let row = self.cursor.row;
+                let pos = self.cursor.instrument_edit_pos;
+
+                let mut inst = self.project.pattern.get_instrument(ch, row).unwrap_or(0);
+
+                match pos {
+                    0 => inst = (value << 4) | (inst & 0x0F),
+                    _ => inst = (inst & 0xF0) | value,
+                }
+
+                self.project.pattern.set_instrument(ch, row, Some(inst));
+
+                if pos < 1 {
+                    self.cursor.instrument_edit_pos = pos + 1;
+                } else {
+                    self.cursor.instrument_edit_pos = 0;
+                    self.clear_selection();
+                    self.advance_cursor();
+                }
+                break;
+            }
+        }
+    }
+
     fn handle_mode_switch(&mut self, actions: &[Action]) -> bool {
         if actions.contains(&Action::Escape) {
             if self.playback.playing {
@@ -650,7 +725,7 @@ impl App {
             } else {
                 let ch = self.cursor.channel;
                 self.synth_field
-                    .adjust(&mut self.project.channel_settings[ch], 1);
+                    .adjust(&mut self.project.instruments[ch], 1);
             }
         } else if actions.contains(&Action::SettingsDecrease) {
             if self.synth_field == SynthSettingsField::Channel {
@@ -662,9 +737,9 @@ impl App {
             } else {
                 let ch = self.cursor.channel;
                 self.synth_field
-                    .adjust(&mut self.project.channel_settings[ch], -1);
+                    .adjust(&mut self.project.instruments[ch], -1);
             }
-        } else if self.project.channel_settings[self.cursor.channel].waveform == Waveform::Sampler
+        } else if self.project.instruments[self.cursor.channel].waveform == Waveform::Sampler
             && actions.contains(&Action::LoadSample)
         {
             self.load_sample_for_channel(self.cursor.channel);
@@ -683,7 +758,7 @@ impl App {
         if let Some(path) = dialog.pick_file()
             && let Ok(data) = SampleData::load_from_path(&path)
         {
-            self.project.channel_settings[ch].sample_data = Some(data);
+            self.project.instruments[ch].sample_data = Some(data);
         }
     }
 }

@@ -8,11 +8,11 @@ pub fn export_wav(
     pattern: &crate::project::Pattern,
     bpm: u16,
     path: &Path,
-    channel_settings: &[crate::project::ChannelSettings],
+    instruments: &[crate::project::Instrument],
     master_volume: f32,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (mut source, total_samples) =
-        mixer::export_source(pattern, bpm, channel_settings, master_volume);
+        mixer::export_source(pattern, bpm, instruments, master_volume);
 
     let spec = WavSpec {
         channels: 1,

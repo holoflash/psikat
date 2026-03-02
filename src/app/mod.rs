@@ -4,7 +4,7 @@ pub mod playback;
 pub mod scale;
 
 use crate::app::keybindings::KeyBindings;
-use crate::project::ChannelSettings;
+use crate::project::Instrument;
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, AtomicUsize};
@@ -55,32 +55,33 @@ impl SynthSettingsField {
         }
     }
 
-    pub fn adjust(self, cs: &mut ChannelSettings, delta: i16) {
+    pub fn adjust(self, inst: &mut Instrument, delta: i16) {
         match self {
             Self::Channel => {}
             Self::Waveform => {
-                cs.waveform = if delta > 0 {
-                    cs.waveform.next()
+                inst.waveform = if delta > 0 {
+                    inst.waveform.next()
                 } else {
-                    cs.waveform.prev()
+                    inst.waveform.prev()
                 };
-                cs.envelope = cs.waveform.default_envelope();
+                inst.envelope = inst.waveform.default_envelope();
             }
             Self::Sample => {}
             Self::Attack => {
-                cs.envelope.attack =
-                    (cs.envelope.attack + 0.005 * f32::from(delta)).clamp(0.0, 2.0);
+                inst.envelope.attack =
+                    (inst.envelope.attack + 0.005 * f32::from(delta)).clamp(0.0, 2.0);
             }
             Self::Decay => {
-                cs.envelope.decay = (cs.envelope.decay + 0.005 * f32::from(delta)).clamp(0.0, 2.0);
+                inst.envelope.decay =
+                    (inst.envelope.decay + 0.005 * f32::from(delta)).clamp(0.0, 2.0);
             }
             Self::Sustain => {
-                cs.envelope.sustain =
-                    (cs.envelope.sustain + 0.05 * f32::from(delta)).clamp(0.0, 1.0);
+                inst.envelope.sustain =
+                    (inst.envelope.sustain + 0.05 * f32::from(delta)).clamp(0.0, 1.0);
             }
             Self::Release => {
-                cs.envelope.release =
-                    (cs.envelope.release + 0.005 * f32::from(delta)).clamp(0.0, 2.0);
+                inst.envelope.release =
+                    (inst.envelope.release + 0.005 * f32::from(delta)).clamp(0.0, 2.0);
             }
         }
     }
@@ -174,6 +175,7 @@ impl SettingsField {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SubColumn {
     Note,
+    Instrument,
     Volume,
     Effect,
 }
@@ -184,6 +186,7 @@ pub struct Cursor {
     pub sub_column: SubColumn,
     pub effect_edit_pos: usize,
     pub volume_edit_pos: usize,
+    pub instrument_edit_pos: usize,
     pub selection_anchor: Option<(usize, usize)>,
     pub octave: u8,
 }
@@ -219,6 +222,7 @@ impl App {
                 sub_column: SubColumn::Note,
                 effect_edit_pos: 0,
                 volume_edit_pos: 0,
+                instrument_edit_pos: 0,
                 selection_anchor: None,
                 octave: 4,
             },
@@ -271,7 +275,7 @@ impl App {
                 &self.project.pattern,
                 self.project.bpm,
                 &path,
-                &self.project.channel_settings,
+                &self.project.instruments,
                 self.project.master_volume_linear(),
             );
         }

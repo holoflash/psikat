@@ -15,7 +15,7 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
             let ch = app.cursor.channel;
-            let cs = &app.project.channel_settings[ch];
+            let cs = &app.project.instruments[ch];
             let synth_active = app.mode == Mode::SynthEdit;
 
             ui.label(
@@ -195,12 +195,12 @@ fn handle_sample_drop(ui: &mut egui::Ui, app: &mut App) {
 
         let ch = app.cursor.channel;
 
-        if app.project.channel_settings[ch].waveform != Waveform::Sampler {
-            app.project.channel_settings[ch].waveform = Waveform::Sampler;
+        if app.project.instruments[ch].waveform != Waveform::Sampler {
+            app.project.instruments[ch].waveform = Waveform::Sampler;
         }
 
         if let Ok(data) = SampleData::load_from_path(&path) {
-            app.project.channel_settings[ch].sample_data = Some(data);
+            app.project.instruments[ch].sample_data = Some(data);
         }
     }
 }

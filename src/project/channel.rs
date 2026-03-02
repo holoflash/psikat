@@ -129,7 +129,7 @@ impl Envelope {
     }
 }
 
-pub const DEFAULT_INSTRUMENTS: [Waveform; 8] = [
+pub const DEFAULT_WAVEFORMS: [Waveform; 8] = [
     Waveform::Square,
     Waveform::Saw,
     Waveform::Triangle,
@@ -149,13 +149,13 @@ pub struct Envelope {
 }
 
 #[derive(Debug, Clone)]
-pub struct ChannelSettings {
+pub struct Instrument {
     pub waveform: Waveform,
     pub envelope: Envelope,
     pub sample_data: Option<Arc<SampleData>>,
 }
 
-impl ChannelSettings {
+impl Instrument {
     pub fn default_for(waveform: Waveform) -> Self {
         Self {
             envelope: waveform.default_envelope(),
@@ -165,7 +165,7 @@ impl ChannelSettings {
     }
 
     pub fn defaults() -> Vec<Self> {
-        DEFAULT_INSTRUMENTS
+        DEFAULT_WAVEFORMS
             .iter()
             .map(|w| Self::default_for(*w))
             .collect()

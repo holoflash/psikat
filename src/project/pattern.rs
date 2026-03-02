@@ -20,6 +20,13 @@ pub fn volume_display(vol: Option<u8>) -> String {
     }
 }
 
+pub fn instrument_display(inst: Option<u8>) -> String {
+    match inst {
+        Some(i) => format!("{:02X}", i),
+        None => "··".to_string(),
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Note {
     pub pitch: u8,
@@ -57,6 +64,7 @@ pub struct Pattern {
     pub channels: usize,
     pub rows: usize,
     pub data: Vec<Vec<Cell>>,
+    pub instruments: Vec<Vec<Option<u8>>>,
     pub volumes: Vec<Vec<Option<u8>>>,
     pub effects: Vec<Vec<EffectCommand>>,
 }
@@ -67,6 +75,7 @@ impl Pattern {
             channels,
             rows,
             data: vec![vec![Cell::Empty; rows]; channels],
+            instruments: vec![vec![None; rows]; channels],
             volumes: vec![vec![None; rows]; channels],
             effects: vec![vec![None; rows]; channels],
         }
@@ -108,10 +117,25 @@ impl Pattern {
         self.volumes[channel][row] = None;
     }
 
+    pub fn get_instrument(&self, channel: usize, row: usize) -> Option<u8> {
+        self.instruments[channel][row]
+    }
+
+    pub fn set_instrument(&mut self, channel: usize, row: usize, inst: Option<u8>) {
+        self.instruments[channel][row] = inst;
+    }
+
+    pub fn clear_instrument(&mut self, channel: usize, row: usize) {
+        self.instruments[channel][row] = None;
+    }
+
     pub fn resize(&mut self, new_rows: usize) {
         if new_rows > self.data[0].len() {
             for ch in &mut self.data {
                 ch.resize(new_rows, Cell::Empty);
+            }
+            for ch in &mut self.instruments {
+                ch.resize(new_rows, None);
             }
             for ch in &mut self.volumes {
                 ch.resize(new_rows, None);

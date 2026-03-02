@@ -3,15 +3,17 @@ pub mod channel;
 pub mod pattern;
 pub mod sample;
 
-pub use channel::{ChannelSettings, Envelope, Waveform};
-pub use pattern::{Cell, Effect, Note, Pattern, effect_display, volume_display};
+pub use channel::{Envelope, Instrument, Waveform};
+pub use pattern::{
+    Cell, Effect, Note, Pattern, effect_display, instrument_display, volume_display,
+};
 pub use sample::SampleData;
 
 use crate::app::scale::ScaleIndex;
 
 pub struct Project {
     pub pattern: Pattern,
-    pub channel_settings: Vec<ChannelSettings>,
+    pub instruments: Vec<Instrument>,
     pub bpm: u16,
     pub subdivision: usize,
     pub step: usize,
@@ -24,7 +26,7 @@ impl Project {
     pub fn new() -> Self {
         Self {
             pattern: Pattern::new(8, 32),
-            channel_settings: ChannelSettings::defaults(),
+            instruments: Instrument::defaults(),
             bpm: 120,
             subdivision: 4,
             step: 1,
