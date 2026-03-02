@@ -3,6 +3,7 @@ pub mod commands_ref;
 mod controls_modal;
 mod header;
 mod instrument;
+mod order_bar;
 mod pattern;
 mod settings_panel;
 mod sidebar;
@@ -44,6 +45,7 @@ pub const COLOR_PATTERN_EFFECT: Color32 = Color32::from_rgb(200, 140, 60);
 pub fn draw(ctx: &egui::Context, app: &mut App) {
     header::draw_header(ctx, app);
     sidebar::draw_sidebar(ctx, app);
+    order_bar::draw_order_bar(ctx, app);
     pattern::draw_pattern(ctx, app);
     controls_modal::draw_controls_modal(ctx, app);
     about_modal::draw_about_modal(ctx, app);

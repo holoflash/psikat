@@ -16,15 +16,18 @@ const PREVIEW_DURATION_SECS: f32 = 0.2;
 pub enum Command {
     Play {
         start_row: usize,
-        pattern: Arc<PatternSnapshot>,
+        start_order: usize,
+        patterns: Vec<Arc<PatternSnapshot>>,
+        order: Vec<usize>,
         settings: Arc<PlaybackSettings>,
     },
     Stop,
     UpdateSettings {
         settings: Arc<PlaybackSettings>,
     },
-    UpdatePattern {
-        pattern: Arc<PatternSnapshot>,
+    UpdatePatterns {
+        patterns: Vec<Arc<PatternSnapshot>>,
+        order: Vec<usize>,
     },
     PreviewNote {
         frequency: f32,
@@ -248,7 +251,9 @@ pub struct TrackerSource {
     channels: Vec<Channel>,
     preview_channel: Channel,
     playing: bool,
-    pattern: Option<Arc<PatternSnapshot>>,
+    patterns: Vec<Arc<PatternSnapshot>>,
+    order: Vec<usize>,
+    current_order_idx: usize,
     settings: Option<Arc<PlaybackSettings>>,
     current_row: usize,
     samples_per_tick: f64,
@@ -257,16 +262,23 @@ pub struct TrackerSource {
     speed: u16,
     receiver: mpsc::Receiver<Command>,
     playback_row: Arc<AtomicUsize>,
+    playback_order: Arc<AtomicUsize>,
     master_volume: f32,
 }
 
 impl TrackerSource {
-    pub fn new(receiver: mpsc::Receiver<Command>, playback_row: Arc<AtomicUsize>) -> Self {
+    pub fn new(
+        receiver: mpsc::Receiver<Command>,
+        playback_row: Arc<AtomicUsize>,
+        playback_order: Arc<AtomicUsize>,
+    ) -> Self {
         Self {
             channels: Vec::new(),
             preview_channel: Channel::new(),
             playing: false,
-            pattern: None,
+            patterns: Vec::new(),
+            order: Vec::new(),
+            current_order_idx: 0,
             settings: None,
             current_row: 0,
             samples_per_tick: 882.0,
@@ -275,6 +287,7 @@ impl TrackerSource {
             speed: DEFAULT_SPEED,
             receiver,
             playback_row,
+            playback_order,
             master_volume: 1.0,
         }
     }
@@ -284,9 +297,11 @@ impl TrackerSource {
             match cmd {
                 Command::Play {
                     start_row,
-                    pattern,
+                    start_order,
+                    patterns,
+                    order,
                     settings,
-                } => self.start_playback(start_row, pattern, settings),
+                } => self.start_playback(start_row, start_order, patterns, order, settings),
                 Command::Stop => {
                     self.playing = false;
                     for ch in &mut self.channels {
@@ -301,12 +316,18 @@ impl TrackerSource {
                         self.settings = Some(settings);
                     }
                 }
-                Command::UpdatePattern { pattern } => {
+                Command::UpdatePatterns { patterns, order } => {
                     if self.playing {
-                        if self.current_row >= pattern.rows {
+                        self.patterns = patterns;
+                        self.order = order;
+                        if self.current_order_idx >= self.order.len() {
+                            self.current_order_idx = 0;
                             self.current_row = 0;
                         }
-                        self.pattern = Some(pattern);
+                        let pat_idx = self.order[self.current_order_idx];
+                        if self.current_row >= self.patterns[pat_idx].rows {
+                            self.current_row = 0;
+                        }
                     }
                 }
                 Command::PreviewNote {
@@ -337,10 +358,13 @@ impl TrackerSource {
     fn start_playback(
         &mut self,
         start_row: usize,
-        pattern: Arc<PatternSnapshot>,
+        start_order: usize,
+        patterns: Vec<Arc<PatternSnapshot>>,
+        order: Vec<usize>,
         settings: Arc<PlaybackSettings>,
     ) {
-        while self.channels.len() < pattern.channels {
+        let pat_idx = order[start_order];
+        while self.channels.len() < patterns[pat_idx].channels {
             self.channels.push(Channel::new());
         }
         for ch in &mut self.channels {
@@ -350,19 +374,25 @@ impl TrackerSource {
         self.samples_per_tick = f64::from(SAMPLE_RATE) * 5.0 / (f64::from(settings.bpm) * 2.0);
         self.master_volume = settings.master_volume;
         self.current_row = start_row;
+        self.current_order_idx = start_order;
         self.tick_sample_counter = 0.0;
         self.tick_in_row = 0;
-        self.pattern = Some(pattern);
+        self.patterns = patterns;
+        self.order = order;
         self.settings = Some(settings);
         self.playing = true;
 
         self.process_row();
         self.playback_row.store(self.current_row, Ordering::Relaxed);
+        self.playback_order
+            .store(self.current_order_idx, Ordering::Relaxed);
     }
 
     fn process_row(&mut self) {
-        let Some(pattern) = self.pattern.as_ref() else {
-            return;
+        let pat_idx = self.order[self.current_order_idx];
+        let pattern = match self.patterns.get(pat_idx) {
+            Some(p) => p.clone(),
+            None => return,
         };
         let Some(settings) = self.settings.as_ref() else {
             return;
@@ -424,8 +454,16 @@ impl TrackerSource {
         self.tick_in_row += 1;
         if self.tick_in_row >= self.speed {
             self.tick_in_row = 0;
-            if let Some(pattern) = self.pattern.as_ref() {
-                self.current_row = (self.current_row + 1) % pattern.rows;
+            if !self.patterns.is_empty() {
+                let pat_idx = self.order[self.current_order_idx];
+                let rows = self.patterns[pat_idx].rows;
+                self.current_row += 1;
+                if self.current_row >= rows {
+                    self.current_row = 0;
+                    self.current_order_idx = (self.current_order_idx + 1) % self.order.len();
+                    self.playback_order
+                        .store(self.current_order_idx, Ordering::Relaxed);
+                }
                 self.playback_row.store(self.current_row, Ordering::Relaxed);
             }
             self.process_row();
@@ -481,15 +519,20 @@ impl Source for TrackerSource {
 }
 
 pub fn export_source(
-    pattern: &crate::project::Pattern,
+    patterns: &[crate::project::Pattern],
+    order: &[usize],
     bpm: u16,
     instruments: &[Instrument],
     master_volume: f32,
 ) -> (TrackerSource, usize) {
     let (sender, receiver) = mpsc::channel();
     let playback_row = Arc::new(AtomicUsize::new(0));
+    let playback_order = Arc::new(AtomicUsize::new(0));
 
-    let snapshot = Arc::new(PatternSnapshot::from_pattern(pattern));
+    let snapshots: Vec<Arc<PatternSnapshot>> = patterns
+        .iter()
+        .map(|p| Arc::new(PatternSnapshot::from_pattern(p)))
+        .collect();
     let settings = Arc::new(PlaybackSettings {
         bpm,
         master_volume,
@@ -498,16 +541,21 @@ pub fn export_source(
 
     let samples_per_tick = f64::from(SAMPLE_RATE) * 5.0 / (f64::from(bpm) * 2.0);
     let samples_per_row = (samples_per_tick * f64::from(DEFAULT_SPEED)).round() as usize;
-    let total_samples = samples_per_row * pattern.rows;
+    let total_samples: usize = order
+        .iter()
+        .map(|&idx| samples_per_row * patterns[idx].rows)
+        .sum();
 
     let _ = sender.send(Command::Play {
         start_row: 0,
-        pattern: snapshot,
+        start_order: 0,
+        patterns: snapshots,
+        order: order.to_vec(),
         settings,
     });
     drop(sender);
 
-    let source = TrackerSource::new(receiver, playback_row);
+    let source = TrackerSource::new(receiver, playback_row, playback_order);
     (source, total_samples)
 }
 
@@ -518,8 +566,25 @@ mod tests {
     fn make_source() -> (mpsc::Sender<Command>, TrackerSource, Arc<AtomicUsize>) {
         let (tx, rx) = mpsc::channel();
         let row = Arc::new(AtomicUsize::new(0));
-        let source = TrackerSource::new(rx, row.clone());
+        let order = Arc::new(AtomicUsize::new(0));
+        let source = TrackerSource::new(rx, row.clone(), order);
         (tx, source, row)
+    }
+
+    fn play_cmd(pattern: &crate::project::Pattern) -> Command {
+        let snapshot = Arc::new(PatternSnapshot::from_pattern(pattern));
+        let settings = Arc::new(PlaybackSettings {
+            bpm: 125,
+            master_volume: 1.0,
+            instruments: vec![Instrument::default_for(Waveform::Sine)],
+        });
+        Command::Play {
+            start_row: 0,
+            start_order: 0,
+            patterns: vec![snapshot],
+            order: vec![0],
+            settings,
+        }
     }
 
     #[test]
@@ -529,19 +594,7 @@ mod tests {
         let mut pattern = crate::project::Pattern::new(1, 4);
         pattern.set(0, 0, Cell::NoteOn(crate::project::Note::new(69)));
 
-        let snapshot = Arc::new(PatternSnapshot::from_pattern(&pattern));
-        let settings = Arc::new(PlaybackSettings {
-            bpm: 125,
-            master_volume: 1.0,
-            instruments: vec![Instrument::default_for(Waveform::Sine)],
-        });
-
-        tx.send(Command::Play {
-            start_row: 0,
-            pattern: snapshot,
-            settings,
-        })
-        .unwrap();
+        tx.send(play_cmd(&pattern)).unwrap();
 
         for _ in 0..5292 {
             source.next();
@@ -557,19 +610,7 @@ mod tests {
         let mut pattern = crate::project::Pattern::new(1, 4);
         pattern.set(0, 0, Cell::NoteOn(crate::project::Note::new(69)));
 
-        let snapshot = Arc::new(PatternSnapshot::from_pattern(&pattern));
-        let settings = Arc::new(PlaybackSettings {
-            bpm: 125,
-            master_volume: 1.0,
-            instruments: vec![Instrument::default_for(Waveform::Sine)],
-        });
-
-        tx.send(Command::Play {
-            start_row: 0,
-            pattern: snapshot,
-            settings,
-        })
-        .unwrap();
+        tx.send(play_cmd(&pattern)).unwrap();
 
         for _ in 0..100 {
             source.next();

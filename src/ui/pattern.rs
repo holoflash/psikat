@@ -40,7 +40,7 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
         .show(ctx, |ui| {
             ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
-            let channels = app.project.pattern.channels;
+            let channels = app.project.current_pattern().channels;
             let col = Column::auto().at_least(0.0);
 
             let mut table = TableBuilder::new(ui)
@@ -57,7 +57,7 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                     draw_header_row(&mut header, app, channels);
                 })
                 .body(|body| {
-                    body.rows(ROW_HEIGHT, app.project.pattern.rows, |mut row| {
+                    body.rows(ROW_HEIGHT, app.project.current_pattern().rows, |mut row| {
                         draw_body_row(&mut row, app, channels);
                     });
                 });
@@ -160,10 +160,10 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
         let is_vol_selected = in_selection && app.cursor.sub_column == SubColumn::Volume;
         let is_fx_selected = in_selection && app.cursor.sub_column == SubColumn::Effect;
 
-        let cell = app.project.pattern.get(ch, row_idx);
-        let inst_val = app.project.pattern.get_instrument(ch, row_idx);
-        let volume_val = app.project.pattern.get_volume(ch, row_idx);
-        let effect_cmd = app.project.pattern.get_effect(ch, row_idx);
+        let cell = app.project.current_pattern().get(ch, row_idx);
+        let inst_val = app.project.current_pattern().get_instrument(ch, row_idx);
+        let volume_val = app.project.current_pattern().get_volume(ch, row_idx);
+        let effect_cmd = app.project.current_pattern().get_effect(ch, row_idx);
 
         row.col(|ui| {
             let note_bg = if is_cursor_note {

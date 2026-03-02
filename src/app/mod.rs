@@ -132,8 +132,8 @@ impl SettingsField {
                 project.bpm = (project.bpm + 1).min(666);
             }
             Self::PatternLength => {
-                let new_len = (project.pattern.rows + 1).min(128);
-                project.pattern.resize(new_len);
+                let new_len = (project.current_pattern().rows + 1).min(128);
+                project.current_pattern_mut().resize(new_len);
             }
             Self::Scale => {
                 project.scale_index = project.scale_index.next();
@@ -156,10 +156,10 @@ impl SettingsField {
                 project.bpm = project.bpm.saturating_sub(1).max(20);
             }
             Self::PatternLength => {
-                let new_len = project.pattern.rows.saturating_sub(1).max(1);
-                project.pattern.resize(new_len);
-                if *cursor_row >= project.pattern.rows {
-                    *cursor_row = project.pattern.rows - 1;
+                let new_len = project.current_pattern().rows.saturating_sub(1).max(1);
+                project.current_pattern_mut().resize(new_len);
+                if *cursor_row >= project.current_pattern().rows {
+                    *cursor_row = project.current_pattern().rows - 1;
                 }
             }
             Self::Scale => {
@@ -197,6 +197,7 @@ pub struct App {
     pub mode: Mode,
     pub playback: playback::PlaybackState,
     pub playback_row_display: usize,
+    pub playback_order_display: usize,
     pub audio: AudioEngine,
     pub peak_level: Arc<AtomicU32>,
     pub playback_row: Arc<AtomicUsize>,
@@ -229,6 +230,7 @@ impl App {
             mode: Mode::Edit,
             playback: playback::PlaybackState::new(),
             playback_row_display: 0,
+            playback_order_display: 0,
             audio,
             peak_level,
             playback_row,
@@ -272,7 +274,8 @@ impl App {
                 path.set_extension("wav");
             }
             let _ = crate::audio::export::export_wav(
-                &self.project.pattern,
+                &self.project.patterns,
+                &self.project.order,
                 self.project.bpm,
                 &path,
                 &self.project.instruments,
@@ -281,8 +284,10 @@ impl App {
         }
     }
 
-    pub const fn set_cursor(&mut self, channel: usize, row: usize) {
-        if channel < self.project.pattern.channels && row < self.project.pattern.rows {
+    pub fn set_cursor(&mut self, channel: usize, row: usize) {
+        if channel < self.project.current_pattern().channels
+            && row < self.project.current_pattern().rows
+        {
             self.cursor.channel = channel;
             self.cursor.row = row;
         }

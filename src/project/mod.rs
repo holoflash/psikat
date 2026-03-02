@@ -12,7 +12,9 @@ pub use sample::SampleData;
 use crate::app::scale::ScaleIndex;
 
 pub struct Project {
-    pub pattern: Pattern,
+    pub patterns: Vec<Pattern>,
+    pub order: Vec<usize>,
+    pub current_order_idx: usize,
     pub instruments: Vec<Instrument>,
     pub bpm: u16,
     pub subdivision: usize,
@@ -25,7 +27,9 @@ pub struct Project {
 impl Project {
     pub fn new() -> Self {
         Self {
-            pattern: Pattern::new(8, 32),
+            patterns: vec![Pattern::new(8, 32)],
+            order: vec![0],
+            current_order_idx: 0,
             instruments: Instrument::defaults(),
             bpm: 120,
             subdivision: 4,
@@ -34,6 +38,16 @@ impl Project {
             transpose: 0,
             master_volume_db: 0.0,
         }
+    }
+
+    pub fn current_pattern(&self) -> &Pattern {
+        let pat_idx = self.order[self.current_order_idx];
+        &self.patterns[pat_idx]
+    }
+
+    pub fn current_pattern_mut(&mut self) -> &mut Pattern {
+        let pat_idx = self.order[self.current_order_idx];
+        &mut self.patterns[pat_idx]
     }
 
     pub fn master_volume_linear(&self) -> f32 {

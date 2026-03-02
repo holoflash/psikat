@@ -61,7 +61,7 @@ pub fn draw_settings(ui: &mut egui::Ui, app: &App) {
             settings_row(
                 ui,
                 "Length",
-                &app.project.pattern.rows.to_string(),
+                &app.project.current_pattern().rows.to_string(),
                 sa && app.settings_field == SettingsField::PatternLength,
             );
             ui.add_space(6.0);

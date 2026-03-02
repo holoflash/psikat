@@ -72,6 +72,7 @@ pub struct AudioEngine {
     _device_sink: MixerDeviceSink,
     pub peak_level: Arc<AtomicU32>,
     pub playback_row: Arc<AtomicUsize>,
+    pub playback_order: Arc<AtomicUsize>,
     sender: mpsc::Sender<Command>,
 }
 
@@ -79,9 +80,10 @@ impl AudioEngine {
     pub fn new() -> Self {
         let (sender, receiver) = mpsc::channel();
         let playback_row = Arc::new(AtomicUsize::new(0));
+        let playback_order = Arc::new(AtomicUsize::new(0));
         let peak_level = Arc::new(AtomicU32::new(0u32));
 
-        let source = TrackerSource::new(receiver, playback_row.clone());
+        let source = TrackerSource::new(receiver, playback_row.clone(), playback_order.clone());
         let monitored = PeakMonitor::new(source, peak_level.clone());
 
         let mut device_sink =
@@ -93,19 +95,26 @@ impl AudioEngine {
             _device_sink: device_sink,
             peak_level,
             playback_row,
+            playback_order,
             sender,
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn start_playback(
         &self,
         row: usize,
-        pattern: &Pattern,
+        order_idx: usize,
+        patterns: &[Pattern],
+        order: &[usize],
         instruments: &[Instrument],
         bpm: u16,
         master_volume: f32,
     ) {
-        let snapshot = Arc::new(PatternSnapshot::from_pattern(pattern));
+        let snapshots: Vec<Arc<PatternSnapshot>> = patterns
+            .iter()
+            .map(|p| Arc::new(PatternSnapshot::from_pattern(p)))
+            .collect();
         let settings = Arc::new(PlaybackSettings {
             bpm,
             master_volume,
@@ -113,7 +122,9 @@ impl AudioEngine {
         });
         let _ = self.sender.send(Command::Play {
             start_row: row,
-            pattern: snapshot,
+            start_order: order_idx,
+            patterns: snapshots,
+            order: order.to_vec(),
             settings,
         });
     }
@@ -122,12 +133,7 @@ impl AudioEngine {
         let _ = self.sender.send(Command::Stop);
     }
 
-    pub fn update_settings(
-        &self,
-        instruments: &[Instrument],
-        bpm: u16,
-        master_volume: f32,
-    ) {
+    pub fn update_settings(&self, instruments: &[Instrument], bpm: u16, master_volume: f32) {
         let settings = Arc::new(PlaybackSettings {
             bpm,
             master_volume,
@@ -136,11 +142,15 @@ impl AudioEngine {
         let _ = self.sender.send(Command::UpdateSettings { settings });
     }
 
-    pub fn update_pattern(&self, pattern: &Pattern) {
-        let snapshot = Arc::new(PatternSnapshot::from_pattern(pattern));
-        let _ = self
-            .sender
-            .send(Command::UpdatePattern { pattern: snapshot });
+    pub fn update_patterns(&self, patterns: &[Pattern], order: &[usize]) {
+        let snapshots: Vec<Arc<PatternSnapshot>> = patterns
+            .iter()
+            .map(|p| Arc::new(PatternSnapshot::from_pattern(p)))
+            .collect();
+        let _ = self.sender.send(Command::UpdatePatterns {
+            patterns: snapshots,
+            order: order.to_vec(),
+        });
     }
 
     pub fn preview_note(

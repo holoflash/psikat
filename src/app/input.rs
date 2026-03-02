@@ -150,26 +150,32 @@ impl App {
             let in_bounds = min_row.checked_add_signed(dr).is_some()
                 && max_row
                     .checked_add_signed(dr)
-                    .is_some_and(|r| r < self.project.pattern.rows)
+                    .is_some_and(|r| r < self.project.current_pattern().rows)
                 && min_ch.checked_add_signed(dc).is_some()
                 && max_ch
                     .checked_add_signed(dc)
-                    .is_some_and(|c| c < self.project.pattern.channels);
+                    .is_some_and(|c| c < self.project.current_pattern().channels);
 
             if in_bounds {
                 let mut cells = Vec::new();
                 for ch in min_ch..=max_ch {
                     for row in min_row..=max_row {
-                        let cell = self.project.pattern.get(ch, row);
-                        let inst = self.project.pattern.get_instrument(ch, row);
-                        let vol = self.project.pattern.get_volume(ch, row);
-                        let fx = self.project.pattern.get_effect(ch, row);
+                        let cell = self.project.current_pattern().get(ch, row);
+                        let inst = self.project.current_pattern().get_instrument(ch, row);
+                        let vol = self.project.current_pattern().get_volume(ch, row);
+                        let fx = self.project.current_pattern().get_effect(ch, row);
                         cells.push((ch, row, cell, inst, vol, fx));
                         match on_note {
-                            SubColumn::Note => self.project.pattern.clear(ch, row),
-                            SubColumn::Instrument => self.project.pattern.clear_instrument(ch, row),
-                            SubColumn::Volume => self.project.pattern.clear_volume(ch, row),
-                            SubColumn::Effect => self.project.pattern.clear_effect(ch, row),
+                            SubColumn::Note => self.project.current_pattern_mut().clear(ch, row),
+                            SubColumn::Instrument => {
+                                self.project.current_pattern_mut().clear_instrument(ch, row)
+                            }
+                            SubColumn::Volume => {
+                                self.project.current_pattern_mut().clear_volume(ch, row)
+                            }
+                            SubColumn::Effect => {
+                                self.project.current_pattern_mut().clear_effect(ch, row)
+                            }
                         }
                     }
                 }
@@ -177,12 +183,22 @@ impl App {
                     let new_ch = ch.checked_add_signed(dc).unwrap();
                     let new_row = row.checked_add_signed(dr).unwrap();
                     match on_note {
-                        SubColumn::Note => self.project.pattern.set(new_ch, new_row, cell),
-                        SubColumn::Instrument => {
-                            self.project.pattern.set_instrument(new_ch, new_row, inst)
-                        }
-                        SubColumn::Volume => self.project.pattern.set_volume(new_ch, new_row, vol),
-                        SubColumn::Effect => self.project.pattern.set_effect(new_ch, new_row, fx),
+                        SubColumn::Note => self
+                            .project
+                            .current_pattern_mut()
+                            .set(new_ch, new_row, cell),
+                        SubColumn::Instrument => self
+                            .project
+                            .current_pattern_mut()
+                            .set_instrument(new_ch, new_row, inst),
+                        SubColumn::Volume => self
+                            .project
+                            .current_pattern_mut()
+                            .set_volume(new_ch, new_row, vol),
+                        SubColumn::Effect => self
+                            .project
+                            .current_pattern_mut()
+                            .set_effect(new_ch, new_row, fx),
                     }
                 }
                 self.cursor.channel = self.cursor.channel.checked_add_signed(dc).unwrap();
@@ -195,45 +211,53 @@ impl App {
         } else if let (Some(new_row), Some(new_ch)) = (
             self.cursor.row.checked_add_signed(dr),
             self.cursor.channel.checked_add_signed(dc),
-        ) && new_row < self.project.pattern.rows
-            && new_ch < self.project.pattern.channels
+        ) && new_row < self.project.current_pattern().rows
+            && new_ch < self.project.current_pattern().channels
         {
             if on_note == SubColumn::Note {
                 let cell = self
                     .project
-                    .pattern
+                    .current_pattern()
                     .get(self.cursor.channel, self.cursor.row);
                 self.project
-                    .pattern
+                    .current_pattern_mut()
                     .clear(self.cursor.channel, self.cursor.row);
-                self.project.pattern.set(new_ch, new_row, cell);
+                self.project
+                    .current_pattern_mut()
+                    .set(new_ch, new_row, cell);
             } else if on_note == SubColumn::Instrument {
                 let inst = self
                     .project
-                    .pattern
+                    .current_pattern()
                     .get_instrument(self.cursor.channel, self.cursor.row);
                 self.project
-                    .pattern
+                    .current_pattern_mut()
                     .clear_instrument(self.cursor.channel, self.cursor.row);
-                self.project.pattern.set_instrument(new_ch, new_row, inst);
+                self.project
+                    .current_pattern_mut()
+                    .set_instrument(new_ch, new_row, inst);
             } else if on_note == SubColumn::Volume {
                 let vol = self
                     .project
-                    .pattern
+                    .current_pattern()
                     .get_volume(self.cursor.channel, self.cursor.row);
                 self.project
-                    .pattern
+                    .current_pattern_mut()
                     .clear_volume(self.cursor.channel, self.cursor.row);
-                self.project.pattern.set_volume(new_ch, new_row, vol);
+                self.project
+                    .current_pattern_mut()
+                    .set_volume(new_ch, new_row, vol);
             } else {
                 let fx = self
                     .project
-                    .pattern
+                    .current_pattern()
                     .get_effect(self.cursor.channel, self.cursor.row);
                 self.project
-                    .pattern
+                    .current_pattern_mut()
                     .clear_effect(self.cursor.channel, self.cursor.row);
-                self.project.pattern.set_effect(new_ch, new_row, fx);
+                self.project
+                    .current_pattern_mut()
+                    .set_effect(new_ch, new_row, fx);
             }
             self.cursor.channel = new_ch;
             self.cursor.row = new_row;
@@ -289,11 +313,11 @@ impl App {
                 if self.cursor.row > 0 {
                     self.cursor.row -= 1;
                 } else {
-                    self.cursor.row = self.project.pattern.rows - 1;
+                    self.cursor.row = self.project.current_pattern().rows - 1;
                 }
             }
             Action::CursorDown | Action::SelectDown => {
-                if self.cursor.row < self.project.pattern.rows - 1 {
+                if self.cursor.row < self.project.current_pattern().rows - 1 {
                     self.cursor.row += 1;
                 } else {
                     self.cursor.row = 0;
@@ -313,7 +337,7 @@ impl App {
                     self.cursor.sub_column = SubColumn::Effect;
                     self.cursor.effect_edit_pos = 0;
                 } else {
-                    self.cursor.channel = self.project.pattern.channels - 1;
+                    self.cursor.channel = self.project.current_pattern().channels - 1;
                     self.cursor.sub_column = SubColumn::Effect;
                     self.cursor.effect_edit_pos = 0;
                 }
@@ -328,7 +352,7 @@ impl App {
                 } else if self.cursor.sub_column == SubColumn::Volume {
                     self.cursor.sub_column = SubColumn::Effect;
                     self.cursor.effect_edit_pos = 0;
-                } else if self.cursor.channel < self.project.pattern.channels - 1 {
+                } else if self.cursor.channel < self.project.current_pattern().channels - 1 {
                     self.cursor.channel += 1;
                     self.cursor.sub_column = SubColumn::Note;
                 } else {
@@ -340,11 +364,11 @@ impl App {
                 if self.cursor.channel > 0 {
                     self.cursor.channel -= 1;
                 } else {
-                    self.cursor.channel = self.project.pattern.channels - 1;
+                    self.cursor.channel = self.project.current_pattern().channels - 1;
                 }
             }
             Action::SelectRight => {
-                if self.cursor.channel < self.project.pattern.channels - 1 {
+                if self.cursor.channel < self.project.current_pattern().channels - 1 {
                     self.cursor.channel += 1;
                 } else {
                     self.cursor.channel = 0;
@@ -359,10 +383,16 @@ impl App {
             for ch in min_ch..=max_ch {
                 for row in min_row..=max_row {
                     match self.cursor.sub_column {
-                        SubColumn::Note => self.project.pattern.clear(ch, row),
-                        SubColumn::Instrument => self.project.pattern.clear_instrument(ch, row),
-                        SubColumn::Volume => self.project.pattern.clear_volume(ch, row),
-                        SubColumn::Effect => self.project.pattern.clear_effect(ch, row),
+                        SubColumn::Note => self.project.current_pattern_mut().clear(ch, row),
+                        SubColumn::Instrument => {
+                            self.project.current_pattern_mut().clear_instrument(ch, row)
+                        }
+                        SubColumn::Volume => {
+                            self.project.current_pattern_mut().clear_volume(ch, row)
+                        }
+                        SubColumn::Effect => {
+                            self.project.current_pattern_mut().clear_effect(ch, row)
+                        }
                     }
                 }
             }
@@ -371,33 +401,33 @@ impl App {
             match self.cursor.sub_column {
                 SubColumn::Note => {
                     self.project
-                        .pattern
+                        .current_pattern_mut()
                         .clear(self.cursor.channel, self.cursor.row);
                 }
                 SubColumn::Instrument => {
                     self.project
-                        .pattern
+                        .current_pattern_mut()
                         .clear_instrument(self.cursor.channel, self.cursor.row);
                 }
                 SubColumn::Volume => {
                     self.project
-                        .pattern
+                        .current_pattern_mut()
                         .clear_volume(self.cursor.channel, self.cursor.row);
                 }
                 SubColumn::Effect => {
                     self.project
-                        .pattern
+                        .current_pattern_mut()
                         .clear_effect(self.cursor.channel, self.cursor.row);
                 }
             }
-            self.cursor.row = self.cursor.row.wrapping_sub(1) % self.project.pattern.rows;
+            self.cursor.row = self.cursor.row.wrapping_sub(1) % self.project.current_pattern().rows;
         }
     }
 
     fn handle_note_off(&mut self) {
         self.clear_selection();
         self.project
-            .pattern
+            .current_pattern_mut()
             .set(self.cursor.channel, self.cursor.row, Cell::NoteOff);
         self.advance_cursor();
     }
@@ -426,7 +456,7 @@ impl App {
         let mut max_pitch: Option<u8> = None;
         for ch in min_ch..=max_ch {
             for row in min_row..=max_row {
-                if let Cell::NoteOn(note) = self.project.pattern.get(ch, row) {
+                if let Cell::NoteOn(note) = self.project.current_pattern().get(ch, row) {
                     min_pitch = Some(min_pitch.map_or(note.pitch, |p: u8| p.min(note.pitch)));
                     max_pitch = Some(max_pitch.map_or(note.pitch, |p: u8| p.max(note.pitch)));
                 }
@@ -442,9 +472,9 @@ impl App {
         if can_transpose {
             for ch in min_ch..=max_ch {
                 for row in min_row..=max_row {
-                    if let Cell::NoteOn(note) = self.project.pattern.get(ch, row) {
+                    if let Cell::NoteOn(note) = self.project.current_pattern().get(ch, row) {
                         let new_pitch = u8::try_from(i16::from(note.pitch) + delta).unwrap();
-                        self.project.pattern.set(
+                        self.project.current_pattern_mut().set(
                             ch,
                             row,
                             Cell::NoteOn(crate::project::Note::new(new_pitch)),
@@ -492,7 +522,7 @@ impl App {
                 if let Some(note) =
                     key_to_note(k, self.cursor.octave, scale, self.project.transpose)
                 {
-                    self.project.pattern.set(
+                    self.project.current_pattern_mut().set(
                         self.cursor.channel,
                         self.cursor.row,
                         Cell::NoteOn(note),
@@ -513,13 +543,13 @@ impl App {
         }
     }
 
-    const fn advance_cursor(&mut self) {
-        if self.cursor.row < self.project.pattern.rows - 1
-            && self.cursor.row + self.project.step < self.project.pattern.rows
+    fn advance_cursor(&mut self) {
+        if self.cursor.row < self.project.current_pattern().rows - 1
+            && self.cursor.row + self.project.step < self.project.current_pattern().rows
         {
             self.cursor.row += self.project.step;
         } else {
-            self.cursor.row = self.project.pattern.rows - 1;
+            self.cursor.row = self.project.current_pattern().rows - 1;
         }
     }
 
@@ -551,7 +581,7 @@ impl App {
 
                 let mut fx = self
                     .project
-                    .pattern
+                    .current_pattern()
                     .get_effect(ch, row)
                     .unwrap_or(crate::project::Effect { kind: 0, param: 0 });
 
@@ -561,7 +591,9 @@ impl App {
                     _ => fx.param = (fx.param & 0xF0) | value,
                 }
 
-                self.project.pattern.set_effect(ch, row, Some(fx));
+                self.project
+                    .current_pattern_mut()
+                    .set_effect(ch, row, Some(fx));
 
                 if pos < 2 {
                     self.cursor.effect_edit_pos = pos + 1;
@@ -601,14 +633,20 @@ impl App {
                 let row = self.cursor.row;
                 let pos = self.cursor.volume_edit_pos;
 
-                let mut vol = self.project.pattern.get_volume(ch, row).unwrap_or(0);
+                let mut vol = self
+                    .project
+                    .current_pattern()
+                    .get_volume(ch, row)
+                    .unwrap_or(0);
 
                 match pos {
                     0 => vol = (value << 4) | (vol & 0x0F),
                     _ => vol = (vol & 0xF0) | value,
                 }
 
-                self.project.pattern.set_volume(ch, row, Some(vol));
+                self.project
+                    .current_pattern_mut()
+                    .set_volume(ch, row, Some(vol));
 
                 if pos < 1 {
                     self.cursor.volume_edit_pos = pos + 1;
@@ -648,14 +686,20 @@ impl App {
                 let row = self.cursor.row;
                 let pos = self.cursor.instrument_edit_pos;
 
-                let mut inst = self.project.pattern.get_instrument(ch, row).unwrap_or(0);
+                let mut inst = self
+                    .project
+                    .current_pattern()
+                    .get_instrument(ch, row)
+                    .unwrap_or(0);
 
                 match pos {
                     0 => inst = (value << 4) | (inst & 0x0F),
                     _ => inst = (inst & 0xF0) | value,
                 }
 
-                self.project.pattern.set_instrument(ch, row, Some(inst));
+                self.project
+                    .current_pattern_mut()
+                    .set_instrument(ch, row, Some(inst));
 
                 if pos < 1 {
                     self.cursor.instrument_edit_pos = pos + 1;
@@ -721,7 +765,8 @@ impl App {
             self.synth_field = self.synth_field.prev();
         } else if actions.contains(&Action::SettingsIncrease) {
             if self.synth_field == SynthSettingsField::Channel {
-                self.cursor.channel = (self.cursor.channel + 1) % self.project.pattern.channels;
+                self.cursor.channel =
+                    (self.cursor.channel + 1) % self.project.current_pattern().channels;
             } else {
                 let ch = self.cursor.channel;
                 self.synth_field
@@ -730,7 +775,7 @@ impl App {
         } else if actions.contains(&Action::SettingsDecrease) {
             if self.synth_field == SynthSettingsField::Channel {
                 if self.cursor.channel == 0 {
-                    self.cursor.channel = self.project.pattern.channels - 1;
+                    self.cursor.channel = self.project.current_pattern().channels - 1;
                 } else {
                     self.cursor.channel -= 1;
                 }
