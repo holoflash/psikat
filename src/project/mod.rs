@@ -7,7 +7,7 @@ pub use channel::{ChannelSettings, Envelope, Waveform};
 pub use pattern::{Cell, Effect, Note, Pattern, effect_display};
 pub use sample::SampleData;
 
-use crate::scale::ScaleIndex;
+use crate::app::scale::ScaleIndex;
 
 pub struct Project {
     pub pattern: Pattern,

@@ -1,13 +1,15 @@
 pub mod input;
+pub mod keybindings;
 pub mod playback;
+pub mod scale;
 
+use crate::app::keybindings::KeyBindings;
 use crate::project::{ChannelSettings, Waveform};
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, AtomicUsize};
 
 use crate::audio::AudioEngine;
-use crate::keybindings::KeyBindings;
 use crate::project::Project;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

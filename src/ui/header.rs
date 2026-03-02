@@ -2,8 +2,7 @@ use std::sync::atomic::Ordering;
 
 use eframe::egui::{self, FontId, RichText, Stroke};
 
-use crate::app::{App, Mode};
-use crate::scale::root_name;
+use crate::app::{App, Mode, scale::root_name};
 
 use super::{
     COLOR_LAYOUT_BG_PANEL, COLOR_LAYOUT_BORDER, COLOR_LAYOUT_BORDER_ACTIVE, COLOR_MODE_EDIT,

@@ -1,9 +1,6 @@
 mod app;
 mod audio;
-mod keybindings;
-mod keys;
 mod project;
-mod scale;
 mod ui;
 
 use eframe::egui::{self, Color32, Stroke};

@@ -1,7 +1,7 @@
 use eframe::egui::{self, FontId, RichText};
 
 use crate::app::App;
-use crate::keybindings::KeyBindings;
+use crate::app::keybindings::KeyBindings;
 
 use super::{
     COLOR_LAYOUT_BG_PANEL, COLOR_LAYOUT_BORDER_ACTIVE, COLOR_MODE_PLAYING, COLOR_TEXT,
