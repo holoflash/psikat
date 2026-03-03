@@ -1068,6 +1068,34 @@ impl App {
         }
     }
 
+    pub fn open_xm_file(&mut self) {
+        let mut dialog = rfd::FileDialog::new()
+            .add_filter("XM Modules", &["xm"])
+            .set_title("Open XM File");
+
+        if let Some(home) = dirs::home_dir() {
+            dialog = dialog.set_directory(home);
+        }
+
+        if let Some(path) = dialog.pick_file() {
+            match crate::project::xm::load_xm(&path) {
+                Ok(project) => {
+                    if self.playback.playing {
+                        self.stop_playback();
+                    }
+                    self.project = project;
+                    self.cursor.channel = 0;
+                    self.cursor.row = 0;
+                    self.current_instrument = 0;
+                    self.project.current_order_idx = 0;
+                }
+                Err(e) => {
+                    self.status_message = Some(format!("Failed to load XM: {e}"));
+                }
+            }
+        }
+    }
+
     fn load_sample_for_instrument(&mut self, inst_idx: usize) {
         let mut dialog = rfd::FileDialog::new()
             .add_filter("Audio Files", &["wav"])

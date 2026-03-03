@@ -61,51 +61,36 @@ impl KeyCombo {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Action {
-    // Global
     PlayStop,
     PlayFromCursor,
-
-    // Edit mode
     CursorUp,
     CursorDown,
     CursorLeft,
     CursorRight,
-
     MoveUp,
     MoveDown,
     MoveLeft,
     MoveRight,
-
     SelectUp,
     SelectDown,
     SelectLeft,
     SelectRight,
-
     Delete,
     NoteOff,
-
     OctaveUp,
     OctaveDown,
-
     TransposeUp,
     TransposeDown,
     TransposeOctaveUp,
     TransposeOctaveDown,
-
     Escape,
-
-    // Mode switching
     SwitchToEdit,
     SwitchToSynth,
     SwitchToSettings,
-
-    // Settings / Synth navigation
     SettingsUp,
     SettingsDown,
     SettingsIncrease,
     SettingsDecrease,
-
-    // Sampler
     LoadSample,
 }
 
@@ -144,7 +129,6 @@ impl KeyBindings {
     pub fn defaults() -> Self {
         Self {
             bindings: vec![
-                // Global
                 Binding {
                     action: Action::PlayStop,
                     combo: KeyCombo::new(Key::Enter),
@@ -159,7 +143,6 @@ impl KeyBindings {
                     description: "Toggle playback starting at the cursor row",
                     category: "Global",
                 },
-                // Edit mode
                 Binding {
                     action: Action::CursorUp,
                     combo: KeyCombo::new(Key::ArrowUp),
@@ -314,7 +297,6 @@ impl KeyBindings {
                     description: "Clear selection, stop playback, or quit",
                     category: "Global",
                 },
-                // Mode switching
                 Binding {
                     action: Action::SwitchToEdit,
                     combo: KeyCombo::new(Key::Num1).ctrl(),
@@ -336,7 +318,6 @@ impl KeyBindings {
                     description: "Switch to the settings panel",
                     category: "Mode",
                 },
-                // Settings / Synth navigation
                 Binding {
                     action: Action::SettingsUp,
                     combo: KeyCombo::new(Key::ArrowUp),
@@ -365,7 +346,6 @@ impl KeyBindings {
                     description: "Decrease the value of the selected field",
                     category: "Settings",
                 },
-                // Sampler
                 Binding {
                     action: Action::LoadSample,
                     combo: KeyCombo::new(Key::L),

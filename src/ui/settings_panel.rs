@@ -3,9 +3,7 @@ use eframe::egui::{self, FontId, RichText, Stroke, Vec2};
 use crate::app::{App, Mode, SettingsField};
 
 use super::widgets::settings_row;
-use super::{
-    COLOR_ERROR, COLOR_LAYOUT_BG_PANEL, COLOR_MODE_PLAYING, COLOR_MODE_SETTINGS, COLOR_TEXT_DIM,
-};
+use super::{COLOR_ERROR, COLOR_LAYOUT_BG_PANEL, COLOR_MODE_SETTINGS, COLOR_TEXT_DIM};
 
 pub fn draw_settings(ui: &mut egui::Ui, app: &App) {
     egui::Frame::new()
@@ -73,15 +71,10 @@ pub fn draw_settings(ui: &mut egui::Ui, app: &App) {
             );
             if let Some(ref msg) = app.status_message {
                 ui.add_space(8.0);
-                let color = if msg.starts_with("Exported") {
-                    COLOR_MODE_PLAYING
-                } else {
-                    COLOR_ERROR
-                };
                 ui.label(
                     RichText::new(msg.as_str())
                         .font(FontId::monospace(11.0))
-                        .color(color),
+                        .color(COLOR_ERROR),
                 );
             }
         });

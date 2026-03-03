@@ -35,7 +35,7 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
         .frame(
             egui::Frame::new()
                 .fill(COLOR_LAYOUT_BG_DARK)
-                .inner_margin(egui::Margin::symmetric(16, 12)),
+                .inner_margin(egui::Margin::symmetric(12, 12)),
         )
         .show(ctx, |ui| {
             ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -43,23 +43,27 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
             let channels = app.project.current_pattern().channels;
             let col = Column::auto().at_least(0.0);
 
-            let mut table = TableBuilder::new(ui)
-                .striped(false)
-                .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-                .column(col);
+            egui::ScrollArea::horizontal()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    let mut table = TableBuilder::new(ui)
+                        .striped(false)
+                        .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                        .column(col);
 
-            for _ in 0..channels {
-                table = table.column(col).column(col).column(col).column(col);
-            }
+                    for _ in 0..channels {
+                        table = table.column(col).column(col).column(col).column(col);
+                    }
 
-            table
-                .header(ROW_HEIGHT, |mut header| {
-                    draw_header_row(&mut header, channels);
-                })
-                .body(|body| {
-                    body.rows(ROW_HEIGHT, app.project.current_pattern().rows, |mut row| {
-                        draw_body_row(&mut row, app, channels);
-                    });
+                    table
+                        .header(ROW_HEIGHT, |mut header| {
+                            draw_header_row(&mut header, channels);
+                        })
+                        .body(|body| {
+                            body.rows(ROW_HEIGHT, app.project.current_pattern().rows, |mut row| {
+                                draw_body_row(&mut row, app, channels);
+                            });
+                        });
                 });
         });
 }

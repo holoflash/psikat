@@ -105,6 +105,22 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                     if ctrl_btn.clicked() {
                         app.show_controls_modal = !app.show_controls_modal;
                     }
+
+                    ui.add_space(4.0);
+
+                    let open_btn = ui.add(
+                        egui::Button::new(
+                            RichText::new(" Open XM file ")
+                                .font(FontId::monospace(12.0))
+                                .color(COLOR_PATTERN_CURSOR_TEXT),
+                        )
+                        .fill(COLOR_LAYOUT_BORDER)
+                        .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
+                    );
+                    open_btn.surrender_focus();
+                    if open_btn.clicked() {
+                        app.open_xm_file();
+                    }
                 });
             });
         });

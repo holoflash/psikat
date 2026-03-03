@@ -37,6 +37,14 @@ const COMMANDS: &[CmdEntry] = &[
         description: "Vibrato + vol slide",
     },
     CmdEntry {
+        code: "7xy",
+        description: "Tremolo (x=speed y=depth)",
+    },
+    CmdEntry {
+        code: "8xx",
+        description: "Set panning (00-FF)",
+    },
+    CmdEntry {
         code: "9xx",
         description: "Sample offset (xx*256)",
     },
@@ -55,6 +63,34 @@ const COMMANDS: &[CmdEntry] = &[
     CmdEntry {
         code: "Dxx",
         description: "Pattern break (BCD row)",
+    },
+    CmdEntry {
+        code: "E1x",
+        description: "Fine porta up",
+    },
+    CmdEntry {
+        code: "E2x",
+        description: "Fine porta down",
+    },
+    CmdEntry {
+        code: "E9x",
+        description: "Retrigger note",
+    },
+    CmdEntry {
+        code: "EAx",
+        description: "Fine vol slide up",
+    },
+    CmdEntry {
+        code: "EBx",
+        description: "Fine vol slide down",
+    },
+    CmdEntry {
+        code: "ECx",
+        description: "Note cut at tick x",
+    },
+    CmdEntry {
+        code: "EDx",
+        description: "Note delay to tick x",
     },
     CmdEntry {
         code: "Fxx",

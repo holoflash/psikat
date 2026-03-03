@@ -2,6 +2,7 @@
 pub mod channel;
 pub mod pattern;
 pub mod sample;
+pub mod xm;
 
 pub use channel::Instrument;
 pub use pattern::{

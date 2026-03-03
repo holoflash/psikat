@@ -15,9 +15,13 @@ pub fn draw_sidebar(ctx: &egui::Context, app: &mut App) {
                 .stroke(Stroke::NONE),
         )
         .show(ctx, |ui| {
-            ui.spacing_mut().item_spacing.y = 0.0;
-            instrument::draw_instrument(ui, app);
-            settings_panel::draw_settings(ui, app);
-            commands_ref::draw_commands_ref(ui);
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    ui.spacing_mut().item_spacing.y = 0.0;
+                    instrument::draw_instrument(ui, app);
+                    settings_panel::draw_settings(ui, app);
+                    commands_ref::draw_commands_ref(ui);
+                });
         });
 }

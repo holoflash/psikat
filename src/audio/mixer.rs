@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use rodio::Source;
 
-use crate::project::channel::{Envelope, Instrument};
+use crate::project::channel::{Envelope, Instrument, XmVolEnvelope};
 use crate::project::sample::LoopType;
 use crate::project::{Cell, Effect, SampleData};
 
@@ -87,6 +87,7 @@ struct Channel {
     sample_direction: f64,
     envelope: Envelope,
     volume: f32,
+    panning: f32,
     elapsed_samples: u32,
     total_samples: u32,
     note_duration: f32,
@@ -102,6 +103,10 @@ struct Channel {
     vibrato_depth: u8,
     vibrato_pos: u8,
 
+    tremolo_speed: u8,
+    tremolo_depth: u8,
+    tremolo_pos: u8,
+
     arpeggio_x: u8,
     arpeggio_y: u8,
 
@@ -109,6 +114,20 @@ struct Channel {
     last_porta_down: u8,
     last_vol_slide: u8,
     last_sample_offset: u8,
+    vol_column: u8,
+
+    note_delay_tick: u8,
+    delayed_frequency: f32,
+    delayed_volume: f32,
+    delayed_envelope: Envelope,
+    delayed_sample_data: Arc<SampleData>,
+    delayed_total_samples: u32,
+    delayed_xm_vol_envelope: Option<XmVolEnvelope>,
+    has_delayed_note: bool,
+
+    xm_vol_envelope: Option<XmVolEnvelope>,
+    env_tick: u16,
+    note_released: bool,
 }
 
 impl Channel {
@@ -126,6 +145,7 @@ impl Channel {
                 release: 0.0,
             },
             volume: 1.0,
+            panning: 0.5,
             elapsed_samples: 0,
             total_samples: 0,
             note_duration: 0.0,
@@ -138,12 +158,32 @@ impl Channel {
             vibrato_speed: 0,
             vibrato_depth: 0,
             vibrato_pos: 0,
+            tremolo_speed: 0,
+            tremolo_depth: 0,
+            tremolo_pos: 0,
             arpeggio_x: 0,
             arpeggio_y: 0,
             last_porta_up: 0,
             last_porta_down: 0,
             last_vol_slide: 0,
             last_sample_offset: 0,
+            vol_column: 0,
+            note_delay_tick: 0,
+            delayed_frequency: 0.0,
+            delayed_volume: 0.0,
+            delayed_envelope: Envelope {
+                attack: 0.0,
+                decay: 0.0,
+                sustain: 1.0,
+                release: 0.0,
+            },
+            delayed_sample_data: SampleData::silent(),
+            delayed_total_samples: 0,
+            delayed_xm_vol_envelope: None,
+            has_delayed_note: false,
+            xm_vol_envelope: None,
+            env_tick: 0,
+            note_released: false,
         }
     }
 
@@ -172,6 +212,7 @@ impl Channel {
         envelope: Envelope,
         sample_data: &Arc<SampleData>,
         total_samples: u32,
+        xm_env: Option<XmVolEnvelope>,
     ) {
         self.active = true;
         self.period = Self::freq_to_period(frequency);
@@ -186,20 +227,39 @@ impl Channel {
         self.sample_position = 0.0;
         self.sample_direction = 1.0;
         self.vibrato_pos = 0;
+        self.xm_vol_envelope = xm_env;
+        self.env_tick = 0;
+        self.note_released = false;
     }
 
     fn note_off(&mut self) {
-        self.active = false;
+        if self.xm_vol_envelope.is_some() {
+            self.note_released = true;
+        } else {
+            self.active = false;
+        }
     }
 
     fn next_sample(&mut self) -> f32 {
-        if !self.active || self.elapsed_samples >= self.total_samples {
-            self.active = false;
+        if !self.active {
             return 0.0;
         }
 
-        let time = self.elapsed_samples as f32 / SAMPLE_RATE_F;
-        let env = self.envelope.amplitude(time, self.note_duration);
+        let env = if let Some(ref xm_env) = self.xm_vol_envelope {
+            let amp = xm_env.amplitude_at_tick(self.env_tick);
+            if self.note_released && amp <= 0.0 {
+                self.active = false;
+                return 0.0;
+            }
+            amp
+        } else {
+            if self.elapsed_samples >= self.total_samples {
+                self.active = false;
+                return 0.0;
+            }
+            let time = self.elapsed_samples as f32 / SAMPLE_RATE_F;
+            self.envelope.amplitude(time, self.note_duration)
+        };
 
         let data = &self.sample_data;
         let samples = &data.samples_f32;
@@ -255,6 +315,20 @@ impl Channel {
     }
 
     fn tick_update(&mut self, tick: u16) {
+        // Handle note delay (EDx): trigger note at tick x
+        if self.has_delayed_note && tick == u16::from(self.note_delay_tick) {
+            let xm_env = self.delayed_xm_vol_envelope.take();
+            self.trigger(
+                self.delayed_frequency,
+                self.delayed_volume,
+                self.delayed_envelope,
+                &self.delayed_sample_data.clone(),
+                self.delayed_total_samples,
+                xm_env,
+            );
+            self.has_delayed_note = false;
+        }
+
         if !self.active {
             return;
         }
@@ -300,11 +374,61 @@ impl Channel {
                 self.do_vibrato();
                 self.do_vol_slide(self.last_vol_slide);
             }
+            // 7xy — Tremolo
+            7 => self.do_tremolo(),
             // Axy — Volume slide
             0xA => {
                 self.do_vol_slide(self.last_vol_slide);
             }
+            // Exx — Extended effects
+            0xE => {
+                let sub = effect.param >> 4;
+                let val = effect.param & 0x0F;
+                match sub {
+                    // ECx — Note cut at tick x
+                    0xC => {
+                        if tick == u16::from(val) {
+                            self.volume = 0.0;
+                        }
+                    }
+                    // E9x — Retrigger note at tick x
+                    0x9 => {
+                        if val != 0 && tick.is_multiple_of(u16::from(val)) {
+                            self.sample_position = 0.0;
+                            self.sample_direction = 1.0;
+                            self.elapsed_samples = 0;
+                        }
+                    }
+                    _ => {}
+                }
+            }
             _ => {}
+        }
+
+        // Volume column per-tick effects
+        match self.vol_column >> 4 {
+            // 0x60-0x6F: Volume slide down
+            6 => {
+                self.volume = (self.volume - (self.vol_column & 0x0F) as f32 / 64.0).max(0.0);
+            }
+            // 0x70-0x7F: Volume slide up
+            7 => {
+                self.volume = (self.volume + (self.vol_column & 0x0F) as f32 / 64.0).min(1.0);
+            }
+            // 0xB0-0xBF: Vibrato
+            0xB => {
+                self.do_vibrato();
+            }
+            // 0xF0-0xFF: Tone portamento (per-tick)
+            0xF => {
+                self.do_tone_porta();
+            }
+            _ => {}
+        }
+
+        // Advance XM volume envelope tick
+        if let Some(ref xm_env) = self.xm_vol_envelope {
+            self.env_tick = xm_env.advance_tick(self.env_tick, self.note_released);
         }
     }
 
@@ -339,13 +463,20 @@ impl Channel {
     }
 
     fn do_vol_slide(&mut self, param: u8) {
-        let hi = param >> 4;
-        let lo = param & 0x0F;
-        if hi > 0 {
-            self.volume = (self.volume + f32::from(hi) / 64.0).min(1.0);
+        let up = (param >> 4) as f32;
+        let down = (param & 0x0F) as f32;
+        if up > 0.0 {
+            self.volume = (self.volume + up / 64.0).min(1.0);
         } else {
-            self.volume = (self.volume - f32::from(lo) / 64.0).max(0.0);
+            self.volume = (self.volume - down / 64.0).max(0.0);
         }
+    }
+
+    fn do_tremolo(&mut self) {
+        let pos = f32::from(self.tremolo_pos) * std::f32::consts::TAU / 64.0;
+        let delta = pos.sin() * f32::from(self.tremolo_depth) / 64.0;
+        self.volume = (self.volume + delta).clamp(0.0, 1.0);
+        self.tremolo_pos = self.tremolo_pos.wrapping_add(self.tremolo_speed);
     }
 }
 
@@ -369,6 +500,9 @@ pub struct TrackerSource {
     master_volume: f32,
     jump_to_order: Option<usize>,
     break_to_row: Option<usize>,
+    stereo_phase: bool,
+    left_sample: f32,
+    right_sample: f32,
 }
 
 impl TrackerSource {
@@ -397,6 +531,9 @@ impl TrackerSource {
             master_volume: 1.0,
             jump_to_order: None,
             break_to_row: None,
+            stereo_phase: false,
+            left_sample: 0.0,
+            right_sample: 0.0,
         }
     }
 
@@ -452,6 +589,7 @@ impl TrackerSource {
                         envelope,
                         &sample_data,
                         total,
+                        None,
                     );
                     if !self.playing {
                         self.master_volume = master_volume;
@@ -469,8 +607,8 @@ impl TrackerSource {
         order: Vec<usize>,
         settings: Arc<PlaybackSettings>,
     ) {
-        let pat_idx = order[start_order];
-        while self.channels.len() < patterns[pat_idx].channels {
+        let max_channels = patterns.iter().map(|p| p.channels).max().unwrap_or(0);
+        while self.channels.len() < max_channels {
             self.channels.push(Channel::new());
         }
         for ch in &mut self.channels {
@@ -560,24 +698,53 @@ impl TrackerSource {
             });
 
             let is_tone_porta = matches!(effect, Some(Effect { kind: 3 | 5, .. }));
+            let is_note_delay =
+                matches!(effect, Some(Effect { kind: 0xE, param }) if param >> 4 == 0xD);
 
             match cell {
                 Cell::NoteOn(note) => {
+                    let vol_from_col = volume.and_then(|v| {
+                        if (0x10..=0x50).contains(&v) {
+                            Some((v - 0x10).min(64) as f32 / 64.0)
+                        } else {
+                            None
+                        }
+                    });
+
+                    let (sample_data, sample_vol) = inst.sample_for_note(note.pitch);
+
                     if is_tone_porta {
                         channel.porta_target = Channel::freq_to_period(note.frequency());
+                    } else if is_note_delay {
+                        let delay_tick = effect.unwrap().param & 0x0F;
+                        let gate_rows = pattern.gate_rows(ch_idx, self.current_row);
+                        let gate_samples = samples_per_row * gate_rows as u32;
+                        let release_samples =
+                            (inst.envelope.release * SAMPLE_RATE_F).round() as u32;
+                        let vol = vol_from_col.unwrap_or(sample_vol);
+
+                        channel.note_delay_tick = delay_tick;
+                        channel.delayed_frequency = note.frequency();
+                        channel.delayed_volume = vol;
+                        channel.delayed_envelope = inst.envelope;
+                        channel.delayed_sample_data = Arc::clone(sample_data);
+                        channel.delayed_total_samples = gate_samples + release_samples;
+                        channel.delayed_xm_vol_envelope = inst.xm_vol_envelope.clone();
+                        channel.has_delayed_note = true;
                     } else {
                         let gate_rows = pattern.gate_rows(ch_idx, self.current_row);
                         let gate_samples = samples_per_row * gate_rows as u32;
                         let release_samples =
                             (inst.envelope.release * SAMPLE_RATE_F).round() as u32;
-                        let vol = volume.map_or(1.0, |v| v.min(64) as f32 / 64.0);
+                        let vol = vol_from_col.unwrap_or(sample_vol);
 
                         channel.trigger(
                             note.frequency(),
                             vol,
                             inst.envelope,
-                            &inst.sample_data,
+                            sample_data,
                             gate_samples + release_samples,
+                            inst.xm_vol_envelope.clone(),
                         );
                     }
                 }
@@ -585,8 +752,38 @@ impl TrackerSource {
                 Cell::Empty => {}
             }
 
+            // Handle volume column effects (tick 0)
+            channel.vol_column = volume.unwrap_or(0);
             if let Some(v) = volume {
-                channel.volume = v.min(64) as f32 / 64.0;
+                match v >> 4 {
+                    // 0x10-0x50: Set volume (already handled above for note trigger)
+                    1..=4 => {
+                        channel.volume = (v - 0x10).min(64) as f32 / 64.0;
+                    }
+                    5 if v <= 0x50 => {
+                        channel.volume = (v - 0x10).min(64) as f32 / 64.0;
+                    }
+                    // 0x80-0x8F: Fine volume slide down (tick 0 only)
+                    8 => {
+                        channel.volume = (channel.volume - (v & 0x0F) as f32 / 64.0).max(0.0);
+                    }
+                    // 0x90-0x9F: Fine volume slide up (tick 0 only)
+                    9 => {
+                        channel.volume = (channel.volume + (v & 0x0F) as f32 / 64.0).min(1.0);
+                    }
+                    // 0xC0-0xCF: Set panning
+                    0xC => {
+                        channel.panning = (v & 0x0F) as f32 / 15.0;
+                    }
+                    // 0xF0-0xFF: Tone portamento
+                    0xF => {
+                        let speed = (v & 0x0F) * 16;
+                        if speed != 0 {
+                            channel.tone_porta_speed = speed;
+                        }
+                    }
+                    _ => {}
+                }
             }
 
             channel.current_effect = effect;
@@ -609,6 +806,21 @@ impl TrackerSource {
                             channel.vibrato_depth = y;
                         }
                     }
+                    // 7xy — Tremolo (store params)
+                    7 => {
+                        let x = e.param >> 4;
+                        let y = e.param & 0x0F;
+                        if x != 0 {
+                            channel.tremolo_speed = x;
+                        }
+                        if y != 0 {
+                            channel.tremolo_depth = y;
+                        }
+                    }
+                    // 8xx — Set panning
+                    8 => {
+                        channel.panning = f32::from(e.param) / 255.0;
+                    }
                     // 9xx — Sample offset
                     9 => {
                         if inst_num.is_some() {
@@ -629,7 +841,39 @@ impl TrackerSource {
                         let lo = e.param & 0x0F;
                         self.break_to_row = Some((hi * 10 + lo) as usize);
                     }
-                    // Fxx — Set speed/tempo
+                    // Exx — Extended effects (tick-0 sub-effects)
+                    0xE => {
+                        let sub = e.param >> 4;
+                        let val = e.param & 0x0F;
+                        match sub {
+                            // E1x — Fine portamento up
+                            1 => {
+                                channel.period = (channel.period - f32::from(val) * 4.0).max(50.0);
+                                channel.update_freq_from_period();
+                            }
+                            // E2x — Fine portamento down
+                            2 => {
+                                channel.period =
+                                    (channel.period + f32::from(val) * 4.0).min(7680.0);
+                                channel.update_freq_from_period();
+                            }
+                            // E5x — Set finetune
+                            5 => {
+                                // Finetune 0-F maps to -8..+7
+                                let _ft = if val > 7 { val as i8 - 16 } else { val as i8 };
+                                // Would need sample_rate adjustment, skip for now
+                            }
+                            // EAx — Fine volume slide up
+                            0xA => {
+                                channel.volume = (channel.volume + f32::from(val) / 64.0).min(1.0);
+                            }
+                            // EBx — Fine volume slide down
+                            0xB => {
+                                channel.volume = (channel.volume - f32::from(val) / 64.0).max(0.0);
+                            }
+                            _ => {}
+                        }
+                    }
                     0xF => {
                         if e.param > 0 {
                             if e.param <= 0x1F {
@@ -690,9 +934,15 @@ impl Iterator for TrackerSource {
     type Item = f32;
 
     fn next(&mut self) -> Option<f32> {
+        if self.stereo_phase {
+            self.stereo_phase = false;
+            return Some(self.right_sample * self.master_volume);
+        }
+
         self.process_commands();
 
-        let mut mixed = 0.0_f32;
+        let mut mix_l = 0.0_f32;
+        let mut mix_r = 0.0_f32;
 
         if self.playing {
             self.tick_sample_counter += 1.0;
@@ -701,13 +951,22 @@ impl Iterator for TrackerSource {
                 self.tick();
             }
             for ch in &mut self.channels {
-                mixed += ch.next_sample();
+                let sample = ch.next_sample();
+                let pan = ch.panning;
+                mix_l += sample * (1.0 - pan).sqrt();
+                mix_r += sample * pan.sqrt();
             }
         }
 
-        mixed += self.preview_channel.next_sample();
+        let preview = self.preview_channel.next_sample();
+        mix_l += preview * 0.707;
+        mix_r += preview * 0.707;
 
-        Some(mixed * self.master_volume)
+        self.left_sample = mix_l;
+        self.right_sample = mix_r;
+        self.stereo_phase = true;
+
+        Some(self.left_sample * self.master_volume)
     }
 }
 
@@ -717,7 +976,7 @@ impl Source for TrackerSource {
     }
 
     fn channels(&self) -> NonZero<u16> {
-        NonZero::new(1).unwrap()
+        NonZero::new(2).unwrap()
     }
 
     fn sample_rate(&self) -> NonZero<u32> {
@@ -807,9 +1066,10 @@ mod tests {
 
         tx.send(play_cmd(&pattern)).unwrap();
 
-        for _ in 0..5292 {
+        for _ in 0..10584 {
             source.next();
         }
+        source.next();
         source.next();
         assert_eq!(row.load(Ordering::Relaxed), 1);
     }
