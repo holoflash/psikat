@@ -34,15 +34,19 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.add_space(4.0);
-                let logo_btn = ui.add(
-                    egui::ImageButton::new(
-                        egui::Image::new(egui::include_image!("../../psikat.png"))
-                            .fit_to_exact_size(egui::Vec2::new(48.0, 48.0))
-                            .texture_options(egui::TextureOptions::NEAREST),
+                let logo_btn = ui
+                    .add(
+                        egui::ImageButton::new(
+                            egui::Image::new(egui::include_image!("../../psikat.png"))
+                                .fit_to_exact_size(egui::Vec2::new(48.0, 48.0))
+                                .texture_options(egui::TextureOptions::NEAREST),
+                        )
+                        .frame(false),
                     )
-                    .frame(false),
-                );
+                    .on_hover_cursor(egui::CursorIcon::PointingHand);
+
                 logo_btn.surrender_focus();
+
                 if logo_btn.clicked() {
                     app.show_about_modal = !app.show_about_modal;
                 }
@@ -99,22 +103,25 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 } else {
                     COLOR_TEXT_DIM
                 };
-                let follow_btn = ui.add(
-                    egui::Button::new(
-                        RichText::new(follow_label)
-                            .font(FontId::monospace(12.0))
-                            .color(follow_color),
+                let follow_btn = ui
+                    .add(
+                        egui::Button::new(
+                            RichText::new(follow_label)
+                                .font(FontId::monospace(12.0))
+                                .color(follow_color),
+                        )
+                        .fill(COLOR_LAYOUT_BORDER)
+                        .stroke(Stroke::new(
+                            1.0,
+                            if app.follow_playback {
+                                COLOR_MODE_PLAYING
+                            } else {
+                                COLOR_LAYOUT_BORDER_ACTIVE
+                            },
+                        )),
                     )
-                    .fill(COLOR_LAYOUT_BORDER)
-                    .stroke(Stroke::new(
-                        1.0,
-                        if app.follow_playback {
-                            COLOR_MODE_PLAYING
-                        } else {
-                            COLOR_LAYOUT_BORDER_ACTIVE
-                        },
-                    )),
-                );
+                    .on_hover_cursor(egui::CursorIcon::PointingHand);
+
                 follow_btn.surrender_focus();
                 if follow_btn.clicked() {
                     app.follow_playback = !app.follow_playback;
@@ -122,15 +129,18 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let sidebar_icon = if app.show_sidebar { " ▶ " } else { " ◀ " };
-                    let sidebar_btn = ui.add(
-                        egui::Button::new(
-                            RichText::new(sidebar_icon)
-                                .font(FontId::monospace(12.0))
-                                .color(COLOR_PATTERN_CURSOR_TEXT),
+                    let sidebar_btn = ui
+                        .add(
+                            egui::Button::new(
+                                RichText::new(sidebar_icon)
+                                    .font(FontId::monospace(12.0))
+                                    .color(COLOR_PATTERN_CURSOR_TEXT),
+                            )
+                            .fill(COLOR_LAYOUT_BORDER)
+                            .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
                         )
-                        .fill(COLOR_LAYOUT_BORDER)
-                        .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
-                    );
+                        .on_hover_cursor(egui::CursorIcon::PointingHand);
+
                     sidebar_btn.surrender_focus();
                     if sidebar_btn.clicked() {
                         app.show_sidebar = !app.show_sidebar;
@@ -138,15 +148,18 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
 
                     ui.add_space(4.0);
 
-                    let export_btn = ui.add(
-                        egui::Button::new(
-                            RichText::new(" Export WAV ")
-                                .font(FontId::monospace(12.0))
-                                .color(COLOR_PATTERN_CURSOR_TEXT),
+                    let export_btn = ui
+                        .add(
+                            egui::Button::new(
+                                RichText::new(" Export WAV ")
+                                    .font(FontId::monospace(12.0))
+                                    .color(COLOR_PATTERN_CURSOR_TEXT),
+                            )
+                            .fill(COLOR_LAYOUT_BORDER)
+                            .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
                         )
-                        .fill(COLOR_LAYOUT_BORDER)
-                        .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
-                    );
+                        .on_hover_cursor(egui::CursorIcon::PointingHand);
+
                     export_btn.surrender_focus();
                     if export_btn.clicked() {
                         app.do_export();
@@ -154,15 +167,18 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
 
                     ui.add_space(4.0);
 
-                    let ctrl_btn = ui.add(
-                        egui::Button::new(
-                            RichText::new(" Controls ")
-                                .font(FontId::monospace(12.0))
-                                .color(COLOR_PATTERN_CURSOR_TEXT),
+                    let ctrl_btn = ui
+                        .add(
+                            egui::Button::new(
+                                RichText::new(" Controls ")
+                                    .font(FontId::monospace(12.0))
+                                    .color(COLOR_PATTERN_CURSOR_TEXT),
+                            )
+                            .fill(COLOR_LAYOUT_BORDER)
+                            .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
                         )
-                        .fill(COLOR_LAYOUT_BORDER)
-                        .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
-                    );
+                        .on_hover_cursor(egui::CursorIcon::PointingHand);
+
                     ctrl_btn.surrender_focus();
                     if ctrl_btn.clicked() {
                         app.show_controls_modal = !app.show_controls_modal;
@@ -170,15 +186,18 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
 
                     ui.add_space(4.0);
 
-                    let open_btn = ui.add(
-                        egui::Button::new(
-                            RichText::new(" Open XM file ")
-                                .font(FontId::monospace(12.0))
-                                .color(COLOR_PATTERN_CURSOR_TEXT),
+                    let open_btn = ui
+                        .add(
+                            egui::Button::new(
+                                RichText::new(" Open XM file ")
+                                    .font(FontId::monospace(12.0))
+                                    .color(COLOR_PATTERN_CURSOR_TEXT),
+                            )
+                            .fill(COLOR_LAYOUT_BORDER)
+                            .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
                         )
-                        .fill(COLOR_LAYOUT_BORDER)
-                        .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
-                    );
+                        .on_hover_cursor(egui::CursorIcon::PointingHand);
+
                     open_btn.surrender_focus();
                     if open_btn.clicked() {
                         app.open_xm_file();
@@ -195,11 +214,14 @@ fn draw_volume_control(ui: &mut egui::Ui, app: &mut App) {
             .color(COLOR_TEXT_DIM),
     );
 
-    let slider_response = ui.add(
-        egui::Slider::new(&mut app.project.master_volume_db, -60.0..=6.0)
-            .step_by(0.1)
-            .clamping(egui::SliderClamping::Always),
-    );
+    let slider_response = ui
+        .add(
+            egui::Slider::new(&mut app.project.master_volume_db, -60.0..=6.0)
+                .step_by(0.1)
+                .clamping(egui::SliderClamping::Always),
+        )
+        .on_hover_cursor(egui::CursorIcon::PointingHand);
+
     slider_response.surrender_focus();
     if slider_response.double_clicked() {
         app.project.master_volume_db = 0.0;

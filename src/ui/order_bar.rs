@@ -1,203 +1,184 @@
-use eframe::egui::{self, RichText, Sense};
+use eframe::egui::scroll_area::ScrollBarVisibility;
+use eframe::egui::{self, RichText, Sense, Stroke};
 
 use crate::app::{App, Mode};
 use crate::ui::{
-    COLOR_LAYOUT_BG_DARK, COLOR_LAYOUT_BORDER, COLOR_PATTERN_CURSOR_BG, COLOR_PATTERN_CURSOR_TEXT,
+    COLOR_LAYOUT_BG_DARK, COLOR_PATTERN_CURSOR_BG, COLOR_PATTERN_CURSOR_TEXT,
+    COLOR_PATTERN_PLAYBACK_HIGHLIGHT, COLOR_PATTERN_PLAYBACK_TEXT, COLOR_PATTERN_SUBDIVISION,
     COLOR_TEXT, COLOR_TEXT_DIM,
 };
 
-const FONT: egui::FontId = egui::FontId::monospace(12.0);
-const ARROW_FONT: egui::FontId = egui::FontId::monospace(9.0);
+const FONT: egui::FontId = egui::FontId::monospace(14.0);
+const BTN_FONT: egui::FontId = egui::FontId::monospace(14.0);
 const CELL_W: f32 = 28.0;
-const CELL_H: f32 = 20.0;
-const ARROW_H: f32 = 14.0;
+const CELL_H: f32 = 18.0;
+const COLS: usize = 3;
+
+enum OrderAction {
+    Select(usize),
+    SetPattern(usize, usize),
+    NewPattern,
+    Delete(usize),
+}
 
 pub fn draw_order_bar(ctx: &egui::Context, app: &mut App) {
     let order_len = app.project.order.len();
     let pat_count = app.project.patterns.len();
 
-    let mut click_select: Option<usize> = None;
-    let mut click_up: Option<usize> = None;
-    let mut click_down: Option<usize> = None;
-    let mut click_delete: Option<usize> = None;
+    let mut actions: Vec<OrderAction> = Vec::new();
 
-    egui::TopBottomPanel::top("order_bar")
+    let panel_w = COLS as f32 * CELL_W + (COLS - 1) as f32;
+    let grid_rows = (order_len + COLS - 1) / COLS;
+
+    egui::SidePanel::left("order_bar")
+        .resizable(false)
+        .exact_width(panel_w)
         .frame(
             egui::Frame::new()
                 .fill(COLOR_LAYOUT_BG_DARK)
-                .inner_margin(egui::Margin::symmetric(6, 2)),
+                .inner_margin(egui::Margin::ZERO)
+                .stroke(Stroke::NONE),
         )
         .show(ctx, |ui| {
-            ui.set_min_height(ARROW_H + CELL_H + ARROW_H + 4.0);
+            ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
-            egui::ScrollArea::horizontal()
-                .auto_shrink([false, false])
+            egui::ScrollArea::vertical()
+                .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
+                .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    ui.horizontal_centered(|ui| {
-                        ui.spacing_mut().item_spacing.x = 3.0;
-                        ui.spacing_mut().item_spacing.y = 0.0;
-                        ui.add_space(12.0);
-                        ui.vertical(|ui| {
-                            ui.add_space(ARROW_H);
-                            ui.horizontal(|ui| {
-                                let btn = |ui: &mut egui::Ui, label: &str| -> bool {
-                                    ui.add(
-                                        egui::Button::new(
-                                            RichText::new(label).font(FONT).color(COLOR_TEXT),
-                                        )
-                                        .min_size(egui::vec2(24.0, CELL_H))
-                                        .fill(egui::Color32::from_rgb(32, 28, 48))
-                                        .stroke(egui::Stroke::new(1.0, COLOR_LAYOUT_BORDER)),
-                                    )
-                                    .clicked()
-                                };
+                    let grid_h = grid_rows as f32 * CELL_H + (grid_rows.max(1) - 1) as f32;
+                    let total_h = CELL_H + grid_h;
+                    let (area, _) =
+                        ui.allocate_exact_size(egui::vec2(panel_w, total_h), Sense::hover());
+                    let top = area.min;
 
-                                if btn(ui, "CLONE") {
-                                    let current_pat =
-                                        app.project.order[app.project.current_order_idx];
-                                    let insert_pos = app.project.current_order_idx + 1;
-                                    app.project.order.insert(insert_pos, current_pat);
-                                    app.project.current_order_idx = insert_pos;
-                                    app.cursor.row = 0;
-                                }
+                    let btn_rect = egui::Rect::from_min_size(top, egui::vec2(panel_w, CELL_H));
+                    let btn_resp =
+                        ui.interact(btn_rect, ui.id().with("order_new_btn"), Sense::click());
+                    if btn_resp.hovered() {
+                        ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                    }
+                    ui.painter()
+                        .rect_filled(btn_rect, 0.0, COLOR_LAYOUT_BG_DARK);
+                    ui.painter().text(
+                        btn_rect.center(),
+                        egui::Align2::CENTER_CENTER,
+                        "ADD",
+                        BTN_FONT,
+                        COLOR_TEXT,
+                    );
+                    if btn_resp.clicked() {
+                        actions.push(OrderAction::NewPattern);
+                    }
 
-                                if btn(ui, "NEW") {
-                                    let channels = app.project.current_pattern().channels;
-                                    let rows = app.project.current_pattern().rows;
-                                    let new_idx = find_unused_pattern(app).unwrap_or_else(|| {
-                                        let idx = app.project.patterns.len();
-                                        app.project
-                                            .patterns
-                                            .push(crate::project::Pattern::new(channels, rows));
-                                        idx
-                                    });
-                                    let insert_pos = app.project.current_order_idx + 1;
-                                    app.project.order.insert(insert_pos, new_idx);
-                                    app.project.current_order_idx = insert_pos;
-                                    app.cursor.row = 0;
-                                }
-                            });
-                        });
+                    let grid_top = top.y + CELL_H;
 
-                        for i in 0..order_len {
-                            let pat_idx = app.project.order[i];
-                            let is_current = i == app.project.current_order_idx;
-                            let is_playing =
-                                app.playback.playing && i == app.playback_order_display;
+                    for i in 0..order_len {
+                        let col = i % COLS;
+                        let row = i / COLS;
+                        let rect = egui::Rect::from_min_size(
+                            egui::pos2(top.x + col as f32 * CELL_W, grid_top + row as f32 * CELL_H),
+                            egui::vec2(CELL_W, CELL_H),
+                        );
 
-                            let (bg, fg) = if is_current && app.mode == Mode::Edit {
-                                (COLOR_PATTERN_CURSOR_BG, COLOR_PATTERN_CURSOR_TEXT)
-                            } else if is_playing {
-                                (
-                                    egui::Color32::from_rgb(90, 75, 40),
-                                    egui::Color32::from_rgb(255, 245, 220),
-                                )
-                            } else if is_current {
-                                (egui::Color32::from_rgb(40, 36, 56), COLOR_TEXT)
-                            } else {
-                                (COLOR_LAYOUT_BG_DARK, COLOR_TEXT_DIM)
-                            };
+                        let pat_idx = app.project.order[i];
+                        let is_current = i == app.project.current_order_idx;
+                        let is_playing = app.playback.playing && i == app.playback_order_display;
 
-                            ui.vertical(|ui| {
-                                ui.set_width(CELL_W);
+                        let (bg, fg) = if is_playing {
+                            (
+                                COLOR_PATTERN_PLAYBACK_HIGHLIGHT,
+                                COLOR_PATTERN_PLAYBACK_TEXT,
+                            )
+                        } else if is_current && app.mode == Mode::Edit {
+                            (COLOR_PATTERN_CURSOR_BG, COLOR_PATTERN_CURSOR_TEXT)
+                        } else if is_current {
+                            (COLOR_PATTERN_SUBDIVISION, COLOR_TEXT)
+                        } else {
+                            (COLOR_LAYOUT_BG_DARK, COLOR_TEXT_DIM)
+                        };
 
-                                let (up_rect, up_resp) = ui.allocate_exact_size(
-                                    egui::vec2(CELL_W, ARROW_H),
-                                    Sense::click(),
-                                );
-                                ui.painter().text(
-                                    up_rect.center(),
-                                    egui::Align2::CENTER_CENTER,
-                                    "▲",
-                                    ARROW_FONT,
-                                    if up_resp.hovered() {
-                                        COLOR_TEXT
-                                    } else {
-                                        COLOR_TEXT_DIM
-                                    },
-                                );
-                                if up_resp.clicked() {
-                                    click_up = Some(i);
-                                }
-
-                                let (rect, cell_resp) = ui.allocate_exact_size(
-                                    egui::vec2(CELL_W, CELL_H),
-                                    Sense::click(),
-                                );
-                                ui.painter().rect_filled(rect, 3.0, bg);
-                                if is_current {
-                                    ui.painter().rect_stroke(
-                                        rect,
-                                        3.0,
-                                        egui::Stroke::new(1.0, COLOR_LAYOUT_BORDER),
-                                        egui::StrokeKind::Inside,
-                                    );
-                                }
-                                let text = format!("{:02X}", pat_idx);
-                                ui.painter().text(
-                                    rect.center(),
-                                    egui::Align2::CENTER_CENTER,
-                                    text,
-                                    FONT,
-                                    fg,
-                                );
-                                if cell_resp.double_clicked() && order_len > 1 {
-                                    click_delete = Some(i);
-                                } else if cell_resp.clicked() {
-                                    click_select = Some(i);
-                                }
-
-                                let (dn_rect, dn_resp) = ui.allocate_exact_size(
-                                    egui::vec2(CELL_W, ARROW_H),
-                                    Sense::click(),
-                                );
-                                ui.painter().text(
-                                    dn_rect.center(),
-                                    egui::Align2::CENTER_CENTER,
-                                    "▼",
-                                    ARROW_FONT,
-                                    if dn_resp.hovered() {
-                                        COLOR_TEXT
-                                    } else {
-                                        COLOR_TEXT_DIM
-                                    },
-                                );
-                                if dn_resp.clicked() {
-                                    click_down = Some(i);
-                                }
-                            });
+                        let cell_resp =
+                            ui.interact(rect, ui.id().with(("order_cell", i)), Sense::click());
+                        if cell_resp.hovered() {
+                            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                         }
-                    });
+
+                        ui.painter().rect_filled(rect, 0.0, bg);
+
+                        let stroke_color = COLOR_PATTERN_SUBDIVISION;
+                        ui.painter().rect_stroke(
+                            rect,
+                            0.0,
+                            egui::Stroke::new(1.0, stroke_color),
+                            egui::StrokeKind::Outside,
+                        );
+
+                        ui.painter().text(
+                            rect.center(),
+                            egui::Align2::CENTER_CENTER,
+                            format!("{:02X}", pat_idx),
+                            FONT,
+                            fg,
+                        );
+
+                        if cell_resp.double_clicked() && order_len > 1 {
+                            actions.push(OrderAction::Delete(i));
+                        } else if cell_resp.clicked() {
+                            actions.push(OrderAction::Select(i));
+                        }
+
+                        cell_resp.context_menu(|ui| {
+                            for p in 0..pat_count {
+                                let label = format!("{:02X}", p);
+                                if ui
+                                    .button(RichText::new(label).font(FONT).color(COLOR_TEXT))
+                                    .clicked()
+                                {
+                                    actions.push(OrderAction::SetPattern(i, p));
+                                    ui.close_menu();
+                                }
+                            }
+                        });
+                    }
                 });
         });
 
-    if let Some(i) = click_select {
-        app.project.current_order_idx = i;
-        app.cursor.row = 0;
-    }
-    if let Some(i) = click_up {
-        let current = app.project.order[i];
-        app.project.order[i] = (current + 1) % pat_count;
-        app.cursor.row = 0;
-    }
-    if let Some(i) = click_down {
-        let current = app.project.order[i];
-        app.project.order[i] = if current == 0 {
-            pat_count - 1
-        } else {
-            current - 1
-        };
-        app.cursor.row = 0;
-    }
-    if let Some(i) = click_delete {
-        app.project.current_order_idx = i;
-        remove_order_entry(app);
+    for action in actions {
+        match action {
+            OrderAction::Select(i) => {
+                app.project.current_order_idx = i;
+                app.cursor.row = 0;
+            }
+            OrderAction::SetPattern(i, p) => {
+                app.project.order[i] = p;
+                app.cursor.row = 0;
+            }
+            OrderAction::NewPattern => {
+                let channels = app.project.current_pattern().channels;
+                let rows = app.project.current_pattern().rows;
+                let new_idx = find_unused_pattern(app).unwrap_or_else(|| {
+                    let idx = app.project.patterns.len();
+                    app.project
+                        .patterns
+                        .push(crate::project::Pattern::new(channels, rows));
+                    idx
+                });
+                let insert_pos = app.project.order.len();
+                app.project.order.insert(insert_pos, new_idx);
+                app.project.current_order_idx = insert_pos;
+                app.cursor.row = 0;
+            }
+            OrderAction::Delete(i) => {
+                remove_order_entry(app, i);
+            }
+        }
     }
 }
 
-fn remove_order_entry(app: &mut App) {
-    let removed_pat = app.project.order[app.project.current_order_idx];
-    app.project.order.remove(app.project.current_order_idx);
+fn remove_order_entry(app: &mut App, idx: usize) {
+    let removed_pat = app.project.order[idx];
+    app.project.order.remove(idx);
     if app.project.current_order_idx >= app.project.order.len() {
         app.project.current_order_idx = app.project.order.len() - 1;
     }
@@ -205,9 +186,9 @@ fn remove_order_entry(app: &mut App) {
 
     if !app.project.order.contains(&removed_pat) {
         app.project.patterns.remove(removed_pat);
-        for idx in &mut app.project.order {
-            if *idx > removed_pat {
-                *idx -= 1;
+        for o in &mut app.project.order {
+            if *o > removed_pat {
+                *o -= 1;
             }
         }
     }

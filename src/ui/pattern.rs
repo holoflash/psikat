@@ -1,3 +1,4 @@
+use eframe::egui::scroll_area::ScrollBarVisibility;
 use eframe::egui::{self, FontId, RichText, Sense, Stroke};
 use egui_extras::{Column, TableBuilder};
 
@@ -38,7 +39,12 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
         .frame(
             egui::Frame::new()
                 .fill(COLOR_LAYOUT_BG_DARK)
-                .inner_margin(egui::Margin::symmetric(12, 12)),
+                .inner_margin(egui::Margin {
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 12,
+                }),
         )
         .show(ctx, |ui| {
             ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -47,6 +53,7 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
             let col = Column::auto().at_least(0.0);
 
             egui::ScrollArea::horizontal()
+                .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     let visible_height = ui.available_height();
@@ -263,6 +270,9 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                     app.mode = Mode::Edit;
                 }
             }
+            if response.hovered() {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+            }
         });
 
         row.col(|ui| {
@@ -306,6 +316,9 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                 if app.mode != Mode::Edit {
                     app.mode = Mode::Edit;
                 }
+            }
+            if response.hovered() {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
             }
         });
 
@@ -351,6 +364,9 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                     app.mode = Mode::Edit;
                 }
             }
+            if response.hovered() {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+            }
         });
 
         row.col(|ui| {
@@ -394,6 +410,9 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                 if app.mode != Mode::Edit {
                     app.mode = Mode::Edit;
                 }
+            }
+            if response.hovered() {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
             }
         });
     }
