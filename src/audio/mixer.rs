@@ -35,6 +35,10 @@ pub enum Command {
         vol_envelope: VolEnvelope,
         sample_data: Arc<SampleData>,
         master_volume: f32,
+        vibrato_type: u8,
+        vibrato_sweep: u8,
+        vibrato_depth: u8,
+        vibrato_rate: u8,
     },
 }
 
@@ -96,6 +100,13 @@ struct Channel {
     arpeggio_x: u8,
     arpeggio_y: u8,
 
+    auto_vib_type: u8,
+    auto_vib_sweep: u8,
+    auto_vib_depth: u8,
+    auto_vib_rate: u8,
+    auto_vib_pos: u8,
+    auto_vib_sweep_pos: u16,
+
     last_porta_up: u8,
     last_porta_down: u8,
     last_vol_slide: u8,
@@ -142,6 +153,12 @@ impl Channel {
             tremolo_pos: 0,
             arpeggio_x: 0,
             arpeggio_y: 0,
+            auto_vib_type: 0,
+            auto_vib_sweep: 0,
+            auto_vib_depth: 0,
+            auto_vib_rate: 0,
+            auto_vib_pos: 0,
+            auto_vib_sweep_pos: 0,
             last_porta_up: 0,
             last_porta_down: 0,
             last_vol_slide: 0,
@@ -202,6 +219,8 @@ impl Channel {
         self.note_released = false;
         self.fadeout_vol = 65536;
         self.vol_fadeout_per_tick = vol_fadeout_per_tick;
+        self.auto_vib_pos = 0;
+        self.auto_vib_sweep_pos = 0;
     }
 
     fn note_off(&mut self) {
@@ -385,6 +404,33 @@ impl Channel {
             _ => {}
         }
 
+        if self.auto_vib_depth > 0 && self.auto_vib_rate > 0 {
+            let sweep_factor = if self.auto_vib_sweep > 0 {
+                (self.auto_vib_sweep_pos as f32 / f32::from(self.auto_vib_sweep)).min(1.0)
+            } else {
+                1.0
+            };
+            let pos = self.auto_vib_pos;
+            let wave = match self.auto_vib_type {
+                1 => {
+                    if pos < 128 {
+                        1.0_f32
+                    } else {
+                        -1.0
+                    }
+                }
+                2 => 1.0 - (f32::from(pos) / 128.0),
+                3 => (f32::from(pos) / 128.0) - 1.0,
+                _ => (f32::from(pos) * std::f32::consts::TAU / 256.0).sin(),
+            };
+            let delta = wave * f32::from(self.auto_vib_depth) * sweep_factor * 2.0;
+            let period = (self.base_period + delta).clamp(50.0, 7680.0);
+            let freq = Self::period_to_freq(period);
+            self.sample_step = Self::compute_sample_step(freq, &self.sample_data);
+            self.auto_vib_pos = self.auto_vib_pos.wrapping_add(self.auto_vib_rate);
+            self.auto_vib_sweep_pos = self.auto_vib_sweep_pos.saturating_add(1);
+        }
+
         if self.vol_envelope.enabled {
             self.env_tick = self
                 .vol_envelope
@@ -557,6 +603,10 @@ impl TrackerSource {
                     vol_envelope,
                     sample_data,
                     master_volume,
+                    vibrato_type,
+                    vibrato_sweep,
+                    vibrato_depth,
+                    vibrato_rate,
                 } => {
                     self.preview_channel.trigger(
                         frequency,
@@ -565,6 +615,10 @@ impl TrackerSource {
                         &sample_data,
                         0,
                     );
+                    self.preview_channel.auto_vib_type = vibrato_type;
+                    self.preview_channel.auto_vib_sweep = vibrato_sweep;
+                    self.preview_channel.auto_vib_depth = vibrato_depth;
+                    self.preview_channel.auto_vib_rate = vibrato_rate;
                     self.preview_tick_counter = 0.0;
                     self.preview_tick = 0;
                     if !self.playing {
@@ -700,6 +754,10 @@ impl TrackerSource {
                         channel.delayed_sample_data = Arc::clone(sample_data);
                         channel.delayed_fadeout_per_tick = inst.vol_fadeout;
                         channel.has_delayed_note = true;
+                        channel.auto_vib_type = inst.vibrato_type;
+                        channel.auto_vib_sweep = inst.vibrato_sweep;
+                        channel.auto_vib_depth = inst.vibrato_depth;
+                        channel.auto_vib_rate = inst.vibrato_rate;
                     } else {
                         let vol = vol_from_col.unwrap_or(sample_vol);
 
@@ -710,6 +768,10 @@ impl TrackerSource {
                             sample_data,
                             inst.vol_fadeout,
                         );
+                        channel.auto_vib_type = inst.vibrato_type;
+                        channel.auto_vib_sweep = inst.vibrato_sweep;
+                        channel.auto_vib_depth = inst.vibrato_depth;
+                        channel.auto_vib_rate = inst.vibrato_rate;
                     }
                 }
                 Cell::NoteOff => channel.note_off(),

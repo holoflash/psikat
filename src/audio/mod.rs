@@ -176,6 +176,10 @@ impl AudioEngine {
             vol_envelope: cs.vol_envelope.clone(),
             sample_data: Arc::clone(&cs.sample_data),
             master_volume,
+            vibrato_type: cs.vibrato_type,
+            vibrato_sweep: cs.vibrato_sweep,
+            vibrato_depth: cs.vibrato_depth,
+            vibrato_rate: cs.vibrato_rate,
         });
     }
 }

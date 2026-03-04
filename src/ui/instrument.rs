@@ -383,6 +383,7 @@ pub fn draw_instrument_list(ui: &mut egui::Ui, app: &mut App) {
         .inner_margin(egui::Margin::symmetric(12, 10))
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
+            ui.set_min_height(ui.available_height());
 
             ui.label(
                 RichText::new("Instruments")
@@ -400,48 +401,46 @@ pub fn draw_instrument_list(ui: &mut egui::Ui, app: &mut App) {
             );
             ui.add_space(4.0);
 
-            egui::ScrollArea::vertical()
-                .max_height(180.0)
-                .show(ui, |ui| {
-                    for (i, inst) in app.project.instruments.iter().enumerate() {
-                        let is_current = i == app.current_instrument;
-                        let label = format!("{:02X}: {}", i, inst.name);
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                for (i, inst) in app.project.instruments.iter().enumerate() {
+                    let is_current = i == app.current_instrument;
+                    let label = format!("{:02X}: {}", i, inst.name);
 
-                        let (bg, fg) = if is_current {
-                            (COLOR_PATTERN_CURSOR_BG, COLOR_PATTERN_CURSOR_TEXT)
-                        } else {
-                            (egui::Color32::TRANSPARENT, COLOR_TEXT_DIM)
-                        };
+                    let (bg, fg) = if is_current {
+                        (COLOR_PATTERN_CURSOR_BG, COLOR_PATTERN_CURSOR_TEXT)
+                    } else {
+                        (egui::Color32::TRANSPARENT, COLOR_TEXT_DIM)
+                    };
 
-                        let (rect, response) = ui.allocate_exact_size(
-                            Vec2::new(ui.available_width(), 16.0),
-                            egui::Sense::click(),
-                        );
+                    let (rect, response) = ui.allocate_exact_size(
+                        Vec2::new(ui.available_width(), 14.0),
+                        egui::Sense::click(),
+                    );
 
-                        if bg != egui::Color32::TRANSPARENT {
-                            ui.painter().rect_filled(rect, 2.0, bg);
-                        }
-
-                        if response.hovered() && !is_current {
-                            ui.painter().rect_filled(
-                                rect,
-                                2.0,
-                                egui::Color32::from_rgba_premultiplied(80, 70, 90, 40),
-                            );
-                        }
-
-                        ui.painter().text(
-                            Pos2::new(rect.left() + 4.0, rect.center().y),
-                            egui::Align2::LEFT_CENTER,
-                            &label,
-                            FontId::monospace(11.0),
-                            fg,
-                        );
-
-                        if response.clicked() {
-                            app.current_instrument = i;
-                        }
+                    if bg != egui::Color32::TRANSPARENT {
+                        ui.painter().rect_filled(rect, 2.0, bg);
                     }
-                });
+
+                    if response.hovered() && !is_current {
+                        ui.painter().rect_filled(
+                            rect,
+                            2.0,
+                            egui::Color32::from_rgba_premultiplied(80, 70, 90, 40),
+                        );
+                    }
+
+                    ui.painter().text(
+                        Pos2::new(rect.left() + 4.0, rect.center().y),
+                        egui::Align2::LEFT_CENTER,
+                        &label,
+                        FontId::monospace(11.0),
+                        fg,
+                    );
+
+                    if response.clicked() {
+                        app.current_instrument = i;
+                    }
+                }
+            });
         });
 }

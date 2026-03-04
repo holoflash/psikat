@@ -49,6 +49,7 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
             egui::ScrollArea::horizontal()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
+                    let visible_height = ui.available_height();
                     let mut table = TableBuilder::new(ui)
                         .striped(false)
                         .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
@@ -56,6 +57,20 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
 
                     for _ in 0..channels {
                         table = table.column(col).column(col).column(col).column(col);
+                    }
+
+                    if app.follow_playback && app.playback.playing {
+                        let target_y = (app.playback_row_display as f32 * ROW_HEIGHT
+                            - visible_height / 2.0
+                            + ROW_HEIGHT / 2.0)
+                            .max(0.0);
+                        let diff = target_y - app.follow_scroll_offset;
+                        if diff < -ROW_HEIGHT * 2.0 || diff.abs() < 0.5 {
+                            app.follow_scroll_offset = target_y;
+                        } else {
+                            app.follow_scroll_offset += diff * 0.15;
+                        }
+                        table = table.vertical_scroll_offset(app.follow_scroll_offset);
                     }
 
                     table
@@ -222,6 +237,8 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                 COLOR_PATTERN_CURSOR_TEXT
             } else if is_note_selected {
                 COLOR_PATTERN_SELECTION_TEXT
+            } else if matches!(cell, Cell::Empty) {
+                COLOR_TEXT_DIM
             } else if is_playback_row {
                 COLOR_PATTERN_PLAYBACK_TEXT
             } else if matches!(cell, Cell::NoteOff) {
@@ -265,6 +282,8 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                 COLOR_PATTERN_CURSOR_TEXT
             } else if is_inst_selected {
                 COLOR_PATTERN_SELECTION_TEXT
+            } else if inst_val.is_none() {
+                COLOR_TEXT_DIM
             } else if is_playback_row {
                 COLOR_PATTERN_PLAYBACK_TEXT
             } else {
@@ -307,6 +326,8 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                 COLOR_PATTERN_CURSOR_TEXT
             } else if is_vol_selected {
                 COLOR_PATTERN_SELECTION_TEXT
+            } else if volume_val.is_none() {
+                COLOR_TEXT_DIM
             } else if is_playback_row {
                 COLOR_PATTERN_PLAYBACK_TEXT
             } else {
@@ -349,6 +370,8 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                 COLOR_PATTERN_CURSOR_TEXT
             } else if is_fx_selected {
                 COLOR_PATTERN_SELECTION_TEXT
+            } else if effect_cmd.is_none() {
+                COLOR_TEXT_DIM
             } else if is_playback_row {
                 COLOR_PATTERN_PLAYBACK_TEXT
             } else {

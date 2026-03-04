@@ -88,7 +88,56 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                         .color(COLOR_TEXT_DIM),
                 );
 
+                ui.add_space(12.0);
+                let follow_label = if app.follow_playback {
+                    " ▶ Follow "
+                } else {
+                    "   Follow "
+                };
+                let follow_color = if app.follow_playback {
+                    COLOR_MODE_PLAYING
+                } else {
+                    COLOR_TEXT_DIM
+                };
+                let follow_btn = ui.add(
+                    egui::Button::new(
+                        RichText::new(follow_label)
+                            .font(FontId::monospace(12.0))
+                            .color(follow_color),
+                    )
+                    .fill(COLOR_LAYOUT_BORDER)
+                    .stroke(Stroke::new(
+                        1.0,
+                        if app.follow_playback {
+                            COLOR_MODE_PLAYING
+                        } else {
+                            COLOR_LAYOUT_BORDER_ACTIVE
+                        },
+                    )),
+                );
+                follow_btn.surrender_focus();
+                if follow_btn.clicked() {
+                    app.follow_playback = !app.follow_playback;
+                }
+
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let sidebar_icon = if app.show_sidebar { " ▶ " } else { " ◀ " };
+                    let sidebar_btn = ui.add(
+                        egui::Button::new(
+                            RichText::new(sidebar_icon)
+                                .font(FontId::monospace(12.0))
+                                .color(COLOR_PATTERN_CURSOR_TEXT),
+                        )
+                        .fill(COLOR_LAYOUT_BORDER)
+                        .stroke(Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE)),
+                    );
+                    sidebar_btn.surrender_focus();
+                    if sidebar_btn.clicked() {
+                        app.show_sidebar = !app.show_sidebar;
+                    }
+
+                    ui.add_space(4.0);
+
                     let export_btn = ui.add(
                         egui::Button::new(
                             RichText::new(" Export WAV ")

@@ -277,10 +277,10 @@ pub fn load_xm(path: &Path) -> Result<Project, String> {
             let volume = read_u8(cur, &format!("{ctx} vol"))?;
             let finetune = read_i8(cur, &format!("{ctx} finetune"))?;
             let sample_type = read_u8(cur, &format!("{ctx} type"))?;
-            let panning = read_u8(cur, &format!("{ctx} pan"))?;
+            let _panning = read_u8(cur, &format!("{ctx} pan"))?;
             let relative_note = read_i8(cur, &format!("{ctx} relnote"))?;
             let _reserved = read_u8(cur, &format!("{ctx} reserved"))?;
-            let name = read_string(cur, 22, &format!("{ctx} name"))?;
+            let _name = read_string(cur, 22, &format!("{ctx} name"))?;
 
             sample_headers.push(XmSampleHeader {
                 length,
@@ -289,9 +289,7 @@ pub fn load_xm(path: &Path) -> Result<Project, String> {
                 volume,
                 finetune,
                 sample_type,
-                _panning: panning,
                 relative_note,
-                name,
             });
         }
 
@@ -338,7 +336,6 @@ pub fn load_xm(path: &Path) -> Result<Project, String> {
             };
 
             let sd = Arc::new(SampleData {
-                name: sh.name.clone(),
                 samples_i16,
                 samples_f32,
                 sample_rate: effective_rate,
@@ -450,13 +447,8 @@ struct XmSampleHeader {
     length: u32,
     loop_start: u32,
     loop_length: u32,
-    #[allow(dead_code)]
     volume: u8,
-    #[allow(dead_code)]
     finetune: i8,
     sample_type: u8,
-    #[allow(dead_code)]
-    _panning: u8,
     relative_note: i8,
-    name: String,
 }

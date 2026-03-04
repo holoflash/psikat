@@ -45,8 +45,6 @@ impl LoopType {
 
 #[derive(Debug, Clone)]
 pub struct SampleData {
-    #[allow(dead_code)]
-    pub name: String,
     pub samples_i16: Vec<i16>,
     pub samples_f32: Vec<f32>,
     pub sample_rate: u32,
@@ -96,12 +94,7 @@ impl SampleData {
             .map(|&s| f32::from(s) * INV_I16_MAX)
             .collect();
 
-        let name = path
-            .file_name()
-            .map_or_else(|| "sample".to_string(), |n| n.to_string_lossy().to_string());
-
         Ok(Arc::new(Self {
-            name,
             samples_i16,
             samples_f32,
             sample_rate,
@@ -112,14 +105,13 @@ impl SampleData {
         }))
     }
 
-    fn generate(name: &str, samples_f32: Vec<f32>, looped: bool) -> Arc<Self> {
+    fn generate(samples_f32: Vec<f32>, looped: bool) -> Arc<Self> {
         let samples_i16: Vec<i16> = samples_f32
             .iter()
             .map(|&s| (s * f32::from(i16::MAX)) as i16)
             .collect();
         let len = samples_f32.len();
         Arc::new(Self {
-            name: name.to_string(),
             samples_i16,
             samples_f32,
             sample_rate: WAVE_RATE,
@@ -141,7 +133,7 @@ impl SampleData {
                 (std::f32::consts::TAU * phase).sin()
             })
             .collect();
-        Self::generate("Sine", data, true)
+        Self::generate(data, true)
     }
 
     pub fn triangle() -> Arc<Self> {
@@ -151,7 +143,7 @@ impl SampleData {
                 4.0f32.mul_add((phase - (phase + 0.5).floor()).abs(), -1.0)
             })
             .collect();
-        Self::generate("Triangle", data, true)
+        Self::generate(data, true)
     }
 
     pub fn square() -> Arc<Self> {
@@ -161,7 +153,7 @@ impl SampleData {
                 if phase < 0.5 { 1.0 } else { -1.0 }
             })
             .collect();
-        Self::generate("Square", data, true)
+        Self::generate(data, true)
     }
 
     pub fn saw() -> Arc<Self> {
@@ -171,18 +163,18 @@ impl SampleData {
                 2.0f32.mul_add(phase, -1.0)
             })
             .collect();
-        Self::generate("Saw", data, true)
+        Self::generate(data, true)
     }
 
     pub fn noise() -> Arc<Self> {
         let data: Vec<f32> = (0..4096)
             .map(|_| fastrand::f32().mul_add(2.0, -1.0))
             .collect();
-        Self::generate("Noise", data, true)
+        Self::generate(data, true)
     }
 
     pub fn silent() -> Arc<Self> {
-        Self::generate("Empty", vec![0.0; WAVE_LEN], false)
+        Self::generate(vec![0.0; WAVE_LEN], false)
     }
 }
 
@@ -205,7 +197,6 @@ mod tests {
     #[test]
     fn sample_data_basics() {
         let data = SampleData {
-            name: "test.wav".to_string(),
             samples_i16: vec![0i16; 44100],
             samples_f32: vec![0.0f32; 44100],
             sample_rate: 44100,

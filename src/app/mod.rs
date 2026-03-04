@@ -102,9 +102,7 @@ impl SynthSettingsField {
             | Self::EnvValue
             | Self::EnvSustain
             | Self::EnvLoopStart
-            | Self::EnvLoopEnd => {
-                // Handled by adjust_envelope which has access to point index
-            }
+            | Self::EnvLoopEnd => {}
             Self::LoopType => {
                 let sd = Arc::make_mut(&mut inst.sample_data);
                 sd.loop_type = if delta > 0 {
@@ -390,6 +388,9 @@ pub struct App {
     pub clipboard: Option<ClipboardData>,
     pub muted_channels: Vec<bool>,
     pub envelope_point_idx: usize,
+    pub follow_playback: bool,
+    pub follow_scroll_offset: f32,
+    pub show_sidebar: bool,
 }
 
 impl App {
@@ -427,6 +428,9 @@ impl App {
             clipboard: None,
             muted_channels: vec![false; 32],
             envelope_point_idx: 0,
+            follow_playback: true,
+            follow_scroll_offset: 0.0,
+            show_sidebar: true,
         }
     }
 
