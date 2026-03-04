@@ -307,99 +307,78 @@ impl Channel {
             return;
         }
 
-        let effect = match self.current_effect {
-            Some(e) => e,
-            None => return,
-        };
-
-        match effect.kind {
-            // 0xy — Arpeggio
-            0 if effect.param != 0 => {
-                let semitone_offset = match tick % 3 {
-                    0 => 0,
-                    1 => self.arpeggio_x,
-                    _ => self.arpeggio_y,
-                };
-                let period = self.base_period - f32::from(semitone_offset) * 64.0;
-                let freq = Self::period_to_freq(period.max(50.0));
-                self.sample_step = Self::compute_sample_step(freq, &self.sample_data);
-            }
-            // 1xx — Porta up
-            1 => {
-                self.period = (self.period - f32::from(self.last_porta_up) * 4.0).max(50.0);
-                self.update_freq_from_period();
-            }
-            // 2xx — Porta down
-            2 => {
-                self.period = (self.period + f32::from(self.last_porta_down) * 4.0).min(7680.0);
-                self.update_freq_from_period();
-            }
-            // 3xx — Tone portamento
-            3 => self.do_tone_porta(),
-            // 4xy — Vibrato
-            4 => self.do_vibrato(),
-            // 5xy — Tone porta + volume slide
-            5 => {
-                self.do_tone_porta();
-                self.do_vol_slide(self.last_vol_slide);
-            }
-            // 6xy — Vibrato + volume slide
-            6 => {
-                self.do_vibrato();
-                self.do_vol_slide(self.last_vol_slide);
-            }
-            // 7xy — Tremolo
-            7 => self.do_tremolo(),
-            // Axy — Volume slide
-            0xA => {
-                self.do_vol_slide(self.last_vol_slide);
-            }
-            // Exx — Extended effects
-            0xE => {
-                let sub = effect.param >> 4;
-                let val = effect.param & 0x0F;
-                match sub {
-                    // ECx — Note cut at tick x
-                    0xC => {
-                        if tick == u16::from(val) {
-                            self.volume = 0.0;
-                        }
-                    }
-                    // E9x — Retrigger note at tick x
-                    0x9 => {
-                        if val != 0 && tick.is_multiple_of(u16::from(val)) {
-                            self.sample_position = 0.0;
-                            self.sample_direction = 1.0;
-                            self.elapsed_samples = 0;
-                        }
-                    }
-                    _ => {}
+        if let Some(effect) = self.current_effect {
+            match effect.kind {
+                0 if effect.param != 0 => {
+                    let semitone_offset = match tick % 3 {
+                        0 => 0,
+                        1 => self.arpeggio_x,
+                        _ => self.arpeggio_y,
+                    };
+                    let period = self.base_period - f32::from(semitone_offset) * 64.0;
+                    let freq = Self::period_to_freq(period.max(50.0));
+                    self.sample_step = Self::compute_sample_step(freq, &self.sample_data);
                 }
-            }
-            // Kxx — Key off (fires on tick xx, 0 = immediate)
-            0x14 => {
-                if tick == u16::from(effect.param) {
-                    self.note_off();
+                1 => {
+                    self.period = (self.period - f32::from(self.last_porta_up) * 4.0).max(50.0);
+                    self.update_freq_from_period();
                 }
+                2 => {
+                    self.period = (self.period + f32::from(self.last_porta_down) * 4.0).min(7680.0);
+                    self.update_freq_from_period();
+                }
+                3 => self.do_tone_porta(),
+                4 => self.do_vibrato(),
+                5 => {
+                    self.do_tone_porta();
+                    self.do_vol_slide(self.last_vol_slide);
+                }
+                6 => {
+                    self.do_vibrato();
+                    self.do_vol_slide(self.last_vol_slide);
+                }
+                7 => self.do_tremolo(),
+                0xA => {
+                    self.do_vol_slide(self.last_vol_slide);
+                }
+                0xE => {
+                    let sub = effect.param >> 4;
+                    let val = effect.param & 0x0F;
+                    match sub {
+                        0xC => {
+                            if tick == u16::from(val) {
+                                self.volume = 0.0;
+                            }
+                        }
+                        0x9 => {
+                            if val != 0 && tick.is_multiple_of(u16::from(val)) {
+                                self.sample_position = 0.0;
+                                self.sample_direction = 1.0;
+                                self.elapsed_samples = 0;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                0x14 => {
+                    if tick == u16::from(effect.param) {
+                        self.note_off();
+                    }
+                }
+                _ => {}
             }
-            _ => {}
         }
 
-        // Volume column per-tick effects
         match self.vol_column >> 4 {
-            // 0x60-0x6F: Volume slide down
             6 => {
                 self.volume = (self.volume - (self.vol_column & 0x0F) as f32 / 64.0).max(0.0);
             }
-            // 0x70-0x7F: Volume slide up
             7 => {
                 self.volume = (self.volume + (self.vol_column & 0x0F) as f32 / 64.0).min(1.0);
             }
-            // 0xB0-0xBF: Vibrato
             0xB => {
                 self.do_vibrato();
             }
-            // 0xF0-0xFF: Tone portamento (per-tick)
             0xF => {
                 self.do_tone_porta();
             }
