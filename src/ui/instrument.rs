@@ -45,6 +45,14 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
             );
             ui.add_space(6.0);
 
+            settings_row(
+                ui,
+                "Envelope",
+                if cs.vol_envelope.enabled { "On" } else { "Off" },
+                synth_active && app.synth_field == SynthSettingsField::Envelope,
+            );
+            ui.add_space(6.0);
+
             settings_row(ui, "Name", &cs.name, false);
             ui.add_space(6.0);
 
@@ -76,6 +84,75 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
             ui.add_space(6.0);
 
             draw_envelope_preview(ui, &cs.vol_envelope);
+            ui.add_space(6.0);
+
+            settings_row(
+                ui,
+                "Env Points",
+                &format!("{}", cs.vol_envelope.points.len()),
+                synth_active && app.synth_field == SynthSettingsField::EnvPoints,
+            );
+            ui.add_space(6.0);
+
+            let pt_idx = app
+                .envelope_point_idx
+                .min(cs.vol_envelope.points.len().saturating_sub(1));
+            settings_row(
+                ui,
+                "Env Point",
+                &format!("{}", pt_idx),
+                synth_active && app.synth_field == SynthSettingsField::EnvPoint,
+            );
+            ui.add_space(6.0);
+
+            if let Some(&(tick, val)) = cs.vol_envelope.points.get(pt_idx) {
+                settings_row(
+                    ui,
+                    "  Tick",
+                    &format!("{}", tick),
+                    synth_active && app.synth_field == SynthSettingsField::EnvTick,
+                );
+                ui.add_space(6.0);
+
+                settings_row(
+                    ui,
+                    "  Value",
+                    &format!("{}", val),
+                    synth_active && app.synth_field == SynthSettingsField::EnvValue,
+                );
+                ui.add_space(6.0);
+            }
+
+            let sustain_str = match cs.vol_envelope.sustain_point {
+                Some(sp) => format!("{}", sp),
+                None => "Off".to_string(),
+            };
+            settings_row(
+                ui,
+                "Sustain Pt",
+                &sustain_str,
+                synth_active && app.synth_field == SynthSettingsField::EnvSustain,
+            );
+            ui.add_space(6.0);
+
+            let (loop_start_str, loop_end_str) = match cs.vol_envelope.loop_range {
+                Some((ls, le)) => (format!("{}", ls), format!("{}", le)),
+                None => ("Off".to_string(), "Off".to_string()),
+            };
+            settings_row(
+                ui,
+                "Loop Start",
+                &loop_start_str,
+                synth_active && app.synth_field == SynthSettingsField::EnvLoopStart,
+            );
+            ui.add_space(6.0);
+
+            settings_row(
+                ui,
+                "Loop End",
+                &loop_end_str,
+                synth_active && app.synth_field == SynthSettingsField::EnvLoopEnd,
+            );
             ui.add_space(6.0);
 
             settings_row(
@@ -253,32 +330,35 @@ fn draw_envelope_preview(ui: &mut egui::Ui, env: &VolEnvelope) {
     };
 
     if let Some((ls, le)) = env.loop_range
-        && ls < env.points.len() && le < env.points.len() {
-            let x0 = to_pos(env.points[ls].0, 0).x;
-            let x1 = to_pos(env.points[le].0, 0).x;
-            let loop_rect =
-                egui::Rect::from_min_max(Pos2::new(x0, rect.top()), Pos2::new(x1, rect.bottom()));
-            painter.rect_filled(
-                loop_rect,
-                0.0,
-                egui::Color32::from_rgba_premultiplied(120, 100, 60, 25),
-            );
-        }
+        && ls < env.points.len()
+        && le < env.points.len()
+    {
+        let x0 = to_pos(env.points[ls].0, 0).x;
+        let x1 = to_pos(env.points[le].0, 0).x;
+        let loop_rect =
+            egui::Rect::from_min_max(Pos2::new(x0, rect.top()), Pos2::new(x1, rect.bottom()));
+        painter.rect_filled(
+            loop_rect,
+            0.0,
+            egui::Color32::from_rgba_premultiplied(120, 100, 60, 25),
+        );
+    }
 
     if let Some(si) = env.sustain_point
-        && si < env.points.len() {
-            let x = to_pos(env.points[si].0, 0).x;
-            let dash_color = egui::Color32::from_rgba_premultiplied(200, 180, 120, 80);
-            let mut y = rect.top();
-            while y < rect.bottom() {
-                let y_end = (y + 3.0).min(rect.bottom());
-                painter.line_segment(
-                    [Pos2::new(x, y), Pos2::new(x, y_end)],
-                    Stroke::new(1.0, dash_color),
-                );
-                y += 6.0;
-            }
+        && si < env.points.len()
+    {
+        let x = to_pos(env.points[si].0, 0).x;
+        let dash_color = egui::Color32::from_rgba_premultiplied(200, 180, 120, 80);
+        let mut y = rect.top();
+        while y < rect.bottom() {
+            let y_end = (y + 3.0).min(rect.bottom());
+            painter.line_segment(
+                [Pos2::new(x, y), Pos2::new(x, y_end)],
+                Stroke::new(1.0, dash_color),
+            );
+            y += 6.0;
         }
+    }
 
     let line_color = COLOR_MODE_SETTINGS;
     let points_pos: Vec<Pos2> = env.points.iter().map(|&(t, v)| to_pos(t, v)).collect();
@@ -322,7 +402,6 @@ pub fn draw_instrument_list(ui: &mut egui::Ui, app: &mut App) {
 
             egui::ScrollArea::vertical()
                 .max_height(180.0)
-                .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     for (i, inst) in app.project.instruments.iter().enumerate() {
                         let is_current = i == app.current_instrument;

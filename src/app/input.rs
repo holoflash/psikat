@@ -1138,6 +1138,23 @@ impl App {
             if self.synth_field == SynthSettingsField::Instrument {
                 self.current_instrument =
                     (self.current_instrument + 1) % self.project.instruments.len();
+                self.envelope_point_idx = 0;
+            } else if matches!(
+                self.synth_field,
+                SynthSettingsField::EnvPoints
+                    | SynthSettingsField::EnvPoint
+                    | SynthSettingsField::EnvTick
+                    | SynthSettingsField::EnvValue
+                    | SynthSettingsField::EnvSustain
+                    | SynthSettingsField::EnvLoopStart
+                    | SynthSettingsField::EnvLoopEnd
+            ) {
+                let idx = self.current_instrument;
+                self.synth_field.adjust_envelope(
+                    &mut self.project.instruments[idx],
+                    1,
+                    &mut self.envelope_point_idx,
+                );
             } else {
                 let idx = self.current_instrument;
                 self.synth_field
@@ -1150,6 +1167,23 @@ impl App {
                 } else {
                     self.current_instrument -= 1;
                 }
+                self.envelope_point_idx = 0;
+            } else if matches!(
+                self.synth_field,
+                SynthSettingsField::EnvPoints
+                    | SynthSettingsField::EnvPoint
+                    | SynthSettingsField::EnvTick
+                    | SynthSettingsField::EnvValue
+                    | SynthSettingsField::EnvSustain
+                    | SynthSettingsField::EnvLoopStart
+                    | SynthSettingsField::EnvLoopEnd
+            ) {
+                let idx = self.current_instrument;
+                self.synth_field.adjust_envelope(
+                    &mut self.project.instruments[idx],
+                    -1,
+                    &mut self.envelope_point_idx,
+                );
             } else {
                 let idx = self.current_instrument;
                 self.synth_field
