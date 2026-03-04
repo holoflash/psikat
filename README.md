@@ -14,6 +14,7 @@ If you're looking for a great modern alternative, check out [**Furnace**](https:
 
 ### TODO
 
+- [ ] Make the settings panel more compact
 - [ ] All XM effects
 - [ ] MOD import
 - [ ] XM export
