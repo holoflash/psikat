@@ -106,6 +106,16 @@ impl App {
             return false;
         }
 
+        if actions.contains(&Action::FillAscending) {
+            self.handle_fill(true);
+            return false;
+        }
+
+        if actions.contains(&Action::FillDescending) {
+            self.handle_fill(false);
+            return false;
+        }
+
         if actions.contains(&Action::OctaveUp) {
             if self.cursor.octave < 8 {
                 self.cursor.octave += 1;
@@ -764,6 +774,88 @@ impl App {
         }
 
         true
+    }
+
+    fn handle_fill(&mut self, ascending: bool) {
+        let ch = self.cursor.channel;
+        let start_row = self.cursor.row;
+        let total_rows = self.project.current_pattern().rows;
+
+        match self.cursor.sub_column {
+            SubColumn::Note => {
+                let cell = self.project.current_pattern().get(ch, start_row);
+                if let Cell::NoteOn(note) = cell {
+                    let mut pitch = i16::from(note.pitch);
+                    for row in (start_row + 1)..total_rows {
+                        if self.project.current_pattern().get(ch, row) != Cell::Empty {
+                            break;
+                        }
+                        pitch += if ascending { 1 } else { -1 };
+                        let clamped = pitch.clamp(1, 96) as u8;
+                        self.project.current_pattern_mut().set(
+                            ch,
+                            row,
+                            Cell::NoteOn(Note::new(clamped)),
+                        );
+                    }
+                }
+            }
+            SubColumn::Instrument => {
+                if let Some(inst) = self.project.current_pattern().get_instrument(ch, start_row) {
+                    let mut val = i16::from(inst);
+                    for row in (start_row + 1)..total_rows {
+                        if self
+                            .project
+                            .current_pattern()
+                            .get_instrument(ch, row)
+                            .is_some()
+                        {
+                            break;
+                        }
+                        val += if ascending { 1 } else { -1 };
+                        let clamped = val.clamp(0, 0xFF) as u8;
+                        self.project
+                            .current_pattern_mut()
+                            .set_instrument(ch, row, Some(clamped));
+                    }
+                }
+            }
+            SubColumn::Volume => {
+                if let Some(vol) = self.project.current_pattern().get_volume(ch, start_row) {
+                    let mut val = i16::from(vol);
+                    for row in (start_row + 1)..total_rows {
+                        if self.project.current_pattern().get_volume(ch, row).is_some() {
+                            break;
+                        }
+                        val += if ascending { 1 } else { -1 };
+                        let clamped = val.clamp(0, 0xFF) as u8;
+                        self.project
+                            .current_pattern_mut()
+                            .set_volume(ch, row, Some(clamped));
+                    }
+                }
+            }
+            SubColumn::Effect => {
+                if let Some(fx) = self.project.current_pattern().get_effect(ch, start_row) {
+                    let mut param = i16::from(fx.param);
+                    for row in (start_row + 1)..total_rows {
+                        if self.project.current_pattern().get_effect(ch, row).is_some() {
+                            break;
+                        }
+                        param += if ascending { 1 } else { -1 };
+                        let clamped = param.clamp(0, 0xFF) as u8;
+                        self.project.current_pattern_mut().set_effect(
+                            ch,
+                            row,
+                            Some(Effect {
+                                kind: fx.kind,
+                                param: clamped,
+                            }),
+                        );
+                    }
+                }
+            }
+        }
     }
 
     fn handle_note_keys(&mut self, input: &egui::InputState) {

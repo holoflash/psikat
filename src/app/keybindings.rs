@@ -92,6 +92,8 @@ pub enum Action {
     SettingsIncrease,
     SettingsDecrease,
     LoadSample,
+    FillAscending,
+    FillDescending,
 }
 
 #[derive(Debug, Clone)]
@@ -353,6 +355,20 @@ impl KeyBindings {
                     description: "Open file dialog to load a sample",
                     category: "Sampler",
                 },
+                Binding {
+                    action: Action::FillAscending,
+                    combo: KeyCombo::new(Key::I).ctrl(),
+                    title: "Fill ascending",
+                    description: "Fill empty rows downward with ascending values",
+                    category: "Edit",
+                },
+                Binding {
+                    action: Action::FillDescending,
+                    combo: KeyCombo::new(Key::D).ctrl(),
+                    title: "Fill descending",
+                    description: "Fill empty rows downward with descending values",
+                    category: "Edit",
+                },
             ],
         }
     }
@@ -375,6 +391,9 @@ const fn key_name(key: Key) -> &'static str {
         Key::Num1 => "1",
         Key::Num2 => "2",
         Key::Num3 => "3",
+        Key::I => "I",
+        Key::D => "D",
+        Key::L => "L",
         _ => "?",
     }
 }
