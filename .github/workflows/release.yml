@@ -122,8 +122,21 @@ jobs:
       - name: Package (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          chmod +x target/${{ matrix.target }}/release/psikat
-          tar czf ${{ matrix.artifact }}.tar.gz -C target/${{ matrix.target }}/release psikat
+          STAGE="${{ matrix.artifact }}"
+          mkdir -p "${STAGE}"
+          cp target/${{ matrix.target }}/release/psikat "${STAGE}/"
+          chmod +x "${STAGE}/psikat"
+          cp assets/psikat.desktop "${STAGE}/"
+          cp assets/icon.png "${STAGE}/psikat.png"
+          tar czf ${{ matrix.artifact }}.tar.gz "${STAGE}"
+          rm -rf "${STAGE}"
+
+      - name: Embed icon (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          choco install rcedit -y
+          rcedit "target/${{ matrix.target }}/release/psikat.exe" --set-icon "assets/psikat.ico"
 
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'

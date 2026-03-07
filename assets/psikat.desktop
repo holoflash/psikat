@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Psikat
+Comment=Music tracker
+Exec=psikat
+Icon=psikat
+Type=Application
+Categories=Audio;Music;Sequencer;
+Terminal=false

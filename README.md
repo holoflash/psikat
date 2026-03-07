@@ -64,24 +64,19 @@ If you're looking for a great fully featured modern alternative, check out [**Fu
 
 ## Install
 
-Download the latest archive for your platform from [**Releases**](https://github.com/holoflash/psikat/releases/latest) and extract it:
+Download the latest release for your platform from [**Releases**](https://github.com/holoflash/psikat/releases/latest):
 
-| Platform              | File                          |
-| --------------------- | ----------------------------- |
-| macOS (Apple Silicon) | `psikat-macos-aarch64.tar.gz` |
-| macOS (Intel)         | `psikat-macos-x86_64.tar.gz`  |
-| Linux                 | `psikat-linux-x86_64.tar.gz`  |
-| Windows               | `psikat-windows-x86_64.zip`   |
+| Platform              | File                         |
+| --------------------- | ---------------------------- |
+| macOS (Apple Silicon) | `psikat-macos-aarch64.dmg`   |
+| macOS (Intel)         | `psikat-macos-x86_64.dmg`    |
+| Linux                 | `psikat-linux-x86_64.tar.gz` |
+| Windows               | `psikat-windows-x86_64.zip`  |
 
-```sh
-tar xzf psikat-*.tar.gz
-./psikat
-```
-
-**macOS users:** If you see "Apple could not verify", run this once before launching:
+**macOS:** Open the `.dmg` and drag Psikat to Applications. If macOS says the app "is damaged and can't be opened", run this once in Terminal:
 
 ```sh
-xattr -d com.apple.quarantine psikat
+xattr -cr /Applications/Psikat.app
 ```
 
 ## License
