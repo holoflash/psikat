@@ -1,6 +1,6 @@
 use std::num::NonZero;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -12,6 +12,44 @@ use crate::project::{Cell, Effect, SampleData};
 
 pub const SAMPLE_RATE: u32 = 44100;
 const DEFAULT_SPEED: u16 = 6;
+
+pub const SCOPE_SIZE: usize = 256;
+const SCOPE_DOWNSAMPLE: usize = 4;
+
+pub struct ScopeBuffer {
+    pub samples: Box<[AtomicU32; SCOPE_SIZE]>,
+    pub write_pos: AtomicUsize,
+}
+
+impl ScopeBuffer {
+    pub fn new() -> Self {
+        Self {
+            samples: Box::new(std::array::from_fn(|_| AtomicU32::new(0))),
+            write_pos: AtomicUsize::new(0),
+        }
+    }
+
+    pub fn push(&self, val: f32) {
+        let pos = self.write_pos.fetch_add(1, Ordering::Relaxed) % SCOPE_SIZE;
+        self.samples[pos].store(val.to_bits(), Ordering::Relaxed);
+    }
+
+    pub fn read_all(&self) -> [f32; SCOPE_SIZE] {
+        let wp = self.write_pos.load(Ordering::Relaxed);
+        let mut out = [0.0f32; SCOPE_SIZE];
+        for i in 0..SCOPE_SIZE {
+            let idx = (wp + i) % SCOPE_SIZE;
+            out[i] = f32::from_bits(self.samples[idx].load(Ordering::Relaxed));
+        }
+        out
+    }
+
+    pub fn clear(&self) {
+        for s in self.samples.iter() {
+            s.store(0u32, Ordering::Relaxed);
+        }
+    }
+}
 
 pub enum Command {
     Play {
@@ -524,6 +562,8 @@ pub struct TrackerSource {
     preview_tick: u16,
     muted_channels: Vec<bool>,
     stop_at_end: bool,
+    channel_scopes: Arc<Vec<ScopeBuffer>>,
+    scope_counter: usize,
 }
 
 impl TrackerSource {
@@ -531,6 +571,7 @@ impl TrackerSource {
         receiver: mpsc::Receiver<Command>,
         playback_row: Arc<AtomicUsize>,
         playback_order: Arc<AtomicUsize>,
+        channel_scopes: Arc<Vec<ScopeBuffer>>,
     ) -> Self {
         Self {
             channels: Vec::new(),
@@ -559,6 +600,8 @@ impl TrackerSource {
             preview_tick: 0,
             muted_channels: vec![false; 32],
             stop_at_end: false,
+            channel_scopes,
+            scope_counter: 0,
         }
     }
 
@@ -1043,6 +1086,9 @@ impl Iterator for TrackerSource {
         let mut mix_l = 0.0_f32;
         let mut mix_r = 0.0_f32;
 
+        self.scope_counter += 1;
+        let write_scope = self.scope_counter % SCOPE_DOWNSAMPLE == 0;
+
         if self.playing {
             self.tick_sample_counter += 1.0;
             if self.tick_sample_counter >= self.samples_per_tick {
@@ -1052,9 +1098,19 @@ impl Iterator for TrackerSource {
             for (ch_idx, ch) in self.channels.iter_mut().enumerate() {
                 if self.muted_channels.get(ch_idx).copied().unwrap_or(false) {
                     ch.next_sample();
+                    if write_scope {
+                        if let Some(scope) = self.channel_scopes.get(ch_idx) {
+                            scope.push(0.0);
+                        }
+                    }
                     continue;
                 }
                 let sample = ch.next_sample();
+                if write_scope {
+                    if let Some(scope) = self.channel_scopes.get(ch_idx) {
+                        scope.push(sample);
+                    }
+                }
                 let pan = ch.panning;
                 mix_l += sample * (1.0 - pan).sqrt();
                 mix_r += sample * pan.sqrt();
@@ -1075,6 +1131,12 @@ impl Iterator for TrackerSource {
         }
         mix_l += preview * 0.707;
         mix_r += preview * 0.707;
+
+        if !self.playing && self.preview_channel.active && write_scope {
+            if let Some(scope) = self.channel_scopes.first() {
+                scope.push(preview);
+            }
+        }
 
         self.left_sample = mix_l;
         self.right_sample = mix_r;
@@ -1135,7 +1197,8 @@ pub fn export_source(
     });
     drop(sender);
 
-    let mut source = TrackerSource::new(receiver, playback_row, playback_order);
+    let dummy_scopes: Arc<Vec<ScopeBuffer>> = Arc::new(Vec::new());
+    let mut source = TrackerSource::new(receiver, playback_row, playback_order, dummy_scopes);
     source.stop_at_end = true;
     source
 }
@@ -1148,7 +1211,8 @@ mod tests {
         let (tx, rx) = mpsc::channel();
         let row = Arc::new(AtomicUsize::new(0));
         let order = Arc::new(AtomicUsize::new(0));
-        let source = TrackerSource::new(rx, row.clone(), order);
+        let scopes: Arc<Vec<ScopeBuffer>> = Arc::new(Vec::new());
+        let source = TrackerSource::new(rx, row.clone(), order, scopes);
         (tx, source, row)
     }
 

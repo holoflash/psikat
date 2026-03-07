@@ -5,6 +5,8 @@ pub mod scale;
 
 use std::sync::Arc;
 
+use crate::audio::mixer::{SCOPE_SIZE, ScopeBuffer};
+
 use crate::app::keybindings::KeyBindings;
 use crate::project::{Cell, Effect, Instrument};
 
@@ -301,10 +303,12 @@ pub struct App {
     pub clipboard: Option<ClipboardData>,
     pub muted_channels: Vec<bool>,
     pub envelope_point_idx: usize,
-    pub follow_playback: bool,
+
     pub follow_scroll_offset: f32,
     pub show_sidebar: bool,
     pub text_editing: bool,
+    pub channel_scopes: Arc<Vec<ScopeBuffer>>,
+    pub display_scopes: Vec<[f32; SCOPE_SIZE]>,
 }
 
 impl App {
@@ -312,6 +316,7 @@ impl App {
         let audio = AudioEngine::new();
         let peak_level = audio.peak_level.clone();
         let playback_row = audio.playback_row.clone();
+        let channel_scopes = audio.channel_scopes.clone();
         Self {
             project: Project::new(),
             cursor: Cursor {
@@ -341,10 +346,12 @@ impl App {
             clipboard: None,
             muted_channels: vec![false; 32],
             envelope_point_idx: 0,
-            follow_playback: true,
+
             follow_scroll_offset: 0.0,
             show_sidebar: true,
             text_editing: false,
+            channel_scopes,
+            display_scopes: vec![[0.0; SCOPE_SIZE]; 32],
         }
     }
 

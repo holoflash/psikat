@@ -37,7 +37,24 @@ impl App {
     }
 
     pub fn tick(&mut self) {
+        for (i, scope) in self.channel_scopes.iter().enumerate() {
+            if i < self.display_scopes.len() {
+                self.display_scopes[i] = scope.read_all();
+            }
+        }
+
         if !self.playback.playing {
+            for scope in self.channel_scopes.iter() {
+                scope.clear();
+            }
+            for s in &mut self.display_scopes {
+                s.fill(0.0);
+            }
+            if let Some(scope) = self.channel_scopes.first() {
+                if !self.display_scopes.is_empty() {
+                    self.display_scopes[0] = scope.read_all();
+                }
+            }
             return;
         }
         let row = self.playback_row.load(Ordering::Relaxed);

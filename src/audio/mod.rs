@@ -11,7 +11,7 @@ use rodio::{DeviceSinkBuilder, MixerDeviceSink, Source};
 
 use crate::project::{Instrument, Pattern};
 
-use mixer::{Command, PatternSnapshot, PlaybackSettings, TrackerSource};
+use mixer::{Command, PatternSnapshot, PlaybackSettings, ScopeBuffer, TrackerSource};
 
 pub struct PeakMonitor<S> {
     source: S,
@@ -71,6 +71,7 @@ impl<S: Source<Item = f32>> Source for PeakMonitor<S> {
 pub struct AudioEngine {
     _device_sink: MixerDeviceSink,
     pub peak_level: Arc<AtomicU32>,
+    pub channel_scopes: Arc<Vec<ScopeBuffer>>,
     pub playback_row: Arc<AtomicUsize>,
     pub playback_order: Arc<AtomicUsize>,
     sender: mpsc::Sender<Command>,
@@ -82,8 +83,15 @@ impl AudioEngine {
         let playback_row = Arc::new(AtomicUsize::new(0));
         let playback_order = Arc::new(AtomicUsize::new(0));
         let peak_level = Arc::new(AtomicU32::new(0u32));
+        let channel_scopes: Arc<Vec<ScopeBuffer>> =
+            Arc::new((0..32).map(|_| ScopeBuffer::new()).collect());
 
-        let source = TrackerSource::new(receiver, playback_row.clone(), playback_order.clone());
+        let source = TrackerSource::new(
+            receiver,
+            playback_row.clone(),
+            playback_order.clone(),
+            channel_scopes.clone(),
+        );
         let monitored = PeakMonitor::new(source, peak_level.clone());
 
         let mut device_sink =
@@ -94,6 +102,7 @@ impl AudioEngine {
         Self {
             _device_sink: device_sink,
             peak_level,
+            channel_scopes,
             playback_row,
             playback_order,
             sender,

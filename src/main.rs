@@ -56,7 +56,13 @@ impl eframe::App for PsikatApp {
 
         ui::draw(ctx, &mut self.app);
 
-        if self.app.playback.playing {
+        if self.app.playback.playing
+            || self
+                .app
+                .display_scopes
+                .iter()
+                .any(|s| s.iter().any(|v| *v != 0.0))
+        {
             ctx.request_repaint();
         }
     }

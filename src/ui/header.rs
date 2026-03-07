@@ -247,33 +247,6 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                     if r.double_clicked() {
                         app.project.master_volume_db = 0.0;
                     }
-
-                    ui.add_space(8.0);
-
-                    let follow_color = if app.follow_playback {
-                        COLOR_PATTERN_CURSOR_TEXT
-                    } else {
-                        COLOR_TEXT_DIM
-                    };
-                    let btn = ui
-                        .add(
-                            egui::Button::new(
-                                RichText::new(if app.follow_playback {
-                                    "Follow"
-                                } else {
-                                    "Follow"
-                                })
-                                .font(FontId::monospace(12.0))
-                                .color(follow_color),
-                            )
-                            .fill(COLOR_LAYOUT_BG_PANEL)
-                            .stroke(Stroke::new(1.0, follow_color)),
-                        )
-                        .on_hover_cursor(egui::CursorIcon::PointingHand);
-                    btn.surrender_focus();
-                    if btn.clicked() {
-                        app.follow_playback = !app.follow_playback;
-                    }
                 });
             });
         });
