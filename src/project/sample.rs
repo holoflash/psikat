@@ -17,32 +17,6 @@ pub enum LoopType {
     PingPong,
 }
 
-impl LoopType {
-    pub const fn next(self) -> Self {
-        match self {
-            Self::None => Self::Forward,
-            Self::Forward => Self::PingPong,
-            Self::PingPong => Self::None,
-        }
-    }
-
-    pub const fn prev(self) -> Self {
-        match self {
-            Self::None => Self::PingPong,
-            Self::Forward => Self::None,
-            Self::PingPong => Self::Forward,
-        }
-    }
-
-    pub const fn label(self) -> &'static str {
-        match self {
-            Self::None => "Off",
-            Self::Forward => "Forward",
-            Self::PingPong => "Ping-Pong",
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct SampleData {
     pub samples_i16: Vec<i16>,

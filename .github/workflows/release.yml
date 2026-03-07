@@ -55,13 +55,77 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Package (unix)
-        if: matrix.os != 'windows-latest'
+      - name: Package macOS .app + .dmg
+        if: startsWith(matrix.target, 'x86_64-apple') || startsWith(matrix.target, 'aarch64-apple')
+        run: |
+          APP_NAME="Psikat"
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          APP_DIR="${APP_NAME}.app"
+          CONTENTS="${APP_DIR}/Contents"
+          MACOS="${CONTENTS}/MacOS"
+          RESOURCES="${CONTENTS}/Resources"
+
+          mkdir -p "${MACOS}" "${RESOURCES}"
+          cp "target/${{ matrix.target }}/release/psikat" "${MACOS}/${APP_NAME}"
+          chmod +x "${MACOS}/${APP_NAME}"
+
+          cat > "${CONTENTS}/Info.plist" << PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleName</key>
+              <string>${APP_NAME}</string>
+              <key>CFBundleDisplayName</key>
+              <string>${APP_NAME}</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.holoflash.psikat</string>
+              <key>CFBundleVersion</key>
+              <string>${VERSION}</string>
+              <key>CFBundleShortVersionString</key>
+              <string>${VERSION}</string>
+              <key>CFBundleExecutable</key>
+              <string>${APP_NAME}</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleIconFile</key>
+              <string>AppIcon</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+              <key>LSMinimumSystemVersion</key>
+              <string>12.0</string>
+              <key>NSSupportsAutomaticGraphicsSwitching</key>
+              <true/>
+          </dict>
+          </plist>
+          PLIST
+
+          ICONSET="AppIcon.iconset"
+          mkdir -p "${ICONSET}"
+          for SIZE in 16 32 64 128 256 512; do
+            sips -z ${SIZE} ${SIZE} "assets/icon.png" --out "${ICONSET}/icon_${SIZE}x${SIZE}.png" > /dev/null 2>&1
+          done
+          for SIZE in 32 64 256 512 1024; do
+            LABEL=$((SIZE / 2))
+            sips -z ${SIZE} ${SIZE} "assets/icon.png" --out "${ICONSET}/icon_${LABEL}x${LABEL}@2x.png" > /dev/null 2>&1
+          done
+          iconutil -c icns "${ICONSET}" -o "${RESOURCES}/AppIcon.icns"
+          rm -rf "${ICONSET}"
+
+          DMG_NAME="${{ matrix.artifact }}.dmg"
+          mkdir -p dmg_stage
+          cp -r "${APP_DIR}" dmg_stage/
+          ln -s /Applications dmg_stage/Applications
+          hdiutil create -volname "${APP_NAME}" -srcfolder dmg_stage -ov -format UDZO "${DMG_NAME}"
+          rm -rf dmg_stage "${APP_DIR}"
+
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           chmod +x target/${{ matrix.target }}/release/psikat
           tar czf ${{ matrix.artifact }}.tar.gz -C target/${{ matrix.target }}/release psikat
 
-      - name: Package (windows)
+      - name: Package (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |

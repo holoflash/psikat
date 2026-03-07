@@ -14,7 +14,6 @@ use crate::app::App;
 pub const COLOR_LAYOUT_BG_DARK: Color32 = Color32::from_rgb(18, 16, 28);
 pub const COLOR_LAYOUT_BG_PANEL: Color32 = Color32::from_rgb(26, 23, 38);
 
-pub const COLOR_LAYOUT_BORDER: Color32 = Color32::from_rgb(120, 100, 60);
 pub const COLOR_LAYOUT_BORDER_ACTIVE: Color32 = Color32::from_rgb(210, 185, 120);
 
 pub const COLOR_TEXT_DIM: Color32 = Color32::from_rgb(105, 95, 115);

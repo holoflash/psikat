@@ -1,13 +1,59 @@
+use std::sync::Arc;
+
 use eframe::egui::{self, FontId, Pos2, RichText, Stroke, Vec2};
 
-use crate::app::{App, Mode, SynthSettingsField};
+use crate::app::App;
+use crate::project::sample::LoopType;
 use crate::project::{SampleData, VolEnvelope};
 
-use super::widgets::settings_row;
 use super::{
-    COLOR_LAYOUT_BG_DARK, COLOR_LAYOUT_BG_PANEL, COLOR_ACCENT, COLOR_PATTERN_CURSOR_BG,
-    COLOR_PATTERN_CURSOR_TEXT, COLOR_TEXT, COLOR_TEXT_DIM,
+    COLOR_ACCENT, COLOR_LAYOUT_BG_DARK, COLOR_LAYOUT_BG_PANEL, COLOR_PATTERN_PLAYBACK_TEXT,
+    COLOR_TEXT, COLOR_TEXT_ACTIVE, COLOR_TEXT_DIM,
 };
+
+fn field_label(ui: &mut egui::Ui, label: &str) {
+    ui.label(
+        RichText::new(format!("{:<11}", label))
+            .font(FontId::monospace(12.0))
+            .color(COLOR_TEXT),
+    );
+}
+
+fn separator(ui: &mut egui::Ui) {
+    ui.add_space(4.0);
+    ui.painter().line_segment(
+        [
+            ui.cursor().left_top(),
+            ui.cursor().left_top() + Vec2::new(ui.available_width(), 0.0),
+        ],
+        Stroke::new(1.0, COLOR_TEXT_DIM),
+    );
+    ui.add_space(6.0);
+}
+
+fn toggle_checkbox(ui: &mut egui::Ui, checked: &mut bool) {
+    let size = Vec2::new(14.0, 14.0);
+    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+    let painter = ui.painter();
+    painter.rect_filled(
+        rect,
+        2.0,
+        if *checked {
+            COLOR_PATTERN_PLAYBACK_TEXT
+        } else {
+            egui::Color32::TRANSPARENT
+        },
+    );
+    painter.rect_stroke(
+        rect,
+        2.0,
+        Stroke::new(1.0, COLOR_TEXT_DIM),
+        egui::StrokeKind::Outside,
+    );
+    if response.clicked() {
+        *checked = !*checked;
+    }
+}
 
 pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
     handle_sample_drop(ui, app);
@@ -17,208 +63,423 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
         .inner_margin(egui::Margin::symmetric(12, 10))
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
+            ui.set_min_height(ui.available_height());
             let inst_idx = app.current_instrument;
-            let synth_active = app.mode == Mode::SynthEdit;
+            let selected_label = format!(
+                "{:02X}: {}",
+                inst_idx, app.project.instruments[inst_idx].name
+            );
+            ui.horizontal(|ui| {
+                egui::ComboBox::from_id_salt("instrument_combo")
+                    .selected_text(RichText::new(&selected_label).font(FontId::monospace(12.0)))
+                    .width(ui.available_width() - 4.0)
+                    .show_ui(ui, |ui| {
+                        for (i, inst) in app.project.instruments.iter().enumerate() {
+                            let label = format!("{:02X}: {}", i, inst.name);
+                            let color = if i == inst_idx {
+                                COLOR_ACCENT
+                            } else {
+                                COLOR_TEXT_ACTIVE
+                            };
+                            if ui
+                                .selectable_value(
+                                    &mut app.current_instrument,
+                                    i,
+                                    RichText::new(label).color(color),
+                                )
+                                .changed()
+                            {
+                                app.envelope_point_idx = 0;
+                            }
+                        }
+                    });
+            });
 
-            ui.label(
-                RichText::new("Instrument")
-                    .font(FontId::monospace(15.0))
-                    .color(COLOR_ACCENT)
-                    .strong(),
-            );
-            ui.add_space(2.0);
-            ui.painter().line_segment(
-                [
-                    ui.cursor().left_top(),
-                    ui.cursor().left_top() + Vec2::new(ui.available_width(), 0.0),
-                ],
-                Stroke::new(1.0, COLOR_TEXT_DIM),
-            );
-            ui.add_space(8.0);
+            ui.add_space(12.0);
 
-            settings_row(
-                ui,
-                "Instrument",
-                &format!("{:02X}", inst_idx),
-                synth_active && app.synth_field == SynthSettingsField::Instrument,
-            );
-            ui.add_space(6.0);
-
-            settings_row(
-                ui,
-                "Envelope",
-                if app.project.instruments[inst_idx].vol_envelope.enabled {
-                    "On"
-                } else {
-                    "Off"
-                },
-                synth_active && app.synth_field == SynthSettingsField::Envelope,
-            );
-            ui.add_space(6.0);
+            {
+                let cs = &app.project.instruments[inst_idx];
+                draw_waveform_preview(ui, &cs.sample_data.samples_i16);
+                ui.add_space(6.0);
+            }
 
             let mut inst_name = app.project.instruments[inst_idx].name.clone();
             let te_has_focus = ui
                 .horizontal(|ui| {
-                    ui.label(
-                        RichText::new(format!("{:<10}", "Name"))
-                            .font(FontId::monospace(13.0))
-                            .color(COLOR_TEXT),
-                    );
-                    ui.add_space(8.0);
+                    field_label(ui, "NAME");
                     let te = egui::TextEdit::singleline(&mut inst_name)
                         .font(FontId::monospace(12.0))
-                        .text_color(COLOR_TEXT)
-                        .desired_width(ui.available_width())
-                        .frame(false);
+                        .desired_width(ui.available_width());
                     ui.add(te).has_focus()
                 })
                 .inner;
             app.text_editing = te_has_focus;
             app.project.instruments[inst_idx].name = inst_name;
+            ui.add_space(4.0);
+
+            ui.horizontal(|ui| {
+                field_label(ui, "LOOP");
+                let sd = &app.project.instruments[inst_idx].sample_data;
+                let current_type = sd.loop_type;
+                let mut selected_idx = match current_type {
+                    LoopType::None => 0usize,
+                    LoopType::Forward => 1,
+                    LoopType::PingPong => 2,
+                };
+                let labels = ["Off", "Forward", "Ping-Pong"];
+                egui::ComboBox::from_id_salt("loop_type_combo")
+                    .selected_text(
+                        RichText::new(labels[selected_idx]).font(FontId::monospace(12.0)),
+                    )
+                    .width(100.0)
+                    .show_ui(ui, |ui| {
+                        let cur = selected_idx;
+                        for (i, label) in labels.iter().enumerate() {
+                            ui.selectable_value(
+                                &mut selected_idx,
+                                i,
+                                RichText::new(*label).color(if i == cur {
+                                    COLOR_ACCENT
+                                } else {
+                                    COLOR_TEXT
+                                }),
+                            );
+                        }
+                    });
+                let new_type = match selected_idx {
+                    0 => LoopType::None,
+                    1 => LoopType::Forward,
+                    _ => LoopType::PingPong,
+                };
+                if new_type != current_type {
+                    let sd = Arc::make_mut(&mut app.project.instruments[inst_idx].sample_data);
+                    sd.loop_type = new_type;
+                }
+            });
+            ui.add_space(4.0);
+
+            {
+                let sample_len = app.project.instruments[inst_idx]
+                    .sample_data
+                    .samples_f32
+                    .len();
+                let max_start = sample_len
+                    .saturating_sub(app.project.instruments[inst_idx].sample_data.loop_length);
+                let max_len = sample_len
+                    .saturating_sub(app.project.instruments[inst_idx].sample_data.loop_start);
+
+                ui.horizontal(|ui| {
+                    field_label(ui, "LOOP START");
+                    let sd = Arc::make_mut(&mut app.project.instruments[inst_idx].sample_data);
+                    let mut v = sd.loop_start as f64;
+                    let r = ui
+                        .add(
+                            egui::DragValue::new(&mut v)
+                                .range(0..=max_start)
+                                .speed((sample_len as f64 / 500.0).max(1.0)),
+                        )
+                        .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                    if r.has_focus() {
+                        app.text_editing = true;
+                    }
+                    sd.loop_start = v as usize;
+                });
+                ui.add_space(2.0);
+
+                ui.horizontal(|ui| {
+                    field_label(ui, "LOOP LEN");
+                    let sd = Arc::make_mut(&mut app.project.instruments[inst_idx].sample_data);
+                    let mut v = sd.loop_length as f64;
+                    let r = ui
+                        .add(
+                            egui::DragValue::new(&mut v)
+                                .range(0..=max_len)
+                                .speed((sample_len as f64 / 500.0).max(1.0)),
+                        )
+                        .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                    if r.has_focus() {
+                        app.text_editing = true;
+                    }
+                    sd.loop_length = v as usize;
+                });
+            }
+
+            ui.add_space(12.0);
+            separator(ui);
+            ui.add_space(12.0);
+            ui.horizontal(|ui| {
+                field_label(ui, "ENVELOPE");
+                let mut enabled = app.project.instruments[inst_idx].vol_envelope.enabled;
+                toggle_checkbox(ui, &mut enabled);
+                if enabled != app.project.instruments[inst_idx].vol_envelope.enabled {
+                    app.project.instruments[inst_idx].vol_envelope.enabled = enabled;
+                    if enabled && app.project.instruments[inst_idx].vol_envelope.points.len() < 2 {
+                        app.project.instruments[inst_idx].vol_envelope.points =
+                            vec![(0, 64), (16, 48), (48, 32), (96, 0)];
+                        app.project.instruments[inst_idx].vol_envelope.sustain_point = Some(1);
+                    }
+                }
+            });
             ui.add_space(6.0);
-
-            let cs = &app.project.instruments[inst_idx];
-
-            settings_row(
-                ui,
-                "Loop",
-                cs.sample_data.loop_type.label(),
-                synth_active && app.synth_field == SynthSettingsField::LoopType,
-            );
-            ui.add_space(6.0);
-
-            settings_row(
-                ui,
-                "Loop Start",
-                &format!("{}", cs.sample_data.loop_start),
-                synth_active && app.synth_field == SynthSettingsField::LoopStart,
-            );
-            ui.add_space(6.0);
-
-            settings_row(
-                ui,
-                "Loop Len",
-                &format!("{}", cs.sample_data.loop_length),
-                synth_active && app.synth_field == SynthSettingsField::LoopLength,
-            );
-            ui.add_space(6.0);
-
-            draw_waveform_preview(ui, &cs.sample_data.samples_i16);
-            ui.add_space(6.0);
-
-            draw_envelope_preview(ui, &cs.vol_envelope);
-            ui.add_space(6.0);
-
-            settings_row(
-                ui,
-                "Env Points",
-                &format!("{}", cs.vol_envelope.points.len()),
-                synth_active && app.synth_field == SynthSettingsField::EnvPoints,
-            );
-            ui.add_space(6.0);
-
-            let pt_idx = app
-                .envelope_point_idx
-                .min(cs.vol_envelope.points.len().saturating_sub(1));
-            settings_row(
-                ui,
-                "Env Point",
-                &format!("{}", pt_idx),
-                synth_active && app.synth_field == SynthSettingsField::EnvPoint,
-            );
-            ui.add_space(6.0);
-
-            if let Some(&(tick, val)) = cs.vol_envelope.points.get(pt_idx) {
-                settings_row(
-                    ui,
-                    "  Tick",
-                    &format!("{}", tick),
-                    synth_active && app.synth_field == SynthSettingsField::EnvTick,
-                );
-                ui.add_space(6.0);
-
-                settings_row(
-                    ui,
-                    "  Value",
-                    &format!("{}", val),
-                    synth_active && app.synth_field == SynthSettingsField::EnvValue,
-                );
+            {
+                let cs = &app.project.instruments[inst_idx];
+                draw_envelope_preview(ui, &cs.vol_envelope);
                 ui.add_space(6.0);
             }
 
-            let sustain_str = match cs.vol_envelope.sustain_point {
-                Some(sp) => format!("{}", sp),
-                None => "Off".to_string(),
-            };
-            settings_row(
-                ui,
-                "Sustain Pt",
-                &sustain_str,
-                synth_active && app.synth_field == SynthSettingsField::EnvSustain,
-            );
-            ui.add_space(6.0);
+            ui.add_space(4.0);
 
-            let (loop_start_str, loop_end_str) = match cs.vol_envelope.loop_range {
-                Some((ls, le)) => (format!("{}", ls), format!("{}", le)),
-                None => ("Off".to_string(), "Off".to_string()),
-            };
-            settings_row(
-                ui,
-                "Loop Start",
-                &loop_start_str,
-                synth_active && app.synth_field == SynthSettingsField::EnvLoopStart,
-            );
-            ui.add_space(6.0);
+            let num_points = app.project.instruments[inst_idx].vol_envelope.points.len();
+            ui.horizontal(|ui| {
+                field_label(ui, "POINTS");
+                let mut v = num_points as f64;
+                let r = ui
+                    .add(egui::DragValue::new(&mut v).range(2..=32).speed(0.15))
+                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                if r.has_focus() {
+                    app.text_editing = true;
+                }
+                let new_len = v as usize;
+                let env = &mut app.project.instruments[inst_idx].vol_envelope;
+                while env.points.len() < new_len {
+                    let last_tick = env.points.last().map(|p| p.0).unwrap_or(0);
+                    env.points.push((last_tick + 16, 32));
+                }
+                while env.points.len() > new_len && env.points.len() > 2 {
+                    env.points.pop();
+                }
+                if app.envelope_point_idx >= env.points.len() {
+                    app.envelope_point_idx = env.points.len().saturating_sub(1);
+                }
+                if let Some(sp) = env.sustain_point {
+                    if sp >= env.points.len() {
+                        env.sustain_point = None;
+                    }
+                }
+                if let Some((ls, le)) = env.loop_range {
+                    if ls >= env.points.len() || le >= env.points.len() {
+                        env.loop_range = None;
+                    }
+                }
+            });
+            ui.add_space(2.0);
 
-            settings_row(
-                ui,
-                "Loop End",
-                &loop_end_str,
-                synth_active && app.synth_field == SynthSettingsField::EnvLoopEnd,
-            );
-            ui.add_space(6.0);
+            let max_pt = num_points.saturating_sub(1);
+            ui.horizontal(|ui| {
+                field_label(ui, "POINT");
+                let mut v = app.envelope_point_idx as f64;
+                let r = ui
+                    .add(egui::DragValue::new(&mut v).range(0..=max_pt).speed(0.1))
+                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                if r.has_focus() {
+                    app.text_editing = true;
+                }
+                app.envelope_point_idx = v as usize;
+            });
+            ui.add_space(2.0);
 
-            settings_row(
-                ui,
-                "Fadeout",
-                &format!("{}", cs.vol_fadeout),
-                synth_active && app.synth_field == SynthSettingsField::Fadeout,
-            );
-            ui.add_space(6.0);
-            let vib_type_name = match cs.vibrato_type {
-                0 => "Sine",
-                1 => "Square",
-                2 => "RampDn",
-                3 => "RampUp",
-                _ => "?",
-            };
-            settings_row(
-                ui,
-                "Vib Type",
-                vib_type_name,
-                synth_active && app.synth_field == SynthSettingsField::VibratoType,
-            );
-            ui.add_space(6.0);
-            settings_row(
-                ui,
-                "Vib Sweep",
-                &format!("{}", cs.vibrato_sweep),
-                synth_active && app.synth_field == SynthSettingsField::VibratoSweep,
-            );
-            ui.add_space(6.0);
-            settings_row(
-                ui,
-                "Vib Depth",
-                &format!("{}", cs.vibrato_depth),
-                synth_active && app.synth_field == SynthSettingsField::VibratoDepth,
-            );
-            ui.add_space(6.0);
-            settings_row(
-                ui,
-                "Vib Rate",
-                &format!("{}", cs.vibrato_rate),
-                synth_active && app.synth_field == SynthSettingsField::VibratoRate,
-            );
+            let pt_idx = app.envelope_point_idx.min(max_pt);
+            if pt_idx < app.project.instruments[inst_idx].vol_envelope.points.len() {
+                let env = &mut app.project.instruments[inst_idx].vol_envelope;
+
+                let min_tick = if pt_idx > 0 {
+                    env.points[pt_idx - 1].0 + 1
+                } else {
+                    0
+                };
+                let max_tick = if pt_idx + 1 < env.points.len() {
+                    env.points[pt_idx + 1].0 - 1
+                } else {
+                    9999
+                };
+
+                ui.horizontal(|ui| {
+                    field_label(ui, "TICK");
+                    let mut v = env.points[pt_idx].0 as f64;
+                    let r = ui
+                        .add(
+                            egui::DragValue::new(&mut v)
+                                .range(min_tick..=max_tick)
+                                .speed(0.3),
+                        )
+                        .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                    if r.has_focus() {
+                        app.text_editing = true;
+                    }
+                    env.points[pt_idx].0 = v as u16;
+                });
+                ui.add_space(2.0);
+
+                ui.horizontal(|ui| {
+                    field_label(ui, "VALUE");
+                    let mut v = env.points[pt_idx].1 as f64;
+                    let r = ui
+                        .add(egui::DragValue::new(&mut v).range(0..=64).speed(0.15))
+                        .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                    if r.has_focus() {
+                        app.text_editing = true;
+                    }
+                    env.points[pt_idx].1 = v as u16;
+                });
+                ui.add_space(2.0);
+            }
+
+            {
+                let env = &mut app.project.instruments[inst_idx].vol_envelope;
+                let max_idx = env.points.len().saturating_sub(1);
+
+                ui.horizontal(|ui| {
+                    field_label(ui, "SUSTAIN PT");
+                    let mut has_sustain = env.sustain_point.is_some();
+                    toggle_checkbox(ui, &mut has_sustain);
+                    if has_sustain {
+                        if env.sustain_point.is_none() {
+                            env.sustain_point = Some(0);
+                        }
+                        let mut v = env.sustain_point.unwrap() as f64;
+                        let r = ui
+                            .add(egui::DragValue::new(&mut v).range(0..=max_idx).speed(0.1))
+                            .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                        if r.has_focus() {
+                            app.text_editing = true;
+                        }
+                        env.sustain_point = Some(v as usize);
+                    } else {
+                        env.sustain_point = None;
+                    }
+                });
+                ui.add_space(2.0);
+
+                ui.horizontal(|ui| {
+                    field_label(ui, "LOOP START");
+                    let mut has_loop = env.loop_range.is_some();
+                    toggle_checkbox(ui, &mut has_loop);
+                    if has_loop {
+                        if env.loop_range.is_none() {
+                            env.loop_range = Some((0, max_idx));
+                        }
+                        let mut v = env.loop_range.unwrap().0 as f64;
+                        let r = ui
+                            .add(egui::DragValue::new(&mut v).range(0..=max_idx).speed(0.1))
+                            .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                        if r.has_focus() {
+                            app.text_editing = true;
+                        }
+                        let e = env.loop_range.unwrap().1;
+                        let s = (v as usize).min(e).min(max_idx);
+                        env.loop_range = Some((s, e));
+                    } else {
+                        env.loop_range = None;
+                    }
+                });
+                ui.add_space(2.0);
+
+                ui.horizontal(|ui| {
+                    field_label(ui, "LOOP END");
+                    let mut has_loop = env.loop_range.is_some();
+                    toggle_checkbox(ui, &mut has_loop);
+                    if has_loop {
+                        if env.loop_range.is_none() {
+                            env.loop_range = Some((0, max_idx));
+                        }
+                        let mut v = env.loop_range.unwrap().1 as f64;
+                        let r = ui
+                            .add(egui::DragValue::new(&mut v).range(0..=max_idx).speed(0.1))
+                            .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                        if r.has_focus() {
+                            app.text_editing = true;
+                        }
+                        let s = env.loop_range.unwrap().0;
+                        let e = (v as usize).max(s).min(max_idx);
+                        env.loop_range = Some((s, e));
+                    } else {
+                        env.loop_range = None;
+                    }
+                });
+            }
+            ui.add_space(12.0);
+            separator(ui);
+            ui.add_space(12.0);
+            ui.horizontal(|ui| {
+                field_label(ui, "FADEOUT");
+                let mut v = app.project.instruments[inst_idx].vol_fadeout as f64;
+                let r = ui
+                    .add(egui::DragValue::new(&mut v).range(0..=4095).speed(2.0))
+                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                if r.has_focus() {
+                    app.text_editing = true;
+                }
+                app.project.instruments[inst_idx].vol_fadeout = v as u16;
+            });
+
+            ui.add_space(12.0);
+            separator(ui);
+            ui.add_space(12.0);
+
+            ui.horizontal(|ui| {
+                field_label(ui, "VIB TYPE");
+                let vib_labels = ["Sine", "Square", "RampDn", "RampUp"];
+                let mut vib_type = app.project.instruments[inst_idx].vibrato_type as usize;
+                egui::ComboBox::from_id_salt("vibrato_type_combo")
+                    .selected_text(
+                        RichText::new(vib_labels[vib_type.min(3)]).font(FontId::monospace(12.0)),
+                    )
+                    .width(90.0)
+                    .show_ui(ui, |ui| {
+                        let cur = vib_type;
+                        for (i, label) in vib_labels.iter().enumerate() {
+                            ui.selectable_value(
+                                &mut vib_type,
+                                i,
+                                RichText::new(*label).color(if i == cur {
+                                    COLOR_ACCENT
+                                } else {
+                                    COLOR_TEXT
+                                }),
+                            );
+                        }
+                    });
+                app.project.instruments[inst_idx].vibrato_type = vib_type as u8;
+            });
+            ui.add_space(4.0);
+
+            ui.horizontal(|ui| {
+                field_label(ui, "VIB SWEEP");
+                let mut v = app.project.instruments[inst_idx].vibrato_sweep as f64;
+                let r = ui
+                    .add(egui::DragValue::new(&mut v).range(0..=255).speed(0.3))
+                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                if r.has_focus() {
+                    app.text_editing = true;
+                }
+                app.project.instruments[inst_idx].vibrato_sweep = v as u8;
+            });
+            ui.add_space(2.0);
+
+            ui.horizontal(|ui| {
+                field_label(ui, "VIB DEPTH");
+                let mut v = app.project.instruments[inst_idx].vibrato_depth as f64;
+                let r = ui
+                    .add(egui::DragValue::new(&mut v).range(0..=15).speed(0.1))
+                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                if r.has_focus() {
+                    app.text_editing = true;
+                }
+                app.project.instruments[inst_idx].vibrato_depth = v as u8;
+            });
+            ui.add_space(2.0);
+
+            ui.horizontal(|ui| {
+                field_label(ui, "VIB RATE");
+                let mut v = app.project.instruments[inst_idx].vibrato_rate as f64;
+                let r = ui
+                    .add(egui::DragValue::new(&mut v).range(0..=63).speed(0.15))
+                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                if r.has_focus() {
+                    app.text_editing = true;
+                }
+                app.project.instruments[inst_idx].vibrato_rate = v as u8;
+            });
         });
 }
 
@@ -229,7 +490,7 @@ fn draw_waveform_preview(ui: &mut egui::Ui, samples: &[i16]) {
     let (rect, _response) = ui.allocate_exact_size(Vec2::new(width, height), egui::Sense::hover());
     let painter = ui.painter_at(rect);
 
-    painter.rect_filled(rect, 0.0, super::COLOR_LAYOUT_BG_DARK);
+    painter.rect_filled(rect, 0.0, COLOR_LAYOUT_BG_DARK);
 
     let center_y = rect.center().y;
     painter.line_segment(
@@ -267,7 +528,7 @@ fn draw_waveform_preview(ui: &mut egui::Ui, samples: &[i16]) {
         })
         .collect();
 
-    let waveform_color = super::COLOR_ACCENT;
+    let waveform_color = COLOR_ACCENT;
     for window in points.windows(2) {
         painter.line_segment([window[0], window[1]], Stroke::new(1.0, waveform_color));
     }
@@ -401,72 +662,4 @@ fn draw_envelope_preview(ui: &mut egui::Ui, env: &VolEnvelope) {
         };
         painter.circle_filled(pos, r, dot_color);
     }
-}
-
-pub fn draw_instrument_list(ui: &mut egui::Ui, app: &mut App) {
-    egui::Frame::new()
-        .fill(COLOR_LAYOUT_BG_PANEL)
-        .inner_margin(egui::Margin::symmetric(12, 10))
-        .show(ui, |ui| {
-            ui.set_min_width(ui.available_width());
-            ui.set_min_height(ui.available_height());
-
-            ui.label(
-                RichText::new("Instruments")
-                    .font(FontId::monospace(15.0))
-                    .color(COLOR_ACCENT)
-                    .strong(),
-            );
-            ui.add_space(2.0);
-            ui.painter().line_segment(
-                [
-                    ui.cursor().left_top(),
-                    ui.cursor().left_top() + Vec2::new(ui.available_width(), 0.0),
-                ],
-                Stroke::new(1.0, COLOR_TEXT_DIM),
-            );
-            ui.add_space(4.0);
-
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                for (i, inst) in app.project.instruments.iter().enumerate() {
-                    let is_current = i == app.current_instrument;
-                    let label = format!("{:02X}: {}", i, inst.name);
-
-                    let (bg, fg) = if is_current {
-                        (COLOR_PATTERN_CURSOR_BG, COLOR_PATTERN_CURSOR_TEXT)
-                    } else {
-                        (egui::Color32::TRANSPARENT, COLOR_TEXT_DIM)
-                    };
-
-                    let (rect, response) = ui.allocate_exact_size(
-                        Vec2::new(ui.available_width(), 14.0),
-                        egui::Sense::click(),
-                    );
-
-                    if bg != egui::Color32::TRANSPARENT {
-                        ui.painter().rect_filled(rect, 2.0, bg);
-                    }
-
-                    if response.hovered() && !is_current {
-                        ui.painter().rect_filled(
-                            rect,
-                            2.0,
-                            egui::Color32::from_rgba_premultiplied(80, 70, 90, 40),
-                        );
-                    }
-
-                    ui.painter().text(
-                        Pos2::new(rect.left() + 4.0, rect.center().y),
-                        egui::Align2::LEFT_CENTER,
-                        &label,
-                        FontId::monospace(11.0),
-                        fg,
-                    );
-
-                    if response.clicked() {
-                        app.current_instrument = i;
-                    }
-                }
-            });
-        });
 }

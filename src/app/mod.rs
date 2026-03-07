@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::audio::mixer::{SCOPE_SIZE, ScopeBuffer};
 
 use crate::app::keybindings::KeyBindings;
-use crate::project::{Cell, Effect, Instrument};
+use crate::project::{Cell, Effect};
 
 use std::sync::atomic::{AtomicU32, AtomicUsize};
 
@@ -18,236 +18,6 @@ use crate::project::Project;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Edit,
-    SynthEdit,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SynthSettingsField {
-    Instrument,
-    Envelope,
-    EnvPoints,
-    EnvPoint,
-    EnvTick,
-    EnvValue,
-    EnvSustain,
-    EnvLoopStart,
-    EnvLoopEnd,
-    LoopType,
-    LoopStart,
-    LoopLength,
-    Fadeout,
-    VibratoType,
-    VibratoSweep,
-    VibratoDepth,
-    VibratoRate,
-}
-
-impl SynthSettingsField {
-    pub const fn next(self) -> Self {
-        match self {
-            Self::Instrument => Self::Envelope,
-            Self::Envelope => Self::LoopType,
-            Self::LoopType => Self::LoopStart,
-            Self::LoopStart => Self::LoopLength,
-            Self::LoopLength => Self::EnvPoints,
-            Self::EnvPoints => Self::EnvPoint,
-            Self::EnvPoint => Self::EnvTick,
-            Self::EnvTick => Self::EnvValue,
-            Self::EnvValue => Self::EnvSustain,
-            Self::EnvSustain => Self::EnvLoopStart,
-            Self::EnvLoopStart => Self::EnvLoopEnd,
-            Self::EnvLoopEnd => Self::Fadeout,
-            Self::Fadeout => Self::VibratoType,
-            Self::VibratoType => Self::VibratoSweep,
-            Self::VibratoSweep => Self::VibratoDepth,
-            Self::VibratoDepth => Self::VibratoRate,
-            Self::VibratoRate => Self::Instrument,
-        }
-    }
-
-    pub const fn prev(self) -> Self {
-        match self {
-            Self::Instrument => Self::VibratoRate,
-            Self::Envelope => Self::Instrument,
-            Self::LoopType => Self::Envelope,
-            Self::LoopStart => Self::LoopType,
-            Self::LoopLength => Self::LoopStart,
-            Self::EnvPoints => Self::LoopLength,
-            Self::EnvPoint => Self::EnvPoints,
-            Self::EnvTick => Self::EnvPoint,
-            Self::EnvValue => Self::EnvTick,
-            Self::EnvSustain => Self::EnvValue,
-            Self::EnvLoopStart => Self::EnvSustain,
-            Self::EnvLoopEnd => Self::EnvLoopStart,
-            Self::Fadeout => Self::EnvLoopEnd,
-            Self::VibratoType => Self::Fadeout,
-            Self::VibratoSweep => Self::VibratoType,
-            Self::VibratoDepth => Self::VibratoSweep,
-            Self::VibratoRate => Self::VibratoDepth,
-        }
-    }
-
-    pub fn adjust(self, inst: &mut Instrument, delta: i16) {
-        match self {
-            Self::Instrument => {}
-            Self::Envelope => {
-                inst.vol_envelope.enabled = !inst.vol_envelope.enabled;
-                if inst.vol_envelope.enabled && inst.vol_envelope.points.len() < 2 {
-                    inst.vol_envelope.points = vec![(0, 64), (16, 48), (48, 32), (96, 0)];
-                    inst.vol_envelope.sustain_point = Some(1);
-                }
-            }
-            Self::EnvPoints
-            | Self::EnvPoint
-            | Self::EnvTick
-            | Self::EnvValue
-            | Self::EnvSustain
-            | Self::EnvLoopStart
-            | Self::EnvLoopEnd => {}
-            Self::LoopType => {
-                let sd = Arc::make_mut(&mut inst.sample_data);
-                sd.loop_type = if delta > 0 {
-                    sd.loop_type.next()
-                } else {
-                    sd.loop_type.prev()
-                };
-            }
-            Self::LoopStart => {
-                let sd = Arc::make_mut(&mut inst.sample_data);
-                let max = sd.samples_f32.len().saturating_sub(sd.loop_length);
-                let step = (sd.samples_f32.len() / 100).max(1);
-                sd.loop_start = if delta > 0 {
-                    (sd.loop_start + step).min(max)
-                } else {
-                    sd.loop_start.saturating_sub(step)
-                };
-            }
-            Self::LoopLength => {
-                let sd = Arc::make_mut(&mut inst.sample_data);
-                let max = sd.samples_f32.len().saturating_sub(sd.loop_start);
-                let step = (sd.samples_f32.len() / 100).max(1);
-                sd.loop_length = if delta > 0 {
-                    (sd.loop_length + step).min(max)
-                } else {
-                    sd.loop_length.saturating_sub(step)
-                };
-            }
-            Self::Fadeout => {
-                inst.vol_fadeout =
-                    (i32::from(inst.vol_fadeout) + i32::from(delta) * 16).clamp(0, 4095) as u16;
-            }
-            Self::VibratoType => {
-                inst.vibrato_type = if delta > 0 {
-                    (inst.vibrato_type + 1).min(3)
-                } else {
-                    inst.vibrato_type.saturating_sub(1)
-                };
-            }
-            Self::VibratoSweep => {
-                inst.vibrato_sweep = (i16::from(inst.vibrato_sweep) + delta).clamp(0, 255) as u8;
-            }
-            Self::VibratoDepth => {
-                inst.vibrato_depth = (i16::from(inst.vibrato_depth) + delta).clamp(0, 15) as u8;
-            }
-            Self::VibratoRate => {
-                inst.vibrato_rate = (i16::from(inst.vibrato_rate) + delta).clamp(0, 63) as u8;
-            }
-        }
-    }
-
-    pub fn adjust_envelope(self, inst: &mut Instrument, delta: i16, point_idx: &mut usize) {
-        let env = &mut inst.vol_envelope;
-        match self {
-            Self::EnvPoints => {
-                if delta > 0 {
-                    let last_tick = env.points.last().map(|p| p.0).unwrap_or(0);
-                    env.points.push((last_tick + 16, 32));
-                } else if env.points.len() > 2 {
-                    env.points.pop();
-                    if *point_idx >= env.points.len() {
-                        *point_idx = env.points.len() - 1;
-                    }
-                    if let Some(sp) = env.sustain_point
-                        && sp >= env.points.len()
-                    {
-                        env.sustain_point = None;
-                    }
-                    if let Some((ls, le)) = env.loop_range
-                        && (ls >= env.points.len() || le >= env.points.len())
-                    {
-                        env.loop_range = None;
-                    }
-                }
-            }
-            Self::EnvPoint => {
-                let max = env.points.len().saturating_sub(1);
-                *point_idx = (*point_idx as i16 + delta).clamp(0, max as i16) as usize;
-            }
-            Self::EnvTick => {
-                if *point_idx < env.points.len() {
-                    let min_tick = if *point_idx > 0 {
-                        env.points[*point_idx - 1].0 + 1
-                    } else {
-                        0
-                    };
-                    let max_tick = if *point_idx + 1 < env.points.len() {
-                        env.points[*point_idx + 1].0 - 1
-                    } else {
-                        9999
-                    };
-                    let cur = env.points[*point_idx].0 as i32;
-                    env.points[*point_idx].0 =
-                        (cur + delta as i32).clamp(min_tick as i32, max_tick as i32) as u16;
-                }
-            }
-            Self::EnvValue => {
-                if *point_idx < env.points.len() {
-                    let cur = env.points[*point_idx].1 as i16;
-                    env.points[*point_idx].1 = (cur + delta).clamp(0, 64) as u16;
-                }
-            }
-            Self::EnvSustain => {
-                let max = env.points.len().saturating_sub(1);
-                if let Some(ref mut sp) = env.sustain_point {
-                    let new_val = *sp as i16 + delta;
-                    if new_val < 0 {
-                        env.sustain_point = None;
-                    } else {
-                        *sp = (new_val as usize).min(max);
-                    }
-                } else if delta > 0 {
-                    env.sustain_point = Some(0);
-                }
-            }
-            Self::EnvLoopStart => {
-                let max = env.points.len().saturating_sub(1);
-                if let Some(ref mut range) = env.loop_range {
-                    let new_val = range.0 as i16 + delta;
-                    if new_val < 0 {
-                        env.loop_range = None;
-                    } else {
-                        range.0 = (new_val as usize).min(range.1).min(max);
-                    }
-                } else if delta > 0 {
-                    env.loop_range = Some((0, max));
-                }
-            }
-            Self::EnvLoopEnd => {
-                let max = env.points.len().saturating_sub(1);
-                if let Some(ref mut range) = env.loop_range {
-                    let new_val = range.1 as i16 + delta;
-                    if new_val < 0 {
-                        env.loop_range = None;
-                    } else {
-                        range.1 = (new_val as usize).max(range.0).min(max);
-                    }
-                } else if delta > 0 {
-                    env.loop_range = Some((0, max));
-                }
-            }
-            _ => {}
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -294,7 +64,7 @@ pub struct App {
     pub peak_level: Arc<AtomicU32>,
     pub playback_row: Arc<AtomicUsize>,
     pub display_peak: f32,
-    pub synth_field: SynthSettingsField,
+
     pub current_instrument: usize,
     pub status_message: Option<String>,
     pub keybindings: KeyBindings,
@@ -337,7 +107,7 @@ impl App {
             peak_level,
             playback_row,
             display_peak: 0.0,
-            synth_field: SynthSettingsField::Instrument,
+
             current_instrument: 0,
             status_message: None,
             keybindings: KeyBindings::defaults(),

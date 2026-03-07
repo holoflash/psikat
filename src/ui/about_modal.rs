@@ -31,7 +31,7 @@ pub fn draw_about_modal(ctx: &egui::Context, app: &mut App) {
         .show(ctx, |ui| {
             ui.vertical_centered(|ui| {
                 ui.add(
-                    egui::Image::new(egui::include_image!("../../website/psikat_full.png"))
+                    egui::Image::new(egui::include_image!("../../assets/psikat_full.png"))
                         .fit_to_exact_size(egui::Vec2::new(200.0, 200.0))
                         .texture_options(egui::TextureOptions::NEAREST),
                 );

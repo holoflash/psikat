@@ -2,12 +2,12 @@ use std::sync::atomic::Ordering;
 
 use eframe::egui::{self, FontId, RichText, Stroke, Vec2};
 
-use crate::app::{App, scale::SCALES};
-
-use super::{
-    COLOR_ACCENT, COLOR_LAYOUT_BG_PANEL, COLOR_LAYOUT_BORDER, COLOR_PATTERN_CURSOR_TEXT,
-    COLOR_TEXT_ACTIVE, COLOR_TEXT_DIM,
+use crate::{
+    app::{App, scale::SCALES},
+    ui::COLOR_TEXT,
 };
+
+use super::{COLOR_ACCENT, COLOR_LAYOUT_BG_PANEL, COLOR_TEXT_ACTIVE, COLOR_TEXT_DIM};
 
 const fn clamp_to_u8(v: f32) -> u8 {
     v.round().clamp(0.0, 255.0) as u8
@@ -39,7 +39,7 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 let logo_btn = ui
                     .add(
                         egui::ImageButton::new(
-                            egui::Image::new(egui::include_image!("../../psikat.png"))
+                            egui::Image::new(egui::include_image!("../../assets/psikat.png"))
                                 .fit_to_exact_size(Vec2::new(48.0, 48.0))
                                 .texture_options(egui::TextureOptions::NEAREST),
                         )
@@ -194,20 +194,16 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                                 RichText::new("INSTRUMENT")
                                     .font(FontId::monospace(12.0))
                                     .color(if app.show_sidebar {
-                                        COLOR_PATTERN_CURSOR_TEXT
+                                        COLOR_TEXT
                                     } else {
                                         COLOR_TEXT_DIM
                                     }),
                             )
-                            .fill(if app.show_sidebar {
-                                COLOR_LAYOUT_BORDER
-                            } else {
-                                COLOR_LAYOUT_BG_PANEL
-                            })
+                            .fill(COLOR_LAYOUT_BG_PANEL)
                             .stroke(Stroke::new(
                                 1.0,
                                 if app.show_sidebar {
-                                    COLOR_PATTERN_CURSOR_TEXT
+                                    COLOR_TEXT
                                 } else {
                                     COLOR_TEXT_DIM
                                 },
@@ -247,6 +243,11 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                     if r.double_clicked() {
                         app.project.master_volume_db = 0.0;
                     }
+                    ui.add(
+                        egui::Slider::new(&mut app.project.master_volume_db, -60.0..=6.0)
+                            .show_value(false)
+                            .trailing_fill(true),
+                    );
                 });
             });
         });

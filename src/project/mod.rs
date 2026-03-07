@@ -1,4 +1,3 @@
-/// Everything in this module is saveable project data.
 pub mod channel;
 pub mod mod_file;
 pub mod pattern;

@@ -1,7 +1,3 @@
-/// Musical scale definitions.
-///
-/// To add a new scale, append an entry to the `SCALES` array with a name
-/// and the semitone intervals from the root within one octave.
 #[derive(Debug, Clone, Copy)]
 pub struct Scale {
     pub name: &'static str,
@@ -9,104 +5,118 @@ pub struct Scale {
 }
 
 pub const CHROMATIC: Scale = Scale {
-    name: "CHROMATIC",
+    name: "Chromatic",
     intervals: &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
 };
 
 pub const MAJOR: Scale = Scale {
-    name: "MAJOR",
+    name: "Major",
     intervals: &[0, 2, 4, 5, 7, 9, 11],
 };
 
 pub const MINOR: Scale = Scale {
-    name: "MINOR",
+    name: "Minor",
     intervals: &[0, 2, 3, 5, 7, 8, 10],
 };
 
 pub const HARMONIC_MINOR: Scale = Scale {
-    name: "HARMONIC MIN",
+    name: "Harmonic Minor",
     intervals: &[0, 2, 3, 5, 7, 8, 11],
 };
 
 pub const MELODIC_MINOR: Scale = Scale {
-    name: "MELODIC MIN",
+    name: "Melodic Minor",
     intervals: &[0, 2, 3, 5, 7, 9, 11],
 };
 
 pub const HARMONIC_MAJOR: Scale = Scale {
-    name: "HARMONIC MAJ",
+    name: "Harmonic Major",
     intervals: &[0, 2, 4, 5, 7, 8, 11],
 };
 
 pub const DOUBLE_HARMONIC: Scale = Scale {
-    name: "DOUBLE HARMONIC",
+    name: "Double Harmonic",
     intervals: &[0, 1, 4, 5, 7, 8, 11],
 };
 
 pub const PHRYGIAN_DOMINANT: Scale = Scale {
-    name: "PHRYGIAN DOMINANT",
+    name: "Phrygian Dominant",
     intervals: &[0, 1, 4, 5, 7, 8, 10],
 };
 
 pub const LYDIAN_DOMINANT: Scale = Scale {
-    name: "LYDIAN DOMINANT",
+    name: "Lydian Dominant",
     intervals: &[0, 2, 4, 6, 7, 9, 10],
 };
 
 pub const WHOLE_TONE: Scale = Scale {
-    name: "WHOLE TONE",
+    name: "Whole Tone",
     intervals: &[0, 2, 4, 6, 8, 10],
 };
 
 pub const DIMINISHED_HW: Scale = Scale {
-    name: "DIMINISHED H-W",
+    name: "Diminished H-W",
     intervals: &[0, 1, 3, 4, 6, 7, 9, 10],
 };
 
 pub const BLUES: Scale = Scale {
-    name: "BLUES",
+    name: "Blues",
     intervals: &[0, 3, 5, 6, 7, 10],
 };
 
 pub const MINOR_PENTATONIC: Scale = Scale {
-    name: "MINOR PENTATONIC",
+    name: "Minor Pentatonic",
     intervals: &[0, 3, 5, 7, 10],
 };
 
 pub const MAJOR_PENTATONIC: Scale = Scale {
-    name: "MAJOR PENTATONIC",
+    name: "Major Pentatonic",
     intervals: &[0, 2, 4, 7, 9],
 };
 
 pub const HIRAJOSHI: Scale = Scale {
-    name: "HIRAJOSHI",
+    name: "Hirajoshi",
     intervals: &[0, 2, 3, 7, 8],
 };
 
 pub const IN_SEN: Scale = Scale {
-    name: "IN SEN",
+    name: "In Sen",
     intervals: &[0, 1, 5, 7, 10],
 };
 
 pub const HUNGARIAN_MINOR: Scale = Scale {
-    name: "HUNGARIAN MINOR",
+    name: "Hungarian Minor",
     intervals: &[0, 2, 3, 6, 7, 8, 11],
 };
 
 pub const ENIGMATIC: Scale = Scale {
-    name: "ENIGMATIC",
+    name: "Enigmatic",
     intervals: &[0, 1, 4, 6, 8, 10, 11],
 };
 
 pub const PROMETHEUS: Scale = Scale {
-    name: "PROMETHEUS",
+    name: "Prometheus",
     intervals: &[0, 2, 4, 6, 9, 10],
+};
+
+pub const QUARTAL: Scale = Scale {
+    name: "Quartal",
+    intervals: &[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
+};
+
+pub const QUINTAL: Scale = Scale {
+    name: "Quintal",
+    intervals: &[0, 7, 14, 21, 28, 35, 42, 49, 56, 63, 70, 77, 84, 91],
 };
 
 pub const SCALES: &[Scale] = &[
     CHROMATIC,
     MAJOR,
     MINOR,
+    MINOR_PENTATONIC,
+    MAJOR_PENTATONIC,
+    QUARTAL,
+    QUINTAL,
     HARMONIC_MINOR,
     MELODIC_MINOR,
     HARMONIC_MAJOR,
@@ -116,8 +126,6 @@ pub const SCALES: &[Scale] = &[
     WHOLE_TONE,
     DIMINISHED_HW,
     BLUES,
-    MINOR_PENTATONIC,
-    MAJOR_PENTATONIC,
     HIRAJOSHI,
     IN_SEN,
     HUNGARIAN_MINOR,

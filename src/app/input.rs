@@ -3,9 +3,9 @@ use eframe::egui::{self, Key};
 use crate::app::keybindings::Action;
 use crate::app::scale::{Scale, map_key_index_to_note};
 use crate::project::Note;
-use crate::project::{Cell, Effect, SampleData};
+use crate::project::{Cell, Effect};
 
-use super::{App, ClipboardData, Mode, SubColumn, SynthSettingsField};
+use super::{App, ClipboardData, Mode, SubColumn};
 
 impl App {
     pub fn handle_input(&mut self, ctx: &egui::Context) -> bool {
@@ -37,22 +37,11 @@ impl App {
 
             match self.mode {
                 Mode::Edit => self.handle_edit_input(input, &actions),
-                Mode::SynthEdit => {
-                    self.handle_synth_input(&actions);
-                    false
-                }
             }
         })
     }
 
     fn handle_edit_input(&mut self, input: &egui::InputState, actions: &[Action]) -> bool {
-        if actions.contains(&Action::SwitchToSynth) {
-            self.clear_selection();
-            self.mode = Mode::SynthEdit;
-            self.synth_field = SynthSettingsField::Instrument;
-            return false;
-        }
-
         if self.handle_move(actions) {
             return false;
         }
@@ -1076,91 +1065,6 @@ impl App {
         }
     }
 
-    fn handle_mode_switch(&mut self, actions: &[Action]) -> bool {
-        if actions.contains(&Action::Escape) {
-            if self.playback.playing {
-                self.stop_playback();
-            }
-            self.mode = Mode::Edit;
-            return true;
-        }
-        if actions.contains(&Action::SwitchToEdit) {
-            self.mode = Mode::Edit;
-            return true;
-        }
-        false
-    }
-
-    fn handle_synth_input(&mut self, actions: &[Action]) {
-        if self.handle_mode_switch(actions) {
-            return;
-        }
-
-        if actions.contains(&Action::SwitchToSynth) {
-        } else if actions.contains(&Action::SynthDown) {
-            self.synth_field = self.synth_field.next();
-        } else if actions.contains(&Action::SynthUp) {
-            self.synth_field = self.synth_field.prev();
-        } else if actions.contains(&Action::SynthIncrease) {
-            if self.synth_field == SynthSettingsField::Instrument {
-                self.current_instrument =
-                    (self.current_instrument + 1) % self.project.instruments.len();
-                self.envelope_point_idx = 0;
-            } else if matches!(
-                self.synth_field,
-                SynthSettingsField::EnvPoints
-                    | SynthSettingsField::EnvPoint
-                    | SynthSettingsField::EnvTick
-                    | SynthSettingsField::EnvValue
-                    | SynthSettingsField::EnvSustain
-                    | SynthSettingsField::EnvLoopStart
-                    | SynthSettingsField::EnvLoopEnd
-            ) {
-                let idx = self.current_instrument;
-                self.synth_field.adjust_envelope(
-                    &mut self.project.instruments[idx],
-                    1,
-                    &mut self.envelope_point_idx,
-                );
-            } else {
-                let idx = self.current_instrument;
-                self.synth_field
-                    .adjust(&mut self.project.instruments[idx], 1);
-            }
-        } else if actions.contains(&Action::SynthDecrease) {
-            if self.synth_field == SynthSettingsField::Instrument {
-                if self.current_instrument == 0 {
-                    self.current_instrument = self.project.instruments.len() - 1;
-                } else {
-                    self.current_instrument -= 1;
-                }
-                self.envelope_point_idx = 0;
-            } else if matches!(
-                self.synth_field,
-                SynthSettingsField::EnvPoints
-                    | SynthSettingsField::EnvPoint
-                    | SynthSettingsField::EnvTick
-                    | SynthSettingsField::EnvValue
-                    | SynthSettingsField::EnvSustain
-                    | SynthSettingsField::EnvLoopStart
-                    | SynthSettingsField::EnvLoopEnd
-            ) {
-                let idx = self.current_instrument;
-                self.synth_field.adjust_envelope(
-                    &mut self.project.instruments[idx],
-                    -1,
-                    &mut self.envelope_point_idx,
-                );
-            } else {
-                let idx = self.current_instrument;
-                self.synth_field
-                    .adjust(&mut self.project.instruments[idx], -1);
-            }
-        } else if actions.contains(&Action::LoadSample) {
-            self.load_sample_for_instrument(self.current_instrument);
-        }
-    }
-
     pub fn open_module_file(&mut self) {
         self.stop_playback();
 
@@ -1199,22 +1103,6 @@ impl App {
                     self.status_message = Some(format!("Failed to load module: {e}"));
                 }
             }
-        }
-    }
-
-    fn load_sample_for_instrument(&mut self, inst_idx: usize) {
-        let mut dialog = rfd::FileDialog::new()
-            .add_filter("Audio Files", &["wav"])
-            .set_title("Load Sample");
-
-        if let Some(home) = dirs::home_dir() {
-            dialog = dialog.set_directory(home);
-        }
-
-        if let Some(path) = dialog.pick_file()
-            && let Ok(data) = SampleData::load_from_path(&path)
-        {
-            self.project.instruments[inst_idx].sample_data = data;
         }
     }
 }

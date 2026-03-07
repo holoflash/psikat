@@ -24,7 +24,6 @@ pub fn draw_sidebar(ctx: &egui::Context, app: &mut App) {
                 .show(ui, |ui| {
                     ui.spacing_mut().item_spacing.y = 0.0;
                     instrument::draw_instrument(ui, app);
-                    instrument::draw_instrument_list(ui, app);
                 });
         });
 }

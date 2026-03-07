@@ -29,7 +29,6 @@ pub fn instrument_display(inst: Option<u8>) -> String {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Note {
-    /// XM note value: 1–96, where 1 = C-0, 96 = B-7.
     pub pitch: u8,
 }
 
@@ -50,7 +49,6 @@ impl Note {
     }
 
     pub fn frequency(self) -> f32 {
-        // XM note 1 = C-0, note 58 = A-4 (440Hz)
         440.0 * ((f32::from(self.pitch) - 58.0) / 12.0).exp2()
     }
 }
@@ -156,7 +154,6 @@ mod tests {
 
     #[test]
     fn note_names() {
-        // XM note 49 = C-4, 50 = C#4, 58 = A-4, 61 = C-5
         assert_eq!(Note::new(49).name(), "C-4");
         assert_eq!(Note::new(50).name(), "C#4");
         assert_eq!(Note::new(58).name(), "A-4");
@@ -165,7 +162,6 @@ mod tests {
 
     #[test]
     fn note_frequency() {
-        // XM note 58 = A-4 = 440Hz
         let a4 = Note::new(58);
         assert!((a4.frequency() - 440.0).abs() < 0.01);
     }

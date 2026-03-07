@@ -47,11 +47,12 @@ A lightweight cross-platform music tracker built with Rust.
 
 **TODO**
 
-- Make the settings panel more compact
-- Undo
-- MOD export
-- XM export
-- Native project save/load
+_In order of importance_
+
+1. Undo/Redo
+2. Native project save/load
+3. XM export
+4. MOD export
 
 > _All features are subject to change without notice before version 1.0.0_
 
