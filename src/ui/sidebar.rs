@@ -9,8 +9,9 @@ pub fn draw_sidebar(ctx: &egui::Context, app: &mut App) {
         return;
     }
     egui::SidePanel::right("sidebar")
-        .resizable(false)
-        .exact_width(280.0)
+        .resizable(true)
+        .default_width(280.0)
+        .min_width(280.0)
         .frame(
             egui::Frame::new()
                 .fill(COLOR_LAYOUT_BG_DARK)

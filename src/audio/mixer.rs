@@ -73,6 +73,7 @@ pub enum Command {
         vol_envelope: VolEnvelope,
         sample_data: Arc<SampleData>,
         master_volume: f32,
+        vol_fadeout: u16,
         vibrato_type: u8,
         vibrato_sweep: u8,
         vibrato_depth: u8,
@@ -672,17 +673,23 @@ impl TrackerSource {
                     vol_envelope,
                     sample_data,
                     master_volume,
+                    vol_fadeout,
                     vibrato_type,
                     vibrato_sweep,
                     vibrato_depth,
                     vibrato_rate,
                 } => {
+                    let fadeout = if vol_envelope.enabled && vol_fadeout == 0 {
+                        256
+                    } else {
+                        vol_fadeout
+                    };
                     self.preview_channel.trigger(
                         frequency,
                         volume * 0.8,
                         vol_envelope,
                         &sample_data,
-                        0,
+                        fadeout,
                     );
                     self.preview_channel.auto_vib_type = vibrato_type;
                     self.preview_channel.auto_vib_sweep = vibrato_sweep;
@@ -713,6 +720,9 @@ impl TrackerSource {
         for ch in &mut self.channels {
             *ch = Channel::new();
         }
+        self.preview_channel = Channel::new();
+        self.preview_tick_counter = 0.0;
+        self.preview_tick = 0;
         for (i, ch) in self.channels.iter_mut().enumerate() {
             if let Some(&pan) = settings.channel_panning.get(i) {
                 ch.panning = pan;

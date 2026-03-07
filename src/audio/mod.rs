@@ -193,6 +193,7 @@ impl AudioEngine {
             vol_envelope: cs.vol_envelope.clone(),
             sample_data: Arc::clone(&cs.sample_data),
             master_volume,
+            vol_fadeout: cs.vol_fadeout,
             vibrato_type: cs.vibrato_type,
             vibrato_sweep: cs.vibrato_sweep,
             vibrato_depth: cs.vibrato_depth,

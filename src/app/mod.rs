@@ -73,6 +73,7 @@ pub struct App {
     pub clipboard: Option<ClipboardData>,
     pub muted_channels: Vec<bool>,
     pub envelope_point_idx: usize,
+    pub dragging_envelope_point: Option<usize>,
 
     pub follow_scroll_offset: f32,
     pub show_sidebar: bool,
@@ -116,6 +117,7 @@ impl App {
             clipboard: None,
             muted_channels: vec![false; 32],
             envelope_point_idx: 0,
+            dragging_envelope_point: None,
 
             follow_scroll_offset: 0.0,
             show_sidebar: true,

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use eframe::egui::{self, FontId, Pos2, RichText, Stroke, Vec2};
 
 use crate::app::App;
+use crate::project::SampleData;
 use crate::project::sample::LoopType;
-use crate::project::{SampleData, VolEnvelope};
 
 use super::{
     COLOR_ACCENT, COLOR_LAYOUT_BG_DARK, COLOR_LAYOUT_BG_PANEL, COLOR_PATTERN_PLAYBACK_TEXT,
@@ -109,7 +109,7 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                     field_label(ui, "NAME");
                     let te = egui::TextEdit::singleline(&mut inst_name)
                         .font(FontId::monospace(12.0))
-                        .desired_width(ui.available_width());
+                        .desired_width(160.0);
                     ui.add(te).has_focus()
                 })
                 .inner;
@@ -215,202 +215,203 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                     app.project.instruments[inst_idx].vol_envelope.enabled = enabled;
                     if enabled && app.project.instruments[inst_idx].vol_envelope.points.len() < 2 {
                         app.project.instruments[inst_idx].vol_envelope.points =
-                            vec![(0, 64), (16, 48), (48, 32), (96, 0)];
+                            vec![(0, 64), (16, 48), (96, 0)];
                         app.project.instruments[inst_idx].vol_envelope.sustain_point = Some(1);
                     }
                 }
             });
-            ui.add_space(6.0);
-            {
-                let cs = &app.project.instruments[inst_idx];
-                draw_envelope_preview(ui, &cs.vol_envelope);
+            if app.project.instruments[inst_idx].vol_envelope.enabled {
                 ui.add_space(6.0);
-            }
+                draw_envelope_preview(ui, app, inst_idx);
+                ui.add_space(6.0);
 
-            ui.add_space(4.0);
+                ui.add_space(4.0);
 
-            let num_points = app.project.instruments[inst_idx].vol_envelope.points.len();
-            ui.horizontal(|ui| {
-                field_label(ui, "POINTS");
-                let mut v = num_points as f64;
-                let r = ui
-                    .add(egui::DragValue::new(&mut v).range(2..=32).speed(0.15))
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
-                }
-                let new_len = v as usize;
-                let env = &mut app.project.instruments[inst_idx].vol_envelope;
-                while env.points.len() < new_len {
-                    let last_tick = env.points.last().map(|p| p.0).unwrap_or(0);
-                    env.points.push((last_tick + 16, 32));
-                }
-                while env.points.len() > new_len && env.points.len() > 2 {
-                    env.points.pop();
-                }
-                if app.envelope_point_idx >= env.points.len() {
-                    app.envelope_point_idx = env.points.len().saturating_sub(1);
-                }
-                if let Some(sp) = env.sustain_point {
-                    if sp >= env.points.len() {
-                        env.sustain_point = None;
-                    }
-                }
-                if let Some((ls, le)) = env.loop_range {
-                    if ls >= env.points.len() || le >= env.points.len() {
-                        env.loop_range = None;
-                    }
-                }
-            });
-            ui.add_space(2.0);
-
-            let max_pt = num_points.saturating_sub(1);
-            ui.horizontal(|ui| {
-                field_label(ui, "POINT");
-                let mut v = app.envelope_point_idx as f64;
-                let r = ui
-                    .add(egui::DragValue::new(&mut v).range(0..=max_pt).speed(0.1))
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
-                }
-                app.envelope_point_idx = v as usize;
-            });
-            ui.add_space(2.0);
-
-            let pt_idx = app.envelope_point_idx.min(max_pt);
-            if pt_idx < app.project.instruments[inst_idx].vol_envelope.points.len() {
-                let env = &mut app.project.instruments[inst_idx].vol_envelope;
-
-                let min_tick = if pt_idx > 0 {
-                    env.points[pt_idx - 1].0 + 1
-                } else {
-                    0
-                };
-                let max_tick = if pt_idx + 1 < env.points.len() {
-                    env.points[pt_idx + 1].0 - 1
-                } else {
-                    9999
-                };
-
+                let num_points = app.project.instruments[inst_idx].vol_envelope.points.len();
                 ui.horizontal(|ui| {
-                    field_label(ui, "TICK");
-                    let mut v = env.points[pt_idx].0 as f64;
+                    field_label(ui, "POINTS");
+                    let mut v = num_points as f64;
                     let r = ui
-                        .add(
-                            egui::DragValue::new(&mut v)
-                                .range(min_tick..=max_tick)
-                                .speed(0.3),
-                        )
+                        .add(egui::DragValue::new(&mut v).range(2..=32).speed(0.15))
                         .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
                     if r.has_focus() {
                         app.text_editing = true;
                     }
-                    env.points[pt_idx].0 = v as u16;
+                    if r.changed() {
+                        let new_len = v as usize;
+                        let env = &mut app.project.instruments[inst_idx].vol_envelope;
+                        while env.points.len() < new_len {
+                            let last_tick = env.points.last().map(|p| p.0).unwrap_or(0);
+                            env.points.push((last_tick + 16, 32));
+                        }
+                        while env.points.len() > new_len && env.points.len() > 2 {
+                            env.points.pop();
+                        }
+                        if app.envelope_point_idx >= env.points.len() {
+                            app.envelope_point_idx = env.points.len().saturating_sub(1);
+                        }
+                        if let Some(sp) = env.sustain_point {
+                            if sp >= env.points.len() {
+                                env.sustain_point = None;
+                            }
+                        }
+                        if let Some((ls, le)) = env.loop_range {
+                            if ls >= env.points.len() || le >= env.points.len() {
+                                env.loop_range = None;
+                            }
+                        }
+                    }
                 });
                 ui.add_space(2.0);
 
+                let max_pt = num_points.saturating_sub(1);
                 ui.horizontal(|ui| {
-                    field_label(ui, "VALUE");
-                    let mut v = env.points[pt_idx].1 as f64;
+                    field_label(ui, "POINT");
+                    let mut v = app.envelope_point_idx as f64;
                     let r = ui
-                        .add(egui::DragValue::new(&mut v).range(0..=64).speed(0.15))
+                        .add(egui::DragValue::new(&mut v).range(0..=max_pt).speed(0.1))
                         .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
                     if r.has_focus() {
                         app.text_editing = true;
                     }
-                    env.points[pt_idx].1 = v as u16;
+                    app.envelope_point_idx = v as usize;
                 });
                 ui.add_space(2.0);
-            }
 
-            {
-                let env = &mut app.project.instruments[inst_idx].vol_envelope;
-                let max_idx = env.points.len().saturating_sub(1);
+                let pt_idx = app.envelope_point_idx.min(max_pt);
+                if pt_idx < app.project.instruments[inst_idx].vol_envelope.points.len() {
+                    let env = &mut app.project.instruments[inst_idx].vol_envelope;
 
-                ui.horizontal(|ui| {
-                    field_label(ui, "SUSTAIN PT");
-                    let mut has_sustain = env.sustain_point.is_some();
-                    toggle_checkbox(ui, &mut has_sustain);
-                    if has_sustain {
-                        if env.sustain_point.is_none() {
-                            env.sustain_point = Some(0);
-                        }
-                        let mut v = env.sustain_point.unwrap() as f64;
+                    let min_tick = if pt_idx > 0 {
+                        env.points[pt_idx - 1].0 + 1
+                    } else {
+                        0
+                    };
+                    let max_tick = if pt_idx + 1 < env.points.len() {
+                        env.points[pt_idx + 1].0 - 1
+                    } else {
+                        9999
+                    };
+
+                    ui.horizontal(|ui| {
+                        field_label(ui, "TICK");
+                        let mut v = env.points[pt_idx].0 as f64;
                         let r = ui
-                            .add(egui::DragValue::new(&mut v).range(0..=max_idx).speed(0.1))
+                            .add(
+                                egui::DragValue::new(&mut v)
+                                    .range(min_tick..=max_tick)
+                                    .speed(0.3),
+                            )
                             .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
                         if r.has_focus() {
                             app.text_editing = true;
                         }
-                        env.sustain_point = Some(v as usize);
-                    } else {
-                        env.sustain_point = None;
-                    }
-                });
-                ui.add_space(2.0);
+                        env.points[pt_idx].0 = v as u16;
+                    });
+                    ui.add_space(2.0);
 
-                ui.horizontal(|ui| {
-                    field_label(ui, "LOOP START");
-                    let mut has_loop = env.loop_range.is_some();
-                    toggle_checkbox(ui, &mut has_loop);
-                    if has_loop {
-                        if env.loop_range.is_none() {
-                            env.loop_range = Some((0, max_idx));
-                        }
-                        let mut v = env.loop_range.unwrap().0 as f64;
+                    ui.horizontal(|ui| {
+                        field_label(ui, "VALUE");
+                        let mut v = env.points[pt_idx].1 as f64;
                         let r = ui
-                            .add(egui::DragValue::new(&mut v).range(0..=max_idx).speed(0.1))
+                            .add(egui::DragValue::new(&mut v).range(0..=64).speed(0.15))
                             .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
                         if r.has_focus() {
                             app.text_editing = true;
                         }
-                        let e = env.loop_range.unwrap().1;
-                        let s = (v as usize).min(e).min(max_idx);
-                        env.loop_range = Some((s, e));
-                    } else {
-                        env.loop_range = None;
-                    }
-                });
-                ui.add_space(2.0);
-
-                ui.horizontal(|ui| {
-                    field_label(ui, "LOOP END");
-                    let mut has_loop = env.loop_range.is_some();
-                    toggle_checkbox(ui, &mut has_loop);
-                    if has_loop {
-                        if env.loop_range.is_none() {
-                            env.loop_range = Some((0, max_idx));
-                        }
-                        let mut v = env.loop_range.unwrap().1 as f64;
-                        let r = ui
-                            .add(egui::DragValue::new(&mut v).range(0..=max_idx).speed(0.1))
-                            .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                        if r.has_focus() {
-                            app.text_editing = true;
-                        }
-                        let s = env.loop_range.unwrap().0;
-                        let e = (v as usize).max(s).min(max_idx);
-                        env.loop_range = Some((s, e));
-                    } else {
-                        env.loop_range = None;
-                    }
-                });
-            }
-            ui.add_space(12.0);
-            separator(ui);
-            ui.add_space(12.0);
-            ui.horizontal(|ui| {
-                field_label(ui, "FADEOUT");
-                let mut v = app.project.instruments[inst_idx].vol_fadeout as f64;
-                let r = ui
-                    .add(egui::DragValue::new(&mut v).range(0..=4095).speed(2.0))
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
+                        env.points[pt_idx].1 = v as u16;
+                    });
+                    ui.add_space(2.0);
                 }
-                app.project.instruments[inst_idx].vol_fadeout = v as u16;
-            });
+
+                {
+                    let env = &mut app.project.instruments[inst_idx].vol_envelope;
+                    let max_idx = env.points.len().saturating_sub(1);
+
+                    ui.horizontal(|ui| {
+                        field_label(ui, "SUSTAIN PT");
+                        let mut has_sustain = env.sustain_point.is_some();
+                        toggle_checkbox(ui, &mut has_sustain);
+                        if has_sustain {
+                            if env.sustain_point.is_none() {
+                                env.sustain_point = Some(0);
+                            }
+                            let mut v = env.sustain_point.unwrap() as f64;
+                            let r = ui
+                                .add(egui::DragValue::new(&mut v).range(0..=max_idx).speed(0.1))
+                                .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                            if r.has_focus() {
+                                app.text_editing = true;
+                            }
+                            env.sustain_point = Some(v as usize);
+                        } else {
+                            env.sustain_point = None;
+                        }
+                    });
+                    ui.add_space(2.0);
+
+                    ui.horizontal(|ui| {
+                        field_label(ui, "LOOP START");
+                        let mut has_loop = env.loop_range.is_some();
+                        toggle_checkbox(ui, &mut has_loop);
+                        if has_loop {
+                            if env.loop_range.is_none() {
+                                env.loop_range = Some((0, max_idx));
+                            }
+                            let mut v = env.loop_range.unwrap().0 as f64;
+                            let r = ui
+                                .add(egui::DragValue::new(&mut v).range(0..=max_idx).speed(0.1))
+                                .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                            if r.has_focus() {
+                                app.text_editing = true;
+                            }
+                            let e = env.loop_range.unwrap().1;
+                            let s = (v as usize).min(e).min(max_idx);
+                            env.loop_range = Some((s, e));
+                        } else {
+                            env.loop_range = None;
+                        }
+                    });
+                    ui.add_space(2.0);
+
+                    ui.horizontal(|ui| {
+                        field_label(ui, "LOOP END");
+                        let mut has_loop = env.loop_range.is_some();
+                        toggle_checkbox(ui, &mut has_loop);
+                        if has_loop {
+                            if env.loop_range.is_none() {
+                                env.loop_range = Some((0, max_idx));
+                            }
+                            let mut v = env.loop_range.unwrap().1 as f64;
+                            let r = ui
+                                .add(egui::DragValue::new(&mut v).range(0..=max_idx).speed(0.1))
+                                .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                            if r.has_focus() {
+                                app.text_editing = true;
+                            }
+                            let s = env.loop_range.unwrap().0;
+                            let e = (v as usize).max(s).min(max_idx);
+                            env.loop_range = Some((s, e));
+                        } else {
+                            env.loop_range = None;
+                        }
+                    });
+                }
+
+                ui.add_space(8.0);
+
+                ui.horizontal(|ui| {
+                    field_label(ui, "FADEOUT");
+                    let mut v = app.project.instruments[inst_idx].vol_fadeout as f64;
+                    let r = ui
+                        .add(egui::DragValue::new(&mut v).range(0..=4095).speed(2.0))
+                        .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                    if r.has_focus() {
+                        app.text_editing = true;
+                    }
+                    app.project.instruments[inst_idx].vol_fadeout = v as u16;
+                });
+            }
 
             ui.add_space(12.0);
             separator(ui);
@@ -576,11 +577,12 @@ fn handle_sample_drop(ui: &mut egui::Ui, app: &mut App) {
     }
 }
 
-fn draw_envelope_preview(ui: &mut egui::Ui, env: &VolEnvelope) {
+fn draw_envelope_preview(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
     let width = ui.available_width();
-    let height = 60.0;
+    let height = 120.0;
 
-    let (rect, _response) = ui.allocate_exact_size(Vec2::new(width, height), egui::Sense::hover());
+    let (rect, response) =
+        ui.allocate_exact_size(Vec2::new(width, height), egui::Sense::click_and_drag());
     let painter = ui.painter_at(rect);
 
     painter.rect_filled(rect, 2.0, COLOR_LAYOUT_BG_DARK);
@@ -593,6 +595,8 @@ fn draw_envelope_preview(ui: &mut egui::Ui, env: &VolEnvelope) {
             Stroke::new(0.5, grid_color),
         );
     }
+
+    let env = &app.project.instruments[inst_idx].vol_envelope;
 
     if !env.enabled || env.points.len() < 2 {
         painter.text(
@@ -615,6 +619,170 @@ fn draw_envelope_preview(ui: &mut egui::Ui, env: &VolEnvelope) {
         let y = rect.top() + margin + draw_h * (1.0 - val as f32 / 64.0);
         Pos2::new(x, y)
     };
+
+    let from_pos = |pos: Pos2| -> (u16, u16) {
+        let t = ((pos.x - rect.left() - margin) / draw_w * max_tick)
+            .round()
+            .clamp(0.0, 9999.0) as u16;
+        let v = ((1.0 - (pos.y - rect.top() - margin) / draw_h) * 64.0)
+            .round()
+            .clamp(0.0, 64.0) as u16;
+        (t, v)
+    };
+
+    let points_pos: Vec<Pos2> = env.points.iter().map(|&(t, v)| to_pos(t, v)).collect();
+    let num_points = env.points.len();
+
+    if response.drag_started() {
+        if let Some(pointer) = response.interact_pointer_pos() {
+            let mut best = None;
+            let mut best_dist = f32::MAX;
+            for (i, &pos) in points_pos.iter().enumerate() {
+                let d = pos.distance(pointer);
+                if d < best_dist {
+                    best_dist = d;
+                    best = Some(i);
+                }
+            }
+            if best_dist <= 12.0 {
+                app.dragging_envelope_point = best;
+                if let Some(idx) = best {
+                    app.envelope_point_idx = idx;
+                }
+            }
+        }
+    }
+
+    if response.dragged() {
+        if let Some(idx) = app.dragging_envelope_point {
+            if let Some(pointer) = response.interact_pointer_pos() {
+                let (raw_tick, raw_val) = from_pos(pointer);
+
+                let env = &app.project.instruments[inst_idx].vol_envelope;
+
+                let min_tick = if idx > 0 {
+                    env.points[idx - 1].0 + 1
+                } else {
+                    0
+                };
+                let max_tick_pt = if idx + 1 < num_points {
+                    env.points[idx + 1].0 - 1
+                } else {
+                    9999
+                };
+
+                let tick = if idx == 0 {
+                    0
+                } else {
+                    raw_tick.clamp(min_tick, max_tick_pt)
+                };
+                let val = raw_val.min(64);
+
+                app.project.instruments[inst_idx].vol_envelope.points[idx] = (tick, val);
+            }
+        }
+    }
+
+    if response.drag_stopped() {
+        app.dragging_envelope_point = None;
+    }
+
+    if response.secondary_clicked() {
+        if let Some(pointer) = response.interact_pointer_pos() {
+            let env = &app.project.instruments[inst_idx].vol_envelope;
+            if env.points.len() > 2 {
+                let pts_pos: Vec<Pos2> = env.points.iter().map(|&(t, v)| to_pos(t, v)).collect();
+                if let Some(idx) = pts_pos
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, p)| p.distance(pointer) <= 8.0)
+                    .min_by(|(_, a), (_, b)| {
+                        a.distance(pointer)
+                            .partial_cmp(&b.distance(pointer))
+                            .unwrap()
+                    })
+                    .map(|(i, _)| i)
+                {
+                    app.project.instruments[inst_idx]
+                        .vol_envelope
+                        .points
+                        .remove(idx);
+                    let new_len = app.project.instruments[inst_idx].vol_envelope.points.len();
+                    app.envelope_point_idx = app.envelope_point_idx.min(new_len.saturating_sub(1));
+
+                    if let Some(sp) = app.project.instruments[inst_idx].vol_envelope.sustain_point {
+                        if sp == idx {
+                            app.project.instruments[inst_idx].vol_envelope.sustain_point = None;
+                        } else if sp > idx {
+                            app.project.instruments[inst_idx].vol_envelope.sustain_point =
+                                Some(sp - 1);
+                        }
+                    }
+                    if let Some((ls, le)) =
+                        app.project.instruments[inst_idx].vol_envelope.loop_range
+                    {
+                        let new_ls = if ls > idx { ls - 1 } else { ls };
+                        let new_le = if le > idx { le - 1 } else { le };
+                        if new_ls >= new_len || new_le >= new_len {
+                            app.project.instruments[inst_idx].vol_envelope.loop_range = None;
+                        } else {
+                            app.project.instruments[inst_idx].vol_envelope.loop_range =
+                                Some((new_ls, new_le));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if response.double_clicked() {
+        if let Some(pointer) = response.interact_pointer_pos() {
+            let env = &app.project.instruments[inst_idx].vol_envelope;
+            let pts = &env.points;
+
+            let insert_after = pts
+                .windows(2)
+                .enumerate()
+                .find(|(_, w)| {
+                    let x0 = to_pos(w[0].0, w[0].1).x;
+                    let x1 = to_pos(w[1].0, w[1].1).x;
+                    pointer.x >= x0 && pointer.x <= x1
+                })
+                .map(|(i, _)| i)
+                .unwrap_or(pts.len().saturating_sub(1));
+
+            let (raw_tick, raw_val) = from_pos(pointer);
+            let env = &app.project.instruments[inst_idx].vol_envelope;
+            let min_tick = env.points[insert_after].0 + 1;
+            let max_tick = if insert_after + 1 < env.points.len() {
+                env.points[insert_after + 1].0.saturating_sub(1)
+            } else {
+                env.points[insert_after].0 + 16
+            };
+            let tick = raw_tick.clamp(min_tick, max_tick);
+
+            let new_idx = insert_after + 1;
+            app.project.instruments[inst_idx]
+                .vol_envelope
+                .points
+                .insert(new_idx, (tick, raw_val.min(64)));
+            app.envelope_point_idx = new_idx;
+
+            if let Some(sp) = app.project.instruments[inst_idx].vol_envelope.sustain_point {
+                if sp >= new_idx {
+                    app.project.instruments[inst_idx].vol_envelope.sustain_point = Some(sp + 1);
+                }
+            }
+            if let Some((ls, le)) = app.project.instruments[inst_idx].vol_envelope.loop_range {
+                let new_ls = if ls >= new_idx { ls + 1 } else { ls };
+                let new_le = if le >= new_idx { le + 1 } else { le };
+                app.project.instruments[inst_idx].vol_envelope.loop_range = Some((new_ls, new_le));
+            }
+        }
+    }
+
+    let env = &app.project.instruments[inst_idx].vol_envelope;
+    let points_pos: Vec<Pos2> = env.points.iter().map(|&(t, v)| to_pos(t, v)).collect();
 
     if let Some((ls, le)) = env.loop_range
         && ls < env.points.len()
@@ -648,18 +816,53 @@ fn draw_envelope_preview(ui: &mut egui::Ui, env: &VolEnvelope) {
     }
 
     let line_color = COLOR_ACCENT;
-    let points_pos: Vec<Pos2> = env.points.iter().map(|&(t, v)| to_pos(t, v)).collect();
     for window in points_pos.windows(2) {
         painter.line_segment([window[0], window[1]], Stroke::new(1.5, line_color));
     }
 
-    let dot_color = COLOR_TEXT;
+    let mut hovered_point = None;
+    if app.dragging_envelope_point.is_none() {
+        if let Some(pointer) = ui.input(|i| i.pointer.hover_pos()) {
+            if rect.contains(pointer) {
+                for (i, &pos) in points_pos.iter().enumerate() {
+                    if pos.distance(pointer) <= 8.0 {
+                        hovered_point = Some(i);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     for (i, &pos) in points_pos.iter().enumerate() {
-        let r = if Some(i) == env.sustain_point {
+        let is_selected = i == app.envelope_point_idx;
+        let is_dragging = app.dragging_envelope_point == Some(i);
+        let is_hovered = hovered_point == Some(i);
+
+        let r = if is_dragging || is_selected {
+            4.0
+        } else if is_hovered {
+            3.5
+        } else if Some(i) == env.sustain_point {
             3.5
         } else {
             2.5
         };
-        painter.circle_filled(pos, r, dot_color);
+
+        let color = if is_dragging {
+            COLOR_ACCENT
+        } else if is_selected {
+            COLOR_ACCENT
+        } else {
+            COLOR_TEXT
+        };
+
+        painter.circle_filled(pos, r, color);
+    }
+
+    if app.dragging_envelope_point.is_some() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+    } else if hovered_point.is_some() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
     }
 }

@@ -20,6 +20,15 @@ impl VolEnvelope {
         }
     }
 
+    pub fn default_preset() -> Self {
+        Self {
+            points: vec![(0, 64), (9, 0), (96, 0)],
+            sustain_point: Some(1),
+            loop_range: None,
+            enabled: false,
+        }
+    }
+
     pub fn amplitude_at_tick(&self, tick: u16) -> f32 {
         if !self.enabled || self.points.is_empty() {
             return 1.0;
@@ -109,7 +118,7 @@ impl Instrument {
         vec![
             Self {
                 name: "Square".into(),
-                vol_envelope: VolEnvelope::disabled(),
+                vol_envelope: VolEnvelope::default_preset(),
                 sample_data: SampleData::square(),
                 default_volume: 1.0,
                 samples: Vec::new(),
@@ -123,7 +132,7 @@ impl Instrument {
             },
             Self {
                 name: "Saw".into(),
-                vol_envelope: VolEnvelope::disabled(),
+                vol_envelope: VolEnvelope::default_preset(),
                 sample_data: SampleData::saw(),
                 default_volume: 1.0,
                 samples: Vec::new(),
@@ -137,7 +146,7 @@ impl Instrument {
             },
             Self {
                 name: "Triangle".into(),
-                vol_envelope: VolEnvelope::disabled(),
+                vol_envelope: VolEnvelope::default_preset(),
                 sample_data: SampleData::triangle(),
                 default_volume: 1.0,
                 samples: Vec::new(),
@@ -151,7 +160,7 @@ impl Instrument {
             },
             Self {
                 name: "Sine".into(),
-                vol_envelope: VolEnvelope::disabled(),
+                vol_envelope: VolEnvelope::default_preset(),
                 sample_data: SampleData::sine(),
                 default_volume: 1.0,
                 samples: Vec::new(),
@@ -165,7 +174,7 @@ impl Instrument {
             },
             Self {
                 name: "Noise".into(),
-                vol_envelope: VolEnvelope::disabled(),
+                vol_envelope: VolEnvelope::default_preset(),
                 sample_data: SampleData::noise(),
                 default_volume: 1.0,
                 samples: Vec::new(),
@@ -179,7 +188,7 @@ impl Instrument {
             },
             Self {
                 name: "Empty 1".into(),
-                vol_envelope: VolEnvelope::disabled(),
+                vol_envelope: VolEnvelope::default_preset(),
                 sample_data: SampleData::silent(),
                 default_volume: 1.0,
                 samples: Vec::new(),
@@ -193,7 +202,7 @@ impl Instrument {
             },
             Self {
                 name: "Empty 2".into(),
-                vol_envelope: VolEnvelope::disabled(),
+                vol_envelope: VolEnvelope::default_preset(),
                 sample_data: SampleData::silent(),
                 default_volume: 1.0,
                 samples: Vec::new(),
@@ -207,7 +216,7 @@ impl Instrument {
             },
             Self {
                 name: "Empty 3".into(),
-                vol_envelope: VolEnvelope::disabled(),
+                vol_envelope: VolEnvelope::default_preset(),
                 sample_data: SampleData::silent(),
                 default_volume: 1.0,
                 samples: Vec::new(),
