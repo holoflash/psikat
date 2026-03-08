@@ -99,24 +99,12 @@ pub const PROMETHEUS: Scale = Scale {
     intervals: &[0, 2, 4, 6, 9, 10],
 };
 
-pub const QUARTAL: Scale = Scale {
-    name: "Quartal",
-    intervals: &[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
-};
-
-pub const QUINTAL: Scale = Scale {
-    name: "Quintal",
-    intervals: &[0, 7, 14, 21, 28, 35, 42, 49, 56, 63, 70, 77, 84, 91],
-};
-
 pub const SCALES: &[Scale] = &[
     CHROMATIC,
     MAJOR,
     MINOR,
     MINOR_PENTATONIC,
     MAJOR_PENTATONIC,
-    QUARTAL,
-    QUINTAL,
     HARMONIC_MINOR,
     MELODIC_MINOR,
     HARMONIC_MAJOR,
@@ -148,7 +136,8 @@ pub fn map_key_index_to_note(key_index: u8, octave: u8, scale: &Scale, transpose
     let scale_degree = key_index % len;
     let semitone = scale.intervals[scale_degree as usize];
 
-    let note =
-        i16::from(octave + scale_octave) * 12 + i16::from(semitone) + i16::from(transpose) + 1;
-    u8::try_from(note.clamp(1, 96)).expect("clamped to 1..=96")
+    let note = (i16::from(octave) + 1 + i16::from(scale_octave)) * 12
+        + i16::from(semitone)
+        + i16::from(transpose);
+    u8::try_from(note.clamp(0, 127)).expect("clamped to 0..=127")
 }

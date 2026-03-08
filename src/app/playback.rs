@@ -24,7 +24,7 @@ impl App {
             &self.project.order,
             &self.project.instruments,
             self.project.bpm,
-            self.project.initial_speed,
+            self.project.subdivision,
             self.project.master_volume_linear(),
             &self.muted_channels,
             &self.project.channel_panning,
@@ -65,7 +65,7 @@ impl App {
         self.audio.update_settings(
             &self.project.instruments,
             self.project.bpm,
-            self.project.initial_speed,
+            self.project.subdivision,
             self.project.master_volume_linear(),
             &self.muted_channels,
             &self.project.channel_panning,

@@ -189,6 +189,10 @@ const COMMANDS: &[CmdEntry] = &[
         description: "Fine porta down",
     },
     CmdEntry {
+        code: "E5x",
+        description: "Set finetune",
+    },
+    CmdEntry {
         code: "E9x",
         description: "Retrigger note",
     },
@@ -210,7 +214,19 @@ const COMMANDS: &[CmdEntry] = &[
     },
     CmdEntry {
         code: "Fxx",
-        description: "Set speed/tempo",
+        description: "Set BPM",
+    },
+    CmdEntry {
+        code: "Gxx",
+        description: "Set global volume (00-40)",
+    },
+    CmdEntry {
+        code: "Kxx",
+        description: "Key off at tick x",
+    },
+    CmdEntry {
+        code: "Lxx",
+        description: "Set envelope position",
     },
 ];
 

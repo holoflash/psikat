@@ -92,14 +92,42 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                                 app.envelope_point_idx = 0;
                             }
                         }
+                        ui.separator();
+                        if ui.button("+ Add new").clicked() {
+                            let idx = app.project.instruments.len();
+                            let name = format!("Instrument {:02X}", idx);
+                            app.project
+                                .instruments
+                                .push(crate::project::channel::Instrument::new_empty(&name));
+                            app.current_instrument = idx;
+                            app.envelope_point_idx = 0;
+                        }
                     });
             });
 
             ui.add_space(12.0);
 
             {
-                let cs = &app.project.instruments[inst_idx];
-                draw_waveform_preview(ui, &cs.sample_data.samples_i16);
+                let samples = app.project.instruments[inst_idx]
+                    .sample_data
+                    .samples_i16
+                    .clone();
+                let resp = draw_waveform_preview(ui, &samples);
+                if resp.double_clicked() {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("Audio", &["wav", "WAV"])
+                        .pick_file()
+                    {
+                        if let Ok(data) = SampleData::load_from_path(&path) {
+                            app.project.instruments[inst_idx].sample_data = data;
+                            app.project.instruments[inst_idx].waveform =
+                                crate::project::channel::WaveformKind::Sample;
+                            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                                app.project.instruments[inst_idx].name = stem.to_string();
+                            }
+                        }
+                    }
+                }
                 ui.add_space(6.0);
             }
 
@@ -115,6 +143,34 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                 .inner;
             app.text_editing = te_has_focus;
             app.project.instruments[inst_idx].name = inst_name;
+            ui.add_space(4.0);
+
+            ui.horizontal(|ui| {
+                use crate::project::channel::WaveformKind;
+                field_label(ui, "WAVEFORM");
+                let current = app.project.instruments[inst_idx].waveform;
+                let mut selected = current;
+                egui::ComboBox::from_id_salt("waveform_combo")
+                    .selected_text(RichText::new(current.label()).font(FontId::monospace(12.0)))
+                    .width(120.0)
+                    .show_ui(ui, |ui| {
+                        for &kind in WaveformKind::ALL {
+                            ui.selectable_value(
+                                &mut selected,
+                                kind,
+                                RichText::new(kind.label()).color(if kind == current {
+                                    COLOR_ACCENT
+                                } else {
+                                    COLOR_TEXT
+                                }),
+                            );
+                        }
+                    });
+                if selected != current {
+                    app.project.instruments[inst_idx].waveform = selected;
+                    app.project.instruments[inst_idx].sample_data = selected.generate();
+                }
+            });
             ui.add_space(4.0);
 
             ui.horizontal(|ui| {
@@ -484,11 +540,11 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
         });
 }
 
-fn draw_waveform_preview(ui: &mut egui::Ui, samples: &[i16]) {
+fn draw_waveform_preview(ui: &mut egui::Ui, samples: &[i16]) -> egui::Response {
     let width = ui.available_width();
     let height = 32.0;
 
-    let (rect, _response) = ui.allocate_exact_size(Vec2::new(width, height), egui::Sense::hover());
+    let (rect, response) = ui.allocate_exact_size(Vec2::new(width, height), egui::Sense::click());
     let painter = ui.painter_at(rect);
 
     painter.rect_filled(rect, 0.0, COLOR_LAYOUT_BG_DARK);
@@ -503,14 +559,14 @@ fn draw_waveform_preview(ui: &mut egui::Ui, samples: &[i16]) {
     );
 
     if samples.is_empty() {
-        return;
+        return response;
     }
 
     let num_points = width as usize;
     let samples_per_point = samples.len() / num_points.max(1);
 
     if samples_per_point == 0 {
-        return;
+        return response;
     }
 
     let points: Vec<Pos2> = (0..num_points)
@@ -544,6 +600,8 @@ fn draw_waveform_preview(ui: &mut egui::Ui, samples: &[i16]) {
             Stroke::new(1.0, waveform_color.gamma_multiply(0.5)),
         );
     }
+
+    response
 }
 
 fn handle_sample_drop(ui: &mut egui::Ui, app: &mut App) {

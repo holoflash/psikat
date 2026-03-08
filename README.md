@@ -40,19 +40,21 @@ A lightweight cross-platform music tracker built with Rust.
 
 _In order of importance_
 
-1. Undo/Redo
-2. Native project save/load
-3. Add ability to add more instruments
-4. Auto insert instrument number to pattern from selected instrument
-5. Right click cell to see and insert available commands
+- Undo/Redo
+- Native project save/load
+  ...and many more
 
 > _All features are subject to change without notice before version 1.0.0_
 
 ---
 
-This project is inspired by the trackers of the late 90s and early 2000s and tries to offer a new take on the tracker workflow.
+Psikat is a fresh take on the music tracker.
+
+While working with the .xm and .mod formats initially was a great starting point, there are already excellent trackers like Furnace, Renoise, OpenMPT, and MilkyTracker that handle legacy formats well and are made by people who have deep knowledge of the tracker format and scene. My background being purely in music production in traditional DAWs, I feel like my efforts are better spent on building something new instead, that aligns more with my own personal preferences. I just really love the tracker workflow, but some habits from traditional DAWs are too ingrained in me to let go of and I'd like to see if I can bridge that gap.
 
 ## Install
+
+> _If **Releases** is empty, I'm doing some big changes and wiped out the old releases because they no longer represent what psikat is about. New release coming soon! In the meanwhile you can build psikat from source following the instructions below._
 
 Download the latest release for your platform from [**Releases**](https://github.com/holoflash/psikat/releases/latest):
 
@@ -67,6 +69,30 @@ Download the latest release for your platform from [**Releases**](https://github
 
 ```sh
 xattr -cr /Applications/Psikat.app
+```
+
+## Build from Source
+
+Requires [Rust](https://rustup.rs/).
+
+**macOS** — creates a `Psikat.app` bundle (requires Python + Pillow for icon generation):
+
+```sh
+./scripts/bundle_macos.sh
+open target/Psikat.app
+```
+
+**Linux** — requires ALSA and X11/Wayland dev libraries:
+
+```sh
+sudo apt install libasound2-dev libgl1-mesa-dev libxkbcommon-dev libwayland-dev
+./scripts/build_linux.sh
+```
+
+**Windows:**
+
+```bat
+scripts\build_windows.bat
 ```
 
 ## License

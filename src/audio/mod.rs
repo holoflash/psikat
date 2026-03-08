@@ -118,7 +118,7 @@ impl AudioEngine {
         order: &[usize],
         instruments: &[Instrument],
         bpm: u16,
-        speed: u16,
+        rows_per_beat: usize,
         master_volume: f32,
         muted_channels: &[bool],
         channel_panning: &[f32],
@@ -129,7 +129,7 @@ impl AudioEngine {
             .collect();
         let settings = Arc::new(PlaybackSettings {
             bpm,
-            speed,
+            rows_per_beat,
             master_volume,
             instruments: instruments.to_vec(),
             muted_channels: muted_channels.to_vec(),
@@ -152,14 +152,14 @@ impl AudioEngine {
         &self,
         instruments: &[Instrument],
         bpm: u16,
-        speed: u16,
+        rows_per_beat: usize,
         master_volume: f32,
         muted_channels: &[bool],
         channel_panning: &[f32],
     ) {
         let settings = Arc::new(PlaybackSettings {
             bpm,
-            speed,
+            rows_per_beat,
             master_volume,
             instruments: instruments.to_vec(),
             muted_channels: muted_channels.to_vec(),
@@ -189,7 +189,7 @@ impl AudioEngine {
         let cs = &instruments[instrument_idx % instruments.len()];
         let _ = self.sender.send(Command::PreviewNote {
             frequency: freq,
-            volume: 1.0,
+            volume: cs.default_volume,
             vol_envelope: cs.vol_envelope.clone(),
             sample_data: Arc::clone(&cs.sample_data),
             master_volume,

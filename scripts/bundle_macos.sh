@@ -61,14 +61,6 @@ for s, label in [(32,16), (64,32), (256,128), (512,256), (1024,512)]:
 "
 iconutil -c icns "${ICONSET}" -o "${RESOURCES}/AppIcon.icns"
 rm -rf "${ICONSET}"
-DMG="target/${APP_NAME}-v${VERSION}.dmg"
-rm -f "${DMG}"
-mkdir -p target/dmg_stage
-cp -r "${APP_DIR}" target/dmg_stage/
-ln -s /Applications target/dmg_stage/Applications
-hdiutil create -volname "${APP_NAME}" -srcfolder target/dmg_stage -ov -format UDZO "${DMG}"
-rm -rf target/dmg_stage
 
 echo ""
 echo "✓ Built ${APP_DIR}"
-echo "✓ Built ${DMG}"

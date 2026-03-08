@@ -2,6 +2,49 @@ use std::sync::Arc;
 
 use super::sample::SampleData;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WaveformKind {
+    Sample,
+    Sine,
+    Triangle,
+    Square,
+    Saw,
+    Noise,
+}
+
+impl WaveformKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Sample => "Sample",
+            Self::Sine => "Sine",
+            Self::Triangle => "Tri",
+            Self::Square => "Sqr",
+            Self::Saw => "Saw",
+            Self::Noise => "Noise",
+        }
+    }
+
+    pub fn generate(self) -> Arc<SampleData> {
+        match self {
+            Self::Sample => SampleData::silent(),
+            Self::Sine => SampleData::sine(),
+            Self::Triangle => SampleData::triangle(),
+            Self::Square => SampleData::square(),
+            Self::Saw => SampleData::saw(),
+            Self::Noise => SampleData::noise(),
+        }
+    }
+
+    pub const ALL: &'static [Self] = &[
+        Self::Sample,
+        Self::Sine,
+        Self::Triangle,
+        Self::Square,
+        Self::Saw,
+        Self::Noise,
+    ];
+}
+
 #[derive(Debug, Clone)]
 pub struct VolEnvelope {
     pub points: Vec<(u16, u16)>,
@@ -88,6 +131,7 @@ impl VolEnvelope {
 #[derive(Debug, Clone)]
 pub struct Instrument {
     pub name: String,
+    pub waveform: WaveformKind,
     pub vol_envelope: VolEnvelope,
     pub sample_data: Arc<SampleData>,
     pub default_volume: f32,
@@ -104,7 +148,7 @@ pub struct Instrument {
 impl Instrument {
     pub fn sample_for_note(&self, pitch: u8) -> (&Arc<SampleData>, f32) {
         if !self.note_to_sample.is_empty() && !self.samples.is_empty() {
-            let map_idx = (pitch.saturating_sub(1) as usize).min(self.note_to_sample.len() - 1);
+            let map_idx = (pitch as usize).min(self.note_to_sample.len() - 1);
             let sample_idx = self.note_to_sample[map_idx] as usize;
             if sample_idx < self.samples.len() {
                 let (ref sd, vol) = self.samples[sample_idx];
@@ -115,119 +159,24 @@ impl Instrument {
     }
 
     pub fn defaults() -> Vec<Self> {
-        vec![
-            Self {
-                name: "Square".into(),
-                vol_envelope: VolEnvelope::default_preset(),
-                sample_data: SampleData::square(),
-                default_volume: 1.0,
-                samples: Vec::new(),
-                note_to_sample: Vec::new(),
-                vol_fadeout: 0,
-                default_panning: 0.5,
-                vibrato_type: 0,
-                vibrato_sweep: 0,
-                vibrato_depth: 0,
-                vibrato_rate: 0,
-            },
-            Self {
-                name: "Saw".into(),
-                vol_envelope: VolEnvelope::default_preset(),
-                sample_data: SampleData::saw(),
-                default_volume: 1.0,
-                samples: Vec::new(),
-                note_to_sample: Vec::new(),
-                vol_fadeout: 0,
-                default_panning: 0.5,
-                vibrato_type: 0,
-                vibrato_sweep: 0,
-                vibrato_depth: 0,
-                vibrato_rate: 0,
-            },
-            Self {
-                name: "Triangle".into(),
-                vol_envelope: VolEnvelope::default_preset(),
-                sample_data: SampleData::triangle(),
-                default_volume: 1.0,
-                samples: Vec::new(),
-                note_to_sample: Vec::new(),
-                vol_fadeout: 0,
-                default_panning: 0.5,
-                vibrato_type: 0,
-                vibrato_sweep: 0,
-                vibrato_depth: 0,
-                vibrato_rate: 0,
-            },
-            Self {
-                name: "Sine".into(),
-                vol_envelope: VolEnvelope::default_preset(),
-                sample_data: SampleData::sine(),
-                default_volume: 1.0,
-                samples: Vec::new(),
-                note_to_sample: Vec::new(),
-                vol_fadeout: 0,
-                default_panning: 0.5,
-                vibrato_type: 0,
-                vibrato_sweep: 0,
-                vibrato_depth: 0,
-                vibrato_rate: 0,
-            },
-            Self {
-                name: "Noise".into(),
-                vol_envelope: VolEnvelope::default_preset(),
-                sample_data: SampleData::noise(),
-                default_volume: 1.0,
-                samples: Vec::new(),
-                note_to_sample: Vec::new(),
-                vol_fadeout: 0,
-                default_panning: 0.5,
-                vibrato_type: 0,
-                vibrato_sweep: 0,
-                vibrato_depth: 0,
-                vibrato_rate: 0,
-            },
-            Self {
-                name: "Empty 1".into(),
-                vol_envelope: VolEnvelope::default_preset(),
-                sample_data: SampleData::silent(),
-                default_volume: 1.0,
-                samples: Vec::new(),
-                note_to_sample: Vec::new(),
-                vol_fadeout: 0,
-                default_panning: 0.5,
-                vibrato_type: 0,
-                vibrato_sweep: 0,
-                vibrato_depth: 0,
-                vibrato_rate: 0,
-            },
-            Self {
-                name: "Empty 2".into(),
-                vol_envelope: VolEnvelope::default_preset(),
-                sample_data: SampleData::silent(),
-                default_volume: 1.0,
-                samples: Vec::new(),
-                note_to_sample: Vec::new(),
-                vol_fadeout: 0,
-                default_panning: 0.5,
-                vibrato_type: 0,
-                vibrato_sweep: 0,
-                vibrato_depth: 0,
-                vibrato_rate: 0,
-            },
-            Self {
-                name: "Empty 3".into(),
-                vol_envelope: VolEnvelope::default_preset(),
-                sample_data: SampleData::silent(),
-                default_volume: 1.0,
-                samples: Vec::new(),
-                note_to_sample: Vec::new(),
-                vol_fadeout: 0,
-                default_panning: 0.5,
-                vibrato_type: 0,
-                vibrato_sweep: 0,
-                vibrato_depth: 0,
-                vibrato_rate: 0,
-            },
-        ]
+        vec![Self::new_empty("Instrument 00")]
+    }
+
+    pub fn new_empty(name: &str) -> Self {
+        Self {
+            name: name.into(),
+            waveform: WaveformKind::Sample,
+            vol_envelope: VolEnvelope::default_preset(),
+            sample_data: SampleData::silent(),
+            default_volume: 0.25,
+            samples: Vec::new(),
+            note_to_sample: Vec::new(),
+            vol_fadeout: 0,
+            default_panning: 0.5,
+            vibrato_type: 0,
+            vibrato_sweep: 0,
+            vibrato_depth: 0,
+            vibrato_rate: 0,
+        }
     }
 }

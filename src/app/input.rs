@@ -734,9 +734,9 @@ impl App {
         }
 
         let can_transpose = if delta > 0 {
-            max_pitch.is_some_and(|p| (i16::from(p) + delta) <= 96)
+            max_pitch.is_some_and(|p| (i16::from(p) + delta) <= 127)
         } else {
-            min_pitch.is_some_and(|p| (i16::from(p) + delta) >= 1)
+            min_pitch.is_some_and(|p| (i16::from(p) + delta) >= 0)
         };
 
         if can_transpose {
@@ -772,7 +772,7 @@ impl App {
                             break;
                         }
                         pitch += if ascending { 1 } else { -1 };
-                        let clamped = pitch.clamp(1, 96) as u8;
+                        let clamped = pitch.clamp(0, 127) as u8;
                         self.project.current_pattern_mut().set(
                             ch,
                             row,
@@ -878,6 +878,11 @@ impl App {
                         self.cursor.channel,
                         self.cursor.row,
                         Cell::NoteOn(note),
+                    );
+                    self.project.current_pattern_mut().set_instrument(
+                        self.cursor.channel,
+                        self.cursor.row,
+                        Some(self.current_instrument as u8),
                     );
                     if !self.playback.playing {
                         self.audio.preview_note(
@@ -1065,9 +1070,7 @@ impl App {
         }
     }
 
-    pub fn open_module_file(&mut self) {
-        // TODO: implement native .psk project loading
-    }
+    pub fn open_module_file(&mut self) {}
 }
 
 pub fn key_to_note(key: Key, octave: u8, scale: &Scale, transpose: i8) -> Option<Note> {

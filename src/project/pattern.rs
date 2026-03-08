@@ -35,7 +35,7 @@ pub struct Note {
 impl Note {
     pub fn new(pitch: u8) -> Self {
         Self {
-            pitch: pitch.clamp(1, 96),
+            pitch: pitch.min(127),
         }
     }
 
@@ -43,13 +43,13 @@ impl Note {
         let names = [
             "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-",
         ];
-        let octave = (self.pitch - 1) / 12;
-        let note_idx = ((self.pitch - 1) % 12) as usize;
+        let octave = (self.pitch / 12) as i8 - 1;
+        let note_idx = (self.pitch % 12) as usize;
         format!("{}{}", names[note_idx], octave)
     }
 
     pub fn frequency(self) -> f32 {
-        440.0 * ((f32::from(self.pitch) - 58.0) / 12.0).exp2()
+        440.0 * ((f32::from(self.pitch) - 69.0) / 12.0).exp2()
     }
 }
 
@@ -154,15 +154,15 @@ mod tests {
 
     #[test]
     fn note_names() {
-        assert_eq!(Note::new(49).name(), "C-4");
-        assert_eq!(Note::new(50).name(), "C#4");
-        assert_eq!(Note::new(58).name(), "A-4");
-        assert_eq!(Note::new(61).name(), "C-5");
+        assert_eq!(Note::new(60).name(), "C-4");
+        assert_eq!(Note::new(61).name(), "C#4");
+        assert_eq!(Note::new(69).name(), "A-4");
+        assert_eq!(Note::new(72).name(), "C-5");
     }
 
     #[test]
     fn note_frequency() {
-        let a4 = Note::new(58);
+        let a4 = Note::new(69);
         assert!((a4.frequency() - 440.0).abs() < 0.01);
     }
 

@@ -8,7 +8,7 @@ use rodio::Source;
 const MAX_SAMPLE_LEN: usize = 131_072;
 const INV_I16_MAX: f32 = 1.0 / i16::MAX as f32;
 const WAVE_LEN: usize = 256;
-const WAVE_RATE: u32 = 44100;
+const WAVE_RATE: u32 = 440 * WAVE_LEN as u32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoopType {
@@ -89,7 +89,7 @@ impl SampleData {
             samples_i16,
             samples_f32,
             sample_rate: WAVE_RATE,
-            base_note: 60,
+            base_note: 69,
             loop_type: if looped {
                 LoopType::Forward
             } else {
