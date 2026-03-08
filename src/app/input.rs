@@ -1066,44 +1066,7 @@ impl App {
     }
 
     pub fn open_module_file(&mut self) {
-        self.stop_playback();
-
-        let mut dialog = rfd::FileDialog::new()
-            .add_filter("Tracker Modules", &["xm", "mod"])
-            .set_title("Open Module");
-
-        if let Some(home) = dirs::home_dir() {
-            dialog = dialog.set_directory(home);
-        }
-
-        if let Some(path) = dialog.pick_file() {
-            let ext = path
-                .extension()
-                .and_then(|e| e.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-
-            let result = match ext.as_str() {
-                "xm" => crate::project::xm::load_xm(&path),
-                "mod" => crate::project::mod_file::load_mod(&path),
-                _ => Err(format!("Unsupported file type: .{ext}")),
-            };
-
-            match result {
-                Ok(project) => {
-                    self.project = project;
-                    self.cursor.channel = 0;
-                    self.cursor.row = 0;
-                    self.current_instrument = 0;
-                    self.project.current_order_idx = 0;
-                    let ch_count = self.project.current_pattern().channels;
-                    self.muted_channels = vec![false; ch_count];
-                }
-                Err(e) => {
-                    self.status_message = Some(format!("Failed to load module: {e}"));
-                }
-            }
-        }
+        // TODO: implement native .psk project loading
     }
 }
 

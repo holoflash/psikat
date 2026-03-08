@@ -30,15 +30,6 @@ A lightweight cross-platform music tracker built with Rust.
 - Auto-vibrato
 - Envelope editor
 
-**XM Format**
-
-- Support for all XM effects and commands
-- XM module loading and playback
-
-**MOD Format**
-
-- MOD module loading and playback
-
 **UI & Input**
 
 - Chromatic keyboard input (Z-P)
@@ -54,16 +45,12 @@ _In order of importance_
 3. Add ability to add more instruments
 4. Auto insert instrument number to pattern from selected instrument
 5. Right click cell to see and insert available commands
-6. XM export
-7. MOD export
 
 > _All features are subject to change without notice before version 1.0.0_
 
 ---
 
-This project is inspired by the trackers of the late 90s and early 2000s and builds upon the .xm format as documented [here](https://github.com/milkytracker/MilkyTracker/blob/master/resources/reference/xm-form.txt).
-
-If you're looking for a great fully featured modern alternative, check out [**Furnace**](https://github.com/tildearrow/furnace).
+This project is inspired by the trackers of the late 90s and early 2000s and tries to offer a new take on the tracker workflow.
 
 ## Install
 

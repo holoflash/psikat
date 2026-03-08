@@ -66,7 +66,6 @@ pub struct App {
     pub display_peak: f32,
 
     pub current_instrument: usize,
-    pub status_message: Option<String>,
     pub keybindings: KeyBindings,
     pub show_controls_modal: bool,
     pub show_about_modal: bool,
@@ -110,7 +109,6 @@ impl App {
             display_peak: 0.0,
 
             current_instrument: 0,
-            status_message: None,
             keybindings: KeyBindings::defaults(),
             show_controls_modal: false,
             show_about_modal: false,

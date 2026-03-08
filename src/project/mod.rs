@@ -1,8 +1,6 @@
 pub mod channel;
-pub mod mod_file;
 pub mod pattern;
 pub mod sample;
-pub mod xm;
 
 pub use channel::Instrument;
 pub use pattern::{

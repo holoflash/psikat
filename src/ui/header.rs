@@ -63,7 +63,7 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                         if ui
                             .selectable_label(
                                 false,
-                                RichText::new("Open Module").color(COLOR_TEXT_ACTIVE),
+                                RichText::new("Open Project (TBD)").color(COLOR_TEXT_ACTIVE),
                             )
                             .clicked()
                         {
