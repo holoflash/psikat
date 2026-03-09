@@ -281,6 +281,25 @@ impl App {
         }
     }
 
+    pub fn do_load_demo(&mut self, demo: &crate::demos::Demo) {
+        match crate::demos::load_demo(demo) {
+            Ok(project) => {
+                self.project = project;
+                self.project_path = None;
+                self.dirty = false;
+                self.undo_stack.clear();
+                self.redo_stack.clear();
+                self.cursor.channel = 0;
+                self.cursor.row = 0;
+                self.current_instrument = 0;
+                self.envelope_point_idx = 0;
+            }
+            Err(e) => {
+                eprintln!("Failed to load demo: {e}");
+            }
+        }
+    }
+
     pub fn do_new_project(&mut self) {
         if self.dirty {
             self.show_new_confirm = true;

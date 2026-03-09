@@ -1,5 +1,6 @@
 mod app;
 mod audio;
+mod demos;
 mod project;
 mod ui;
 

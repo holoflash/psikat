@@ -111,6 +111,20 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                             app.do_save_as();
                         }
                         ui.separator();
+                        ui.label(RichText::new("Demos").color(COLOR_TEXT_DIM));
+                        for demo in crate::demos::DEMOS {
+                            if ui
+                                .selectable_label(
+                                    false,
+                                    RichText::new(demo.name).color(COLOR_TEXT_ACTIVE),
+                                )
+                                .clicked()
+                            {
+                                ui.close();
+                                app.do_load_demo(demo);
+                            }
+                        }
+                        ui.separator();
                         if ui
                             .selectable_label(
                                 false,

@@ -41,6 +41,13 @@ A lightweight cross-platform music tracker built with Rust.
 - Save/load native .psikat project files
 - Undo/redo (100 steps)
 
+**TODO**
+
+- Make effects more intuitive to use
+- Add an effect macro palette
+- More demos
+- ...and more
+
 > _All features are subject to change without notice before version 1.0.0_
 
 ---

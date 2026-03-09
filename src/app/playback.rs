@@ -61,6 +61,9 @@ impl App {
         self.playback_row_display = row;
         let order = self.audio.playback_order.load(Ordering::Relaxed);
         self.playback_order_display = order;
+        if order < self.project.order.len() {
+            self.project.current_order_idx = order;
+        }
 
         self.audio.update_settings(
             &self.project.instruments,

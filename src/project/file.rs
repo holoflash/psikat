@@ -29,7 +29,10 @@ pub fn save(project: &Project, path: &Path) -> Result<(), String> {
 
 pub fn load(path: &Path) -> Result<Project, String> {
     let data = fs::read(path).map_err(|e| format!("Failed to read file: {e}"))?;
+    load_bytes(&data)
+}
 
+pub fn load_bytes(data: &[u8]) -> Result<Project, String> {
     if data.len() < 8 {
         return Err("File too small".into());
     }
