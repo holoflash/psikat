@@ -74,7 +74,7 @@ impl eframe::App for PsikatApp {
                 .show(ctx, |ui| {
                     ui.label(format!(
                         "Do you want to save the changes you made to \"{}\"?",
-                        self.app.project_file_name()
+                        self.app.project_name()
                     ));
                     ui.label("Your changes will be lost if you don't save them.");
                     ui.add_space(8.0);
@@ -106,7 +106,7 @@ impl eframe::App for PsikatApp {
                 .show(ctx, |ui| {
                     ui.label(format!(
                         "Do you want to save the changes you made to \"{}\"?",
-                        self.app.project_file_name()
+                        self.app.project_name()
                     ));
                     ui.label("Your changes will be lost if you don't save them.");
                     ui.add_space(8.0);

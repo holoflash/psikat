@@ -14,10 +14,13 @@ const fn clamp_to_u8(v: f32) -> u8 {
 }
 
 pub fn draw_header(ctx: &egui::Context, app: &mut App) {
-    ctx.send_viewport_cmd(egui::ViewportCommand::Title(format!(
-        "psikat — {}",
-        app.project_name()
-    )));
+    let status = app.project_status();
+    let title = if status.is_empty() {
+        format!("psikat — {}", app.project_name())
+    } else {
+        format!("psikat — {} {}", app.project_name(), status)
+    };
+    ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
 
     let raw_peak = f32::from_bits(app.peak_level.swap(0, Ordering::Relaxed));
     let target = raw_peak.min(1.5);
@@ -111,19 +114,20 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                             app.do_save_as();
                         }
                         ui.separator();
-                        ui.label(RichText::new("Demos").color(COLOR_TEXT_DIM));
-                        for demo in crate::demos::DEMOS {
-                            if ui
-                                .selectable_label(
-                                    false,
-                                    RichText::new(demo.name).color(COLOR_TEXT_ACTIVE),
-                                )
-                                .clicked()
-                            {
-                                ui.close();
-                                app.do_load_demo(demo);
+                        ui.menu_button(RichText::new("Demos").color(COLOR_TEXT_ACTIVE), |ui| {
+                            for demo in crate::demos::DEMOS {
+                                if ui
+                                    .selectable_label(
+                                        false,
+                                        RichText::new(demo.name).color(COLOR_TEXT_ACTIVE),
+                                    )
+                                    .clicked()
+                                {
+                                    ui.close();
+                                    app.do_load_demo(demo);
+                                }
                             }
-                        }
+                        });
                         ui.separator();
                         if ui
                             .selectable_label(

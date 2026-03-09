@@ -319,7 +319,7 @@ impl App {
         self.current_instrument = 0;
         self.envelope_point_idx = 0;
     }
-    pub fn project_file_name(&self) -> String {
+    pub fn project_name(&self) -> String {
         self.project_path
             .as_ref()
             .and_then(|p| p.file_name())
@@ -327,14 +327,13 @@ impl App {
             .unwrap_or_else(|| "untitled.psikat".into())
     }
 
-    pub fn project_name(&self) -> String {
-        let name = self.project_file_name();
+    pub fn project_status(&self) -> &str {
         if self.dirty {
-            format!("{name} [unsaved]")
+            "[unsaved]"
         } else if self.project_path.is_some() {
-            format!("{name} [saved]")
+            "[saved]"
         } else {
-            name
+            ""
         }
     }
 }
