@@ -24,7 +24,7 @@ pub fn volume_display(vol: Option<u8>) -> String {
 
 pub fn instrument_display(inst: Option<u8>) -> String {
     match inst {
-        Some(i) => format!("{:02X}", i + 1),
+        Some(i) => format!("{:02X}", i),
         None => "··".to_string(),
     }
 }

@@ -161,7 +161,7 @@ impl Instrument {
     }
 
     pub fn defaults() -> Vec<Self> {
-        vec![Self::new_empty("Instrument 01")]
+        vec![Self::new_empty("Instrument 00")]
     }
 
     pub fn new_empty(name: &str) -> Self {

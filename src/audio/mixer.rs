@@ -747,7 +747,10 @@ impl TrackerSource {
                 self.channels[ch_idx].current_instrument = n as usize;
             }
             let ci = self.channels[ch_idx].current_instrument;
-            let inst = &settings.instruments[ci % settings.instruments.len()];
+            if ci >= settings.instruments.len() {
+                continue;
+            }
+            let inst = &settings.instruments[ci];
             let effect = pattern.effects[ch_idx][self.current_row];
             let volume = pattern.volumes[ch_idx][self.current_row];
             let cell = pattern.data[ch_idx][self.current_row];
@@ -800,7 +803,7 @@ impl TrackerSource {
 
             match cell {
                 Cell::NoteOn(note) => {
-                    let vol_from_col = volume.map(|v| v.min(64) as f32 / 64.0);
+                    let vol_from_col = volume.map(|v| v as f32 / 255.0);
 
                     let (sample_data, sample_vol) = inst.sample_for_note(note.pitch);
 
@@ -845,7 +848,7 @@ impl TrackerSource {
 
             if cell == Cell::Empty || cell == Cell::NoteOff {
                 if let Some(v) = volume {
-                    channel.volume = v.min(64) as f32 / 64.0;
+                    channel.volume = v as f32 / 255.0;
                 }
             }
 

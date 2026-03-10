@@ -67,8 +67,7 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
             let inst_idx = app.current_instrument;
             let selected_label = format!(
                 "{:02X}: {}",
-                inst_idx + 1,
-                app.project.instruments[inst_idx].name
+                inst_idx, app.project.instruments[inst_idx].name
             );
             ui.horizontal(|ui| {
                 egui::ComboBox::from_id_salt("instrument_combo")
@@ -76,7 +75,7 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                     .width(ui.available_width() - 4.0)
                     .show_ui(ui, |ui| {
                         for (i, inst) in app.project.instruments.iter().enumerate() {
-                            let label = format!("{:02X}: {}", i + 1, inst.name);
+                            let label = format!("{:02X}: {}", i, inst.name);
                             let color = if i == inst_idx {
                                 COLOR_ACCENT
                             } else {
@@ -96,7 +95,7 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                         ui.separator();
                         if ui.button("+ Add new").clicked() {
                             let idx = app.project.instruments.len();
-                            let name = format!("Instrument {:02X}", idx + 1);
+                            let name = format!("Instrument {:02X}", idx);
                             app.project
                                 .instruments
                                 .push(crate::project::channel::Instrument::new_empty(&name));
