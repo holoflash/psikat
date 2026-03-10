@@ -5,7 +5,7 @@ use crate::app::scale::{Scale, map_key_index_to_note};
 use crate::project::Note;
 use crate::project::{Cell, Effect};
 
-use super::{App, ClipboardData, Mode, SubColumn};
+use super::{App, ClipboardData, Mode, MovePreview, SubColumn};
 
 impl App {
     pub fn handle_input(&mut self, ctx: &egui::Context) -> bool {
@@ -34,6 +34,30 @@ impl App {
             }
 
             let actions = self.keybindings.active_actions(input);
+
+            if self.move_preview.is_some() {
+                let is_move_action = [
+                    Action::MoveUp,
+                    Action::MoveDown,
+                    Action::MoveLeft,
+                    Action::MoveRight,
+                ]
+                .iter()
+                .any(|a| actions.contains(a));
+
+                let any_key_pressed = input
+                    .events
+                    .iter()
+                    .any(|e| matches!(e, egui::Event::Key { pressed: true, .. }));
+
+                if actions.contains(&Action::PlayStop) {
+                    self.confirm_move_preview();
+                    return false;
+                } else if !is_move_action && (any_key_pressed || !actions.is_empty()) {
+                    self.cancel_move_preview();
+                    return false;
+                }
+            }
 
             if actions.contains(&Action::PlayStop) {
                 if self.playback.playing {
@@ -189,6 +213,27 @@ impl App {
 
         let on_note = self.cursor.sub_column;
 
+        if self.move_preview.is_some() {
+            let (min_ch, max_ch, min_row, max_row, _, _) = self.selection_bounds().unwrap();
+            let in_bounds = min_row.checked_add_signed(dr).is_some()
+                && max_row
+                    .checked_add_signed(dr)
+                    .is_some_and(|r| r < self.project.current_pattern().rows)
+                && min_ch.checked_add_signed(dc).is_some()
+                && max_ch
+                    .checked_add_signed(dc)
+                    .is_some_and(|c| c < self.project.current_pattern().channels);
+            if in_bounds {
+                self.cursor.channel = self.cursor.channel.checked_add_signed(dc).unwrap();
+                self.cursor.row = self.cursor.row.checked_add_signed(dr).unwrap();
+                if let Some((ach, arow, _)) = self.cursor.selection_anchor.as_mut() {
+                    *ach = ach.checked_add_signed(dc).unwrap();
+                    *arow = arow.checked_add_signed(dr).unwrap();
+                }
+            }
+            return true;
+        }
+
         if let Some((min_ch, max_ch, min_row, max_row, min_sub, max_sub)) = self.selection_bounds()
         {
             let has_sub = |sub: SubColumn| -> bool {
@@ -214,6 +259,8 @@ impl App {
                     .is_some_and(|c| c < self.project.current_pattern().channels);
 
             if in_bounds {
+                self.save_undo_snapshot();
+
                 let mut cells = Vec::new();
                 for ch in min_ch..=max_ch {
                     for row in min_row..=max_row {
@@ -221,7 +268,7 @@ impl App {
                         let inst = self.project.current_pattern().get_instrument(ch, row);
                         let vol = self.project.current_pattern().get_volume(ch, row);
                         let fx = self.project.current_pattern().get_effect(ch, row);
-                        cells.push((ch, row, cell, inst, vol, fx));
+                        cells.push((ch - min_ch, row - min_row, cell, inst, vol, fx));
                         if move_notes {
                             self.project.current_pattern_mut().clear(ch, row);
                         }
@@ -236,30 +283,18 @@ impl App {
                         }
                     }
                 }
-                for (ch, row, cell, inst, vol, fx) in cells {
-                    let new_ch = ch.checked_add_signed(dc).unwrap();
-                    let new_row = row.checked_add_signed(dr).unwrap();
-                    if move_notes {
-                        self.project
-                            .current_pattern_mut()
-                            .set(new_ch, new_row, cell);
-                    }
-                    if move_inst {
-                        self.project
-                            .current_pattern_mut()
-                            .set_instrument(new_ch, new_row, inst);
-                    }
-                    if move_vol {
-                        self.project
-                            .current_pattern_mut()
-                            .set_volume(new_ch, new_row, vol);
-                    }
-                    if move_fx {
-                        self.project
-                            .current_pattern_mut()
-                            .set_effect(new_ch, new_row, fx);
-                    }
-                }
+
+                let anchor = self.cursor.selection_anchor.unwrap();
+                self.move_preview = Some(MovePreview {
+                    cells,
+                    origin_anchor: anchor,
+                    origin_cursor: (self.cursor.channel, self.cursor.row, self.cursor.sub_column),
+                    move_notes,
+                    move_inst,
+                    move_vol,
+                    move_fx,
+                });
+
                 self.cursor.channel = self.cursor.channel.checked_add_signed(dc).unwrap();
                 self.cursor.row = self.cursor.row.checked_add_signed(dr).unwrap();
                 if let Some((ach, arow, _)) = self.cursor.selection_anchor.as_mut() {
@@ -273,6 +308,7 @@ impl App {
         ) && new_row < self.project.current_pattern().rows
             && new_ch < self.project.current_pattern().channels
         {
+            self.save_undo_snapshot();
             if on_note == SubColumn::Note {
                 let cell = self
                     .project
@@ -323,6 +359,65 @@ impl App {
         }
 
         true
+    }
+
+    fn confirm_move_preview(&mut self) {
+        let Some(preview) = self.move_preview.take() else {
+            return;
+        };
+        let (min_ch, _, min_row, _, _, _) = self.selection_bounds().unwrap();
+        for (ch_off, row_off, cell, inst, vol, fx) in &preview.cells {
+            let ch = min_ch + ch_off;
+            let row = min_row + row_off;
+            if preview.move_notes {
+                self.project.current_pattern_mut().set(ch, row, *cell);
+            }
+            if preview.move_inst {
+                self.project
+                    .current_pattern_mut()
+                    .set_instrument(ch, row, *inst);
+            }
+            if preview.move_vol {
+                self.project.current_pattern_mut().set_volume(ch, row, *vol);
+            }
+            if preview.move_fx {
+                self.project.current_pattern_mut().set_effect(ch, row, *fx);
+            }
+        }
+        self.clear_selection();
+    }
+
+    pub fn cancel_move_preview(&mut self) {
+        let Some(preview) = self.move_preview.take() else {
+            return;
+        };
+        let (orig_ach, orig_arow, _) = preview.origin_anchor;
+        let (orig_ch, orig_row, orig_sub) = preview.origin_cursor;
+        let base_ch = orig_ach.min(orig_ch);
+        let base_row = orig_arow.min(orig_row);
+
+        for (ch_off, row_off, cell, inst, vol, fx) in &preview.cells {
+            let ch = base_ch + ch_off;
+            let row = base_row + row_off;
+            if preview.move_notes {
+                self.project.current_pattern_mut().set(ch, row, *cell);
+            }
+            if preview.move_inst {
+                self.project
+                    .current_pattern_mut()
+                    .set_instrument(ch, row, *inst);
+            }
+            if preview.move_vol {
+                self.project.current_pattern_mut().set_volume(ch, row, *vol);
+            }
+            if preview.move_fx {
+                self.project.current_pattern_mut().set_effect(ch, row, *fx);
+            }
+        }
+        self.cursor.selection_anchor = Some(preview.origin_anchor);
+        self.cursor.channel = orig_ch;
+        self.cursor.row = orig_row;
+        self.cursor.sub_column = orig_sub;
     }
 
     fn handle_cursor_and_select(&mut self, actions: &[Action]) -> bool {

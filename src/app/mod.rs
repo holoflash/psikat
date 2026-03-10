@@ -42,6 +42,16 @@ pub enum ClipboardData {
     },
 }
 
+pub struct MovePreview {
+    pub cells: Vec<(usize, usize, Cell, Option<u8>, Option<u8>, Option<Effect>)>,
+    pub origin_anchor: (usize, usize, SubColumn),
+    pub origin_cursor: (usize, usize, SubColumn),
+    pub move_notes: bool,
+    pub move_inst: bool,
+    pub move_vol: bool,
+    pub move_fx: bool,
+}
+
 pub struct Cursor {
     pub channel: usize,
     pub row: usize,
@@ -86,6 +96,7 @@ pub struct App {
     pub dirty: bool,
     pub show_quit_confirm: bool,
     pub show_new_confirm: bool,
+    pub move_preview: Option<MovePreview>,
 }
 
 impl App {
@@ -136,6 +147,7 @@ impl App {
             dirty: false,
             show_quit_confirm: false,
             show_new_confirm: false,
+            move_preview: None,
         }
     }
 
@@ -163,7 +175,10 @@ impl App {
         })
     }
 
-    pub const fn clear_selection(&mut self) {
+    pub fn clear_selection(&mut self) {
+        if self.move_preview.is_some() {
+            self.cancel_move_preview();
+        }
         self.cursor.selection_anchor = None;
     }
 

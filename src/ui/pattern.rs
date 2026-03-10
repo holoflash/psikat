@@ -366,10 +366,37 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
             flat >= sel_start && flat <= sel_end
         };
         let pat = app.project.current_pattern();
-        let cell = pat.get(ch, row_idx);
-        let inst_val = pat.get_instrument(ch, row_idx);
-        let volume_val = pat.get_volume(ch, row_idx);
-        let effect_cmd = pat.get_effect(ch, row_idx);
+        let mut cell = pat.get(ch, row_idx);
+        let mut inst_val = pat.get_instrument(ch, row_idx);
+        let mut volume_val = pat.get_volume(ch, row_idx);
+        let mut effect_cmd = pat.get_effect(ch, row_idx);
+
+        if let Some(ref preview) = app.move_preview {
+            if let Some((min_ch, _, min_row, _, _, _)) = sel_bounds {
+                let ch_off = ch.wrapping_sub(min_ch);
+                let row_off = row_idx.wrapping_sub(min_row);
+                if in_selection {
+                    if let Some((_, _, p_cell, p_inst, p_vol, p_fx)) = preview
+                        .cells
+                        .iter()
+                        .find(|(co, ro, _, _, _, _)| *co == ch_off && *ro == row_off)
+                    {
+                        if preview.move_notes {
+                            cell = *p_cell;
+                        }
+                        if preview.move_inst {
+                            inst_val = *p_inst;
+                        }
+                        if preview.move_vol {
+                            volume_val = *p_vol;
+                        }
+                        if preview.move_fx {
+                            effect_cmd = *p_fx;
+                        }
+                    }
+                }
+            }
+        }
 
         let note_text = match cell {
             Cell::NoteOn(note) => note.name(),
