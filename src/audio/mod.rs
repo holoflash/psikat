@@ -180,6 +180,7 @@ impl AudioEngine {
         let _ = self.sender.send(Command::PreviewNote {
             frequency: freq,
             volume: track.default_volume,
+            panning: track.default_panning,
             vol_envelope: track.vol_envelope.clone(),
             sample_data: Arc::clone(&track.sample_data),
             master_volume,

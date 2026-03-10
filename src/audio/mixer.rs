@@ -70,6 +70,7 @@ pub enum Command {
     PreviewNote {
         frequency: f32,
         volume: f32,
+        panning: f32,
         vol_envelope: VolEnvelope,
         sample_data: Arc<SampleData>,
         master_volume: f32,
@@ -407,6 +408,7 @@ impl TrackerSource {
                 Command::PreviewNote {
                     frequency,
                     volume,
+                    panning,
                     vol_envelope,
                     sample_data,
                     master_volume,
@@ -424,6 +426,7 @@ impl TrackerSource {
                         &sample_data,
                         fadeout,
                     );
+                    self.preview_channel.set_panning(panning);
                     self.preview_ticks_remaining = PREVIEW_RELEASE_TICKS;
                     if !self.playing {
                         self.master_volume = master_volume;
@@ -637,8 +640,8 @@ impl Iterator for TrackerSource {
         }
 
         let preview = self.preview_channel.next_sample();
-        mix_l += preview * 0.707;
-        mix_r += preview * 0.707;
+        mix_l += preview * self.preview_channel.pan_l;
+        mix_r += preview * self.preview_channel.pan_r;
 
         if !self.playing && self.preview_channel.active && write_scope {
             if let Some(scope) = self.channel_scopes.first() {
