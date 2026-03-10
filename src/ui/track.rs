@@ -55,7 +55,7 @@ fn toggle_checkbox(ui: &mut egui::Ui, checked: &mut bool) {
     }
 }
 
-pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
+pub fn draw_track(ui: &mut egui::Ui, app: &mut App) {
     handle_sample_drop(ui, app);
 
     egui::Frame::new()
@@ -64,18 +64,15 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
             ui.set_min_height(ui.available_height());
-            let inst_idx = app.current_instrument;
-            let selected_label = format!(
-                "{:02X}: {}",
-                inst_idx, app.project.instruments[inst_idx].name
-            );
+            let inst_idx = app.current_track;
+            let selected_label = format!("{:02X}: {}", inst_idx, app.project.tracks[inst_idx].name);
             ui.horizontal(|ui| {
-                egui::ComboBox::from_id_salt("instrument_combo")
+                egui::ComboBox::from_id_salt("track_combo")
                     .selected_text(RichText::new(&selected_label).font(FontId::monospace(12.0)))
                     .width(ui.available_width() - 4.0)
                     .show_ui(ui, |ui| {
-                        for (i, inst) in app.project.instruments.iter().enumerate() {
-                            let label = format!("{:02X}: {}", i, inst.name);
+                        for (i, trk) in app.project.tracks.iter().enumerate() {
+                            let label = format!("{:02X}: {}", i, trk.name);
                             let color = if i == inst_idx {
                                 COLOR_ACCENT
                             } else {
@@ -83,35 +80,59 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                             };
                             if ui
                                 .selectable_value(
-                                    &mut app.current_instrument,
+                                    &mut app.current_track,
                                     i,
                                     RichText::new(label).color(color),
                                 )
                                 .changed()
                             {
                                 app.envelope_point_idx = 0;
+                                app.cursor.channel =
+                                    i.min(app.project.current_pattern().channels.saturating_sub(1));
                             }
                         }
                         ui.separator();
-                        if ui.button("+ Add new").clicked() {
-                            let idx = app.project.instruments.len();
-                            let name = format!("Instrument {:02X}", idx);
-                            app.project
-                                .instruments
-                                .push(crate::project::channel::Instrument::new_empty(&name));
-                            app.current_instrument = idx;
+                        if ui.button("+ Add Track").clicked() {
+                            app.project.add_track();
+                            let new_idx = app.project.tracks.len() - 1;
+                            app.current_track = new_idx;
+                            app.cursor.channel = new_idx;
                             app.envelope_point_idx = 0;
                         }
                     });
             });
 
+            if app.project.tracks.len() > 1 {
+                ui.horizontal(|ui| {
+                    if ui
+                        .add(
+                            egui::Button::new(
+                                RichText::new("Delete Track")
+                                    .font(FontId::monospace(11.0))
+                                    .color(egui::Color32::from_rgb(200, 130, 120)),
+                            )
+                            .frame(false),
+                        )
+                        .clicked()
+                    {
+                        let idx = app.current_track;
+                        app.project.delete_track(idx);
+                        if app.current_track >= app.project.tracks.len() {
+                            app.current_track = app.project.tracks.len() - 1;
+                        }
+                        app.cursor.channel = app.current_track;
+                        app.envelope_point_idx = 0;
+                    }
+                });
+                ui.add_space(8.0);
+            }
+
+            let inst_idx = app.current_track;
+
             ui.add_space(12.0);
 
             {
-                let samples = app.project.instruments[inst_idx]
-                    .sample_data
-                    .samples_i16
-                    .clone();
+                let samples = app.project.tracks[inst_idx].sample_data.samples_i16.clone();
                 let resp = draw_waveform_preview(ui, &samples);
                 if resp.double_clicked() {
                     if let Some(path) = rfd::FileDialog::new()
@@ -119,11 +140,11 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                         .pick_file()
                     {
                         if let Ok(data) = SampleData::load_from_path(&path) {
-                            app.project.instruments[inst_idx].sample_data = data;
-                            app.project.instruments[inst_idx].waveform =
+                            app.project.tracks[inst_idx].sample_data = data;
+                            app.project.tracks[inst_idx].waveform =
                                 crate::project::channel::WaveformKind::Sample;
                             if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                                app.project.instruments[inst_idx].name = stem.to_string();
+                                app.project.tracks[inst_idx].name = stem.to_string();
                             }
                         }
                     }
@@ -131,7 +152,7 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                 ui.add_space(6.0);
             }
 
-            let mut inst_name = app.project.instruments[inst_idx].name.clone();
+            let mut inst_name = app.project.tracks[inst_idx].name.clone();
             let te_has_focus = ui
                 .horizontal(|ui| {
                     field_label(ui, "NAME");
@@ -142,13 +163,13 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                 })
                 .inner;
             app.text_editing = te_has_focus;
-            app.project.instruments[inst_idx].name = inst_name;
+            app.project.tracks[inst_idx].name = inst_name;
             ui.add_space(4.0);
 
             ui.horizontal(|ui| {
                 field_label(ui, "VOLUME");
                 let mut vol_hex =
-                    (app.project.instruments[inst_idx].default_volume * 255.0).round() as u32;
+                    (app.project.tracks[inst_idx].default_volume * 255.0).round() as u32;
                 let r = ui
                     .add(
                         egui::DragValue::new(&mut vol_hex)
@@ -163,15 +184,56 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                 if r.has_focus() {
                     app.text_editing = true;
                 }
-                app.project.instruments[inst_idx].default_volume =
+                app.project.tracks[inst_idx].default_volume =
                     (vol_hex as f32 / 255.0).clamp(0.0, 1.0);
+            });
+            ui.add_space(4.0);
+
+            ui.horizontal(|ui| {
+                field_label(ui, "PANNING");
+                let mut pan_hex =
+                    (app.project.tracks[inst_idx].default_panning * 255.0).round() as u32;
+                let r = ui
+                    .add(
+                        egui::DragValue::new(&mut pan_hex)
+                            .range(0..=255)
+                            .speed(0.2)
+                            .custom_formatter(|v, _| {
+                                let val = v as u32;
+                                let label = if val == 0 {
+                                    "L".to_string()
+                                } else if val == 128 {
+                                    "C".to_string()
+                                } else if val == 255 {
+                                    "R".to_string()
+                                } else {
+                                    format!("{:02X}", val)
+                                };
+                                label
+                            })
+                            .custom_parser(|s| {
+                                let s = s.trim();
+                                match s {
+                                    "L" | "l" => Some(0.0),
+                                    "C" | "c" => Some(128.0),
+                                    "R" | "r" => Some(255.0),
+                                    _ => u32::from_str_radix(s, 16).ok().map(|v| v as f64),
+                                }
+                            }),
+                    )
+                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                if r.has_focus() {
+                    app.text_editing = true;
+                }
+                app.project.tracks[inst_idx].default_panning =
+                    (pan_hex as f32 / 255.0).clamp(0.0, 1.0);
             });
             ui.add_space(4.0);
 
             ui.horizontal(|ui| {
                 use crate::project::channel::WaveformKind;
                 field_label(ui, "WAVEFORM");
-                let current = app.project.instruments[inst_idx].waveform;
+                let current = app.project.tracks[inst_idx].waveform;
                 let mut selected = current;
                 egui::ComboBox::from_id_salt("waveform_combo")
                     .selected_text(RichText::new(current.label()).font(FontId::monospace(12.0)))
@@ -190,15 +252,15 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                         }
                     });
                 if selected != current {
-                    app.project.instruments[inst_idx].waveform = selected;
-                    app.project.instruments[inst_idx].sample_data = selected.generate();
+                    app.project.tracks[inst_idx].waveform = selected;
+                    app.project.tracks[inst_idx].sample_data = selected.generate();
                 }
             });
             ui.add_space(4.0);
 
             ui.horizontal(|ui| {
                 field_label(ui, "LOOP");
-                let sd = &app.project.instruments[inst_idx].sample_data;
+                let sd = &app.project.tracks[inst_idx].sample_data;
                 let current_type = sd.loop_type;
                 let mut selected_idx = match current_type {
                     LoopType::None => 0usize,
@@ -231,25 +293,22 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                     _ => LoopType::PingPong,
                 };
                 if new_type != current_type {
-                    let sd = Arc::make_mut(&mut app.project.instruments[inst_idx].sample_data);
+                    let sd = Arc::make_mut(&mut app.project.tracks[inst_idx].sample_data);
                     sd.loop_type = new_type;
                 }
             });
             ui.add_space(4.0);
 
             {
-                let sample_len = app.project.instruments[inst_idx]
-                    .sample_data
-                    .samples_f32
-                    .len();
-                let max_start = sample_len
-                    .saturating_sub(app.project.instruments[inst_idx].sample_data.loop_length);
-                let max_len = sample_len
-                    .saturating_sub(app.project.instruments[inst_idx].sample_data.loop_start);
+                let sample_len = app.project.tracks[inst_idx].sample_data.samples_f32.len();
+                let max_start =
+                    sample_len.saturating_sub(app.project.tracks[inst_idx].sample_data.loop_length);
+                let max_len =
+                    sample_len.saturating_sub(app.project.tracks[inst_idx].sample_data.loop_start);
 
                 ui.horizontal(|ui| {
                     field_label(ui, "LOOP START");
-                    let sd = Arc::make_mut(&mut app.project.instruments[inst_idx].sample_data);
+                    let sd = Arc::make_mut(&mut app.project.tracks[inst_idx].sample_data);
                     let mut v = sd.loop_start as f64;
                     let r = ui
                         .add(
@@ -267,7 +326,7 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
 
                 ui.horizontal(|ui| {
                     field_label(ui, "LOOP LEN");
-                    let sd = Arc::make_mut(&mut app.project.instruments[inst_idx].sample_data);
+                    let sd = Arc::make_mut(&mut app.project.tracks[inst_idx].sample_data);
                     let mut v = sd.loop_length as f64;
                     let r = ui
                         .add(
@@ -288,25 +347,25 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
             ui.add_space(12.0);
             ui.horizontal(|ui| {
                 field_label(ui, "ENVELOPE");
-                let mut enabled = app.project.instruments[inst_idx].vol_envelope.enabled;
+                let mut enabled = app.project.tracks[inst_idx].vol_envelope.enabled;
                 toggle_checkbox(ui, &mut enabled);
-                if enabled != app.project.instruments[inst_idx].vol_envelope.enabled {
-                    app.project.instruments[inst_idx].vol_envelope.enabled = enabled;
-                    if enabled && app.project.instruments[inst_idx].vol_envelope.points.len() < 2 {
-                        app.project.instruments[inst_idx].vol_envelope.points =
+                if enabled != app.project.tracks[inst_idx].vol_envelope.enabled {
+                    app.project.tracks[inst_idx].vol_envelope.enabled = enabled;
+                    if enabled && app.project.tracks[inst_idx].vol_envelope.points.len() < 2 {
+                        app.project.tracks[inst_idx].vol_envelope.points =
                             vec![(0, 64), (16, 48), (96, 0)];
-                        app.project.instruments[inst_idx].vol_envelope.sustain_point = Some(1);
+                        app.project.tracks[inst_idx].vol_envelope.sustain_point = Some(1);
                     }
                 }
             });
-            if app.project.instruments[inst_idx].vol_envelope.enabled {
+            if app.project.tracks[inst_idx].vol_envelope.enabled {
                 ui.add_space(6.0);
                 draw_envelope_preview(ui, app, inst_idx);
                 ui.add_space(6.0);
 
                 ui.add_space(4.0);
 
-                let num_points = app.project.instruments[inst_idx].vol_envelope.points.len();
+                let num_points = app.project.tracks[inst_idx].vol_envelope.points.len();
                 ui.horizontal(|ui| {
                     field_label(ui, "POINTS");
                     let mut v = num_points as f64;
@@ -318,7 +377,7 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                     }
                     if r.changed() {
                         let new_len = v as usize;
-                        let env = &mut app.project.instruments[inst_idx].vol_envelope;
+                        let env = &mut app.project.tracks[inst_idx].vol_envelope;
                         while env.points.len() < new_len {
                             let last_tick = env.points.last().map(|p| p.0).unwrap_or(0);
                             env.points.push((last_tick + 16, 32));
@@ -358,8 +417,8 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                 ui.add_space(2.0);
 
                 let pt_idx = app.envelope_point_idx.min(max_pt);
-                if pt_idx < app.project.instruments[inst_idx].vol_envelope.points.len() {
-                    let env = &mut app.project.instruments[inst_idx].vol_envelope;
+                if pt_idx < app.project.tracks[inst_idx].vol_envelope.points.len() {
+                    let env = &mut app.project.tracks[inst_idx].vol_envelope;
 
                     let min_tick = if pt_idx > 0 {
                         env.points[pt_idx - 1].0 + 1
@@ -404,7 +463,7 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
                 }
 
                 {
-                    let env = &mut app.project.instruments[inst_idx].vol_envelope;
+                    let env = &mut app.project.tracks[inst_idx].vol_envelope;
                     let max_idx = env.points.len().saturating_sub(1);
 
                     ui.horizontal(|ui| {
@@ -481,85 +540,16 @@ pub fn draw_instrument(ui: &mut egui::Ui, app: &mut App) {
 
                 ui.horizontal(|ui| {
                     field_label(ui, "FADEOUT");
-                    let mut v = app.project.instruments[inst_idx].vol_fadeout as f64;
+                    let mut v = app.project.tracks[inst_idx].vol_fadeout as f64;
                     let r = ui
                         .add(egui::DragValue::new(&mut v).range(0..=4095).speed(2.0))
                         .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
                     if r.has_focus() {
                         app.text_editing = true;
                     }
-                    app.project.instruments[inst_idx].vol_fadeout = v as u16;
+                    app.project.tracks[inst_idx].vol_fadeout = v as u16;
                 });
             }
-
-            ui.add_space(12.0);
-            separator(ui);
-            ui.add_space(12.0);
-
-            ui.horizontal(|ui| {
-                field_label(ui, "VIB TYPE");
-                let vib_labels = ["Sine", "Square", "RampDn", "RampUp"];
-                let mut vib_type = app.project.instruments[inst_idx].vibrato_type as usize;
-                egui::ComboBox::from_id_salt("vibrato_type_combo")
-                    .selected_text(
-                        RichText::new(vib_labels[vib_type.min(3)]).font(FontId::monospace(12.0)),
-                    )
-                    .width(90.0)
-                    .show_ui(ui, |ui| {
-                        let cur = vib_type;
-                        for (i, label) in vib_labels.iter().enumerate() {
-                            ui.selectable_value(
-                                &mut vib_type,
-                                i,
-                                RichText::new(*label).color(if i == cur {
-                                    COLOR_ACCENT
-                                } else {
-                                    COLOR_TEXT
-                                }),
-                            );
-                        }
-                    });
-                app.project.instruments[inst_idx].vibrato_type = vib_type as u8;
-            });
-            ui.add_space(4.0);
-
-            ui.horizontal(|ui| {
-                field_label(ui, "VIB SWEEP");
-                let mut v = app.project.instruments[inst_idx].vibrato_sweep as f64;
-                let r = ui
-                    .add(egui::DragValue::new(&mut v).range(0..=255).speed(0.3))
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
-                }
-                app.project.instruments[inst_idx].vibrato_sweep = v as u8;
-            });
-            ui.add_space(2.0);
-
-            ui.horizontal(|ui| {
-                field_label(ui, "VIB DEPTH");
-                let mut v = app.project.instruments[inst_idx].vibrato_depth as f64;
-                let r = ui
-                    .add(egui::DragValue::new(&mut v).range(0..=15).speed(0.1))
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
-                }
-                app.project.instruments[inst_idx].vibrato_depth = v as u8;
-            });
-            ui.add_space(2.0);
-
-            ui.horizontal(|ui| {
-                field_label(ui, "VIB RATE");
-                let mut v = app.project.instruments[inst_idx].vibrato_rate as f64;
-                let r = ui
-                    .add(egui::DragValue::new(&mut v).range(0..=63).speed(0.15))
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
-                }
-                app.project.instruments[inst_idx].vibrato_rate = v as u8;
-            });
         });
 }
 
@@ -647,12 +637,12 @@ fn handle_sample_drop(ui: &mut egui::Ui, app: &mut App) {
             continue;
         }
 
-        let idx = app.current_instrument;
+        let idx = app.current_track;
 
         if let Ok(data) = SampleData::load_from_path(&path) {
-            app.project.instruments[idx].sample_data = data;
+            app.project.tracks[idx].sample_data = data;
             if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                app.project.instruments[idx].name = stem.to_string();
+                app.project.tracks[idx].name = stem.to_string();
             }
         }
     }
@@ -677,7 +667,7 @@ fn draw_envelope_preview(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
         );
     }
 
-    let env = &app.project.instruments[inst_idx].vol_envelope;
+    let env = &app.project.tracks[inst_idx].vol_envelope;
 
     if !env.enabled || env.points.len() < 2 {
         painter.text(
@@ -739,7 +729,7 @@ fn draw_envelope_preview(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
             if let Some(pointer) = response.interact_pointer_pos() {
                 let (raw_tick, raw_val) = from_pos(pointer);
 
-                let env = &app.project.instruments[inst_idx].vol_envelope;
+                let env = &app.project.tracks[inst_idx].vol_envelope;
 
                 let min_tick = if idx > 0 {
                     env.points[idx - 1].0 + 1
@@ -759,7 +749,7 @@ fn draw_envelope_preview(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
                 };
                 let val = raw_val.min(64);
 
-                app.project.instruments[inst_idx].vol_envelope.points[idx] = (tick, val);
+                app.project.tracks[inst_idx].vol_envelope.points[idx] = (tick, val);
             }
         }
     }
@@ -770,7 +760,7 @@ fn draw_envelope_preview(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
 
     if response.secondary_clicked() {
         if let Some(pointer) = response.interact_pointer_pos() {
-            let env = &app.project.instruments[inst_idx].vol_envelope;
+            let env = &app.project.tracks[inst_idx].vol_envelope;
             if env.points.len() > 2 {
                 let pts_pos: Vec<Pos2> = env.points.iter().map(|&(t, v)| to_pos(t, v)).collect();
                 if let Some(idx) = pts_pos
@@ -784,30 +774,24 @@ fn draw_envelope_preview(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
                     })
                     .map(|(i, _)| i)
                 {
-                    app.project.instruments[inst_idx]
-                        .vol_envelope
-                        .points
-                        .remove(idx);
-                    let new_len = app.project.instruments[inst_idx].vol_envelope.points.len();
+                    app.project.tracks[inst_idx].vol_envelope.points.remove(idx);
+                    let new_len = app.project.tracks[inst_idx].vol_envelope.points.len();
                     app.envelope_point_idx = app.envelope_point_idx.min(new_len.saturating_sub(1));
 
-                    if let Some(sp) = app.project.instruments[inst_idx].vol_envelope.sustain_point {
+                    if let Some(sp) = app.project.tracks[inst_idx].vol_envelope.sustain_point {
                         if sp == idx {
-                            app.project.instruments[inst_idx].vol_envelope.sustain_point = None;
+                            app.project.tracks[inst_idx].vol_envelope.sustain_point = None;
                         } else if sp > idx {
-                            app.project.instruments[inst_idx].vol_envelope.sustain_point =
-                                Some(sp - 1);
+                            app.project.tracks[inst_idx].vol_envelope.sustain_point = Some(sp - 1);
                         }
                     }
-                    if let Some((ls, le)) =
-                        app.project.instruments[inst_idx].vol_envelope.loop_range
-                    {
+                    if let Some((ls, le)) = app.project.tracks[inst_idx].vol_envelope.loop_range {
                         let new_ls = if ls > idx { ls - 1 } else { ls };
                         let new_le = if le > idx { le - 1 } else { le };
                         if new_ls >= new_len || new_le >= new_len {
-                            app.project.instruments[inst_idx].vol_envelope.loop_range = None;
+                            app.project.tracks[inst_idx].vol_envelope.loop_range = None;
                         } else {
-                            app.project.instruments[inst_idx].vol_envelope.loop_range =
+                            app.project.tracks[inst_idx].vol_envelope.loop_range =
                                 Some((new_ls, new_le));
                         }
                     }
@@ -818,7 +802,7 @@ fn draw_envelope_preview(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
 
     if response.double_clicked() {
         if let Some(pointer) = response.interact_pointer_pos() {
-            let env = &app.project.instruments[inst_idx].vol_envelope;
+            let env = &app.project.tracks[inst_idx].vol_envelope;
             let pts = &env.points;
 
             let insert_after = pts
@@ -833,7 +817,7 @@ fn draw_envelope_preview(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
                 .unwrap_or(pts.len().saturating_sub(1));
 
             let (raw_tick, raw_val) = from_pos(pointer);
-            let env = &app.project.instruments[inst_idx].vol_envelope;
+            let env = &app.project.tracks[inst_idx].vol_envelope;
             let min_tick = env.points[insert_after].0 + 1;
             let max_tick = if insert_after + 1 < env.points.len() {
                 env.points[insert_after + 1].0.saturating_sub(1)
@@ -843,26 +827,26 @@ fn draw_envelope_preview(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
             let tick = raw_tick.clamp(min_tick, max_tick);
 
             let new_idx = insert_after + 1;
-            app.project.instruments[inst_idx]
+            app.project.tracks[inst_idx]
                 .vol_envelope
                 .points
                 .insert(new_idx, (tick, raw_val.min(64)));
             app.envelope_point_idx = new_idx;
 
-            if let Some(sp) = app.project.instruments[inst_idx].vol_envelope.sustain_point {
+            if let Some(sp) = app.project.tracks[inst_idx].vol_envelope.sustain_point {
                 if sp >= new_idx {
-                    app.project.instruments[inst_idx].vol_envelope.sustain_point = Some(sp + 1);
+                    app.project.tracks[inst_idx].vol_envelope.sustain_point = Some(sp + 1);
                 }
             }
-            if let Some((ls, le)) = app.project.instruments[inst_idx].vol_envelope.loop_range {
+            if let Some((ls, le)) = app.project.tracks[inst_idx].vol_envelope.loop_range {
                 let new_ls = if ls >= new_idx { ls + 1 } else { ls };
                 let new_le = if le >= new_idx { le + 1 } else { le };
-                app.project.instruments[inst_idx].vol_envelope.loop_range = Some((new_ls, new_le));
+                app.project.tracks[inst_idx].vol_envelope.loop_range = Some((new_ls, new_le));
             }
         }
     }
 
-    let env = &app.project.instruments[inst_idx].vol_envelope;
+    let env = &app.project.tracks[inst_idx].vol_envelope;
     let points_pos: Vec<Pos2> = env.points.iter().map(|&(t, v)| to_pos(t, v)).collect();
 
     if let Some((ls, le)) = env.loop_range

@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use rodio::{DeviceSinkBuilder, MixerDeviceSink, Source};
 
-use crate::project::{Instrument, Pattern};
+use crate::project::{Pattern, Track};
 
 use mixer::{Command, PatternSnapshot, PlaybackSettings, ScopeBuffer, TrackerSource};
 
@@ -116,12 +116,11 @@ impl AudioEngine {
         order_idx: usize,
         patterns: &[Pattern],
         order: &[usize],
-        instruments: &[Instrument],
+        tracks: &[Track],
         bpm: u16,
         rows_per_beat: usize,
         master_volume: f32,
         muted_channels: &[bool],
-        channel_panning: &[f32],
     ) {
         let snapshots: Vec<Arc<PatternSnapshot>> = patterns
             .iter()
@@ -131,9 +130,8 @@ impl AudioEngine {
             bpm,
             rows_per_beat,
             master_volume,
-            instruments: instruments.to_vec(),
+            tracks: tracks.to_vec(),
             muted_channels: muted_channels.to_vec(),
-            channel_panning: channel_panning.to_vec(),
         });
         let _ = self.sender.send(Command::Play {
             start_row: row,
@@ -150,20 +148,18 @@ impl AudioEngine {
 
     pub fn update_settings(
         &self,
-        instruments: &[Instrument],
+        tracks: &[Track],
         bpm: u16,
         rows_per_beat: usize,
         master_volume: f32,
         muted_channels: &[bool],
-        channel_panning: &[f32],
     ) {
         let settings = Arc::new(PlaybackSettings {
             bpm,
             rows_per_beat,
             master_volume,
-            instruments: instruments.to_vec(),
+            tracks: tracks.to_vec(),
             muted_channels: muted_channels.to_vec(),
-            channel_panning: channel_panning.to_vec(),
         });
         let _ = self.sender.send(Command::UpdateSettings { settings });
     }
@@ -179,25 +175,15 @@ impl AudioEngine {
         });
     }
 
-    pub fn preview_note(
-        &self,
-        freq: f32,
-        instrument_idx: usize,
-        instruments: &[Instrument],
-        master_volume: f32,
-    ) {
-        let cs = &instruments[instrument_idx % instruments.len()];
+    pub fn preview_note(&self, freq: f32, track_idx: usize, tracks: &[Track], master_volume: f32) {
+        let track = &tracks[track_idx % tracks.len()];
         let _ = self.sender.send(Command::PreviewNote {
             frequency: freq,
-            volume: cs.default_volume,
-            vol_envelope: cs.vol_envelope.clone(),
-            sample_data: Arc::clone(&cs.sample_data),
+            volume: track.default_volume,
+            vol_envelope: track.vol_envelope.clone(),
+            sample_data: Arc::clone(&track.sample_data),
             master_volume,
-            vol_fadeout: cs.vol_fadeout,
-            vibrato_type: cs.vibrato_type,
-            vibrato_sweep: cs.vibrato_sweep,
-            vibrato_depth: cs.vibrato_depth,
-            vibrato_rate: cs.vibrato_rate,
+            vol_fadeout: track.vol_fadeout,
         });
     }
 }

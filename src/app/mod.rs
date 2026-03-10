@@ -23,7 +23,7 @@ pub enum Mode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SubColumn {
     Note,
-    Instrument,
+    Panning,
     Volume,
     Effect,
 }
@@ -31,12 +31,12 @@ pub enum SubColumn {
 #[derive(Clone)]
 pub enum ClipboardData {
     Notes(Vec<Vec<Cell>>),
-    Instruments(Vec<Vec<Option<u8>>>),
+    Panning(Vec<Vec<Option<u8>>>),
     Volumes(Vec<Vec<Option<u8>>>),
     Effects(Vec<Vec<Option<Effect>>>),
     Full {
         notes: Option<Vec<Vec<Cell>>>,
-        instruments: Option<Vec<Vec<Option<u8>>>>,
+        panning: Option<Vec<Vec<Option<u8>>>>,
         volumes: Option<Vec<Vec<Option<u8>>>>,
         effects: Option<Vec<Vec<Option<Effect>>>>,
     },
@@ -47,7 +47,7 @@ pub struct MovePreview {
     pub origin_anchor: (usize, usize, SubColumn),
     pub origin_cursor: (usize, usize, SubColumn),
     pub move_notes: bool,
-    pub move_inst: bool,
+    pub move_pan: bool,
     pub move_vol: bool,
     pub move_fx: bool,
 }
@@ -58,7 +58,7 @@ pub struct Cursor {
     pub sub_column: SubColumn,
     pub effect_edit_pos: usize,
     pub volume_edit_pos: usize,
-    pub instrument_edit_pos: usize,
+    pub panning_edit_pos: usize,
     pub selection_anchor: Option<(usize, usize, SubColumn)>,
     pub octave: u8,
 }
@@ -75,7 +75,7 @@ pub struct App {
     pub playback_row: Arc<AtomicUsize>,
     pub display_peak: f32,
 
-    pub current_instrument: usize,
+    pub current_track: usize,
     pub keybindings: KeyBindings,
     pub show_controls_modal: bool,
     pub show_about_modal: bool,
@@ -113,7 +113,7 @@ impl App {
                 sub_column: SubColumn::Note,
                 effect_edit_pos: 0,
                 volume_edit_pos: 0,
-                instrument_edit_pos: 0,
+                panning_edit_pos: 0,
                 selection_anchor: None,
                 octave: 4,
             },
@@ -126,7 +126,7 @@ impl App {
             playback_row,
             display_peak: 0.0,
 
-            current_instrument: 0,
+            current_track: 0,
             keybindings: KeyBindings::defaults(),
             show_controls_modal: false,
             show_about_modal: false,
@@ -202,7 +202,7 @@ impl App {
                 &self.project.order,
                 self.project.bpm,
                 &path,
-                &self.project.instruments,
+                &self.project.tracks,
                 self.project.master_volume_linear(),
             );
         }
@@ -286,31 +286,12 @@ impl App {
                     self.dirty = false;
                     self.cursor.channel = 0;
                     self.cursor.row = 0;
-                    self.current_instrument = 0;
+                    self.current_track = 0;
                     self.envelope_point_idx = 0;
                 }
                 Err(e) => {
                     eprintln!("Failed to open project: {e}");
                 }
-            }
-        }
-    }
-
-    pub fn do_load_demo(&mut self, demo: &crate::demos::Demo) {
-        match crate::demos::load_demo(demo) {
-            Ok(project) => {
-                self.project = project;
-                self.project_path = None;
-                self.dirty = false;
-                self.undo_stack.clear();
-                self.redo_stack.clear();
-                self.cursor.channel = 0;
-                self.cursor.row = 0;
-                self.current_instrument = 0;
-                self.envelope_point_idx = 0;
-            }
-            Err(e) => {
-                eprintln!("Failed to load demo: {e}");
             }
         }
     }
@@ -331,7 +312,7 @@ impl App {
         self.redo_stack.clear();
         self.cursor.channel = 0;
         self.cursor.row = 0;
-        self.current_instrument = 0;
+        self.current_track = 0;
         self.envelope_point_idx = 0;
     }
     pub fn project_name(&self) -> String {

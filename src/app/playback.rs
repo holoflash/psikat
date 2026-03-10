@@ -22,12 +22,11 @@ impl App {
             order_idx,
             &self.project.patterns,
             &self.project.order,
-            &self.project.instruments,
+            &self.project.tracks,
             self.project.bpm,
             self.project.subdivision,
             self.project.master_volume_linear(),
             &self.muted_channels,
-            &self.project.channel_panning,
         );
     }
 
@@ -66,12 +65,11 @@ impl App {
         }
 
         self.audio.update_settings(
-            &self.project.instruments,
+            &self.project.tracks,
             self.project.bpm,
             self.project.subdivision,
             self.project.master_volume_linear(),
             &self.muted_channels,
-            &self.project.channel_panning,
         );
         self.audio
             .update_patterns(&self.project.patterns, &self.project.order);

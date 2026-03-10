@@ -3,10 +3,8 @@ pub mod file;
 pub mod pattern;
 pub mod sample;
 
-pub use channel::Instrument;
-pub use pattern::{
-    Cell, Effect, Note, Pattern, effect_display, instrument_display, volume_display,
-};
+pub use channel::Track;
+pub use pattern::{Cell, Effect, Note, Pattern, effect_display, panning_display, volume_display};
 pub use sample::SampleData;
 
 use crate::app::scale::ScaleIndex;
@@ -16,30 +14,28 @@ pub struct Project {
     pub patterns: Vec<Pattern>,
     pub order: Vec<usize>,
     pub current_order_idx: usize,
-    pub instruments: Vec<Instrument>,
+    pub tracks: Vec<Track>,
     pub bpm: u16,
     pub subdivision: usize,
     pub step: usize,
     pub scale_index: ScaleIndex,
     pub transpose: i8,
     pub master_volume_db: f32,
-    pub channel_panning: Vec<f32>,
 }
 
 impl Project {
     pub fn new() -> Self {
         Self {
-            patterns: vec![Pattern::new(6, 32)],
+            patterns: vec![Pattern::new(1, 32)],
             order: vec![0],
             current_order_idx: 0,
-            instruments: Instrument::defaults(),
+            tracks: Track::defaults(),
             bpm: 120,
             subdivision: 4,
             step: 1,
             scale_index: ScaleIndex::default(),
             transpose: 0,
             master_volume_db: 0.0,
-            channel_panning: Vec::new(),
         }
     }
 
@@ -58,6 +54,25 @@ impl Project {
             0.0
         } else {
             10.0_f32.powf(self.master_volume_db / 20.0)
+        }
+    }
+
+    pub fn add_track(&mut self) {
+        let idx = self.tracks.len();
+        self.tracks
+            .push(Track::new_empty(&format!("Track {:02}", idx)));
+        for pat in &mut self.patterns {
+            pat.add_channel();
+        }
+    }
+
+    pub fn delete_track(&mut self, idx: usize) {
+        if self.tracks.len() <= 1 || idx >= self.tracks.len() {
+            return;
+        }
+        self.tracks.remove(idx);
+        for pat in &mut self.patterns {
+            pat.remove_channel(idx);
         }
     }
 }

@@ -2,7 +2,7 @@ use eframe::egui::{self, Stroke};
 
 use crate::app::App;
 
-use super::{COLOR_LAYOUT_BG_DARK, instrument};
+use super::{COLOR_LAYOUT_BG_DARK, track};
 
 pub fn draw_sidebar(ctx: &egui::Context, app: &mut App) {
     if !app.show_sidebar {
@@ -24,7 +24,7 @@ pub fn draw_sidebar(ctx: &egui::Context, app: &mut App) {
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     ui.spacing_mut().item_spacing.y = 0.0;
-                    instrument::draw_instrument(ui, app);
+                    track::draw_track(ui, app);
                 });
         });
 }

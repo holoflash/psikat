@@ -22,9 +22,9 @@ pub fn volume_display(vol: Option<u8>) -> String {
     }
 }
 
-pub fn instrument_display(inst: Option<u8>) -> String {
-    match inst {
-        Some(i) => format!("{:02X}", i),
+pub fn panning_display(pan: Option<u8>) -> String {
+    match pan {
+        Some(p) => format!("{:02X}", p),
         None => "··".to_string(),
     }
 }
@@ -67,7 +67,7 @@ pub struct Pattern {
     pub channels: usize,
     pub rows: usize,
     pub data: Vec<Vec<Cell>>,
-    pub instruments: Vec<Vec<Option<u8>>>,
+    pub panning: Vec<Vec<Option<u8>>>,
     pub volumes: Vec<Vec<Option<u8>>>,
     pub effects: Vec<Vec<EffectCommand>>,
 }
@@ -78,7 +78,7 @@ impl Pattern {
             channels,
             rows,
             data: vec![vec![Cell::Empty; rows]; channels],
-            instruments: vec![vec![None; rows]; channels],
+            panning: vec![vec![None; rows]; channels],
             volumes: vec![vec![None; rows]; channels],
             effects: vec![vec![None; rows]; channels],
         }
@@ -120,16 +120,16 @@ impl Pattern {
         self.volumes[channel][row] = None;
     }
 
-    pub fn get_instrument(&self, channel: usize, row: usize) -> Option<u8> {
-        self.instruments[channel][row]
+    pub fn get_panning(&self, channel: usize, row: usize) -> Option<u8> {
+        self.panning[channel][row]
     }
 
-    pub fn set_instrument(&mut self, channel: usize, row: usize, inst: Option<u8>) {
-        self.instruments[channel][row] = inst;
+    pub fn set_panning(&mut self, channel: usize, row: usize, pan: Option<u8>) {
+        self.panning[channel][row] = pan;
     }
 
-    pub fn clear_instrument(&mut self, channel: usize, row: usize) {
-        self.instruments[channel][row] = None;
+    pub fn clear_panning(&mut self, channel: usize, row: usize) {
+        self.panning[channel][row] = None;
     }
 
     pub fn resize(&mut self, new_rows: usize) {
@@ -137,7 +137,7 @@ impl Pattern {
             for ch in &mut self.data {
                 ch.resize(new_rows, Cell::Empty);
             }
-            for ch in &mut self.instruments {
+            for ch in &mut self.panning {
                 ch.resize(new_rows, None);
             }
             for ch in &mut self.volumes {
@@ -148,6 +148,24 @@ impl Pattern {
             }
         }
         self.rows = new_rows;
+    }
+
+    pub fn add_channel(&mut self) {
+        self.data.push(vec![Cell::Empty; self.rows]);
+        self.panning.push(vec![None; self.rows]);
+        self.volumes.push(vec![None; self.rows]);
+        self.effects.push(vec![None; self.rows]);
+        self.channels += 1;
+    }
+
+    pub fn remove_channel(&mut self, idx: usize) {
+        if idx < self.channels && self.channels > 1 {
+            self.data.remove(idx);
+            self.panning.remove(idx);
+            self.volumes.remove(idx);
+            self.effects.remove(idx);
+            self.channels -= 1;
+        }
     }
 }
 

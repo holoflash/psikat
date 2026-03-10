@@ -4,8 +4,8 @@ use crate::app::App;
 use crate::app::keybindings::KeyBindings;
 
 use super::{
-    COLOR_LAYOUT_BG_PANEL, COLOR_LAYOUT_BORDER_ACTIVE, COLOR_MODE_PLAYING, COLOR_PATTERN_EFFECT,
-    COLOR_TEXT, COLOR_TEXT_ACTIVE, COLOR_TEXT_DIM,
+    COLOR_LAYOUT_BG_PANEL, COLOR_LAYOUT_BORDER_ACTIVE, COLOR_MODE_PLAYING, COLOR_TEXT,
+    COLOR_TEXT_ACTIVE, COLOR_TEXT_DIM,
 };
 
 pub fn draw_controls_modal(ctx: &egui::Context, app: &mut App) {
@@ -30,7 +30,6 @@ pub fn draw_controls_modal(ctx: &egui::Context, app: &mut App) {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 draw_keybinding_categories(ui, &app.keybindings);
                 draw_notes_section(ui);
-                draw_commands_section(ui);
             });
         });
 }
@@ -115,148 +114,5 @@ fn draw_notes_section(ui: &mut egui::Ui) {
                     .color(COLOR_TEXT_DIM),
             );
             ui.end_row();
-        });
-}
-
-struct CmdEntry {
-    code: &'static str,
-    description: &'static str,
-}
-
-const COMMANDS: &[CmdEntry] = &[
-    CmdEntry {
-        code: "0xy",
-        description: "Arpeggio (x,y semitones)",
-    },
-    CmdEntry {
-        code: "1xx",
-        description: "Portamento up",
-    },
-    CmdEntry {
-        code: "2xx",
-        description: "Portamento down",
-    },
-    CmdEntry {
-        code: "3xx",
-        description: "Tone portamento",
-    },
-    CmdEntry {
-        code: "4xy",
-        description: "Vibrato (x=speed y=depth)",
-    },
-    CmdEntry {
-        code: "5xy",
-        description: "Tone porta + vol slide",
-    },
-    CmdEntry {
-        code: "6xy",
-        description: "Vibrato + vol slide",
-    },
-    CmdEntry {
-        code: "7xy",
-        description: "Tremolo (x=speed y=depth)",
-    },
-    CmdEntry {
-        code: "8xx",
-        description: "Set panning (00-FF)",
-    },
-    CmdEntry {
-        code: "9xx",
-        description: "Sample offset (xx*256)",
-    },
-    CmdEntry {
-        code: "Axy",
-        description: "Volume slide (x=up y=down)",
-    },
-    CmdEntry {
-        code: "Bxx",
-        description: "Position jump",
-    },
-    CmdEntry {
-        code: "Cxx",
-        description: "Set volume (00-40)",
-    },
-    CmdEntry {
-        code: "Dxx",
-        description: "Pattern break (BCD row)",
-    },
-    CmdEntry {
-        code: "E1x",
-        description: "Fine porta up",
-    },
-    CmdEntry {
-        code: "E2x",
-        description: "Fine porta down",
-    },
-    CmdEntry {
-        code: "E5x",
-        description: "Set finetune",
-    },
-    CmdEntry {
-        code: "E9x",
-        description: "Retrigger note",
-    },
-    CmdEntry {
-        code: "EAx",
-        description: "Fine vol slide up",
-    },
-    CmdEntry {
-        code: "EBx",
-        description: "Fine vol slide down",
-    },
-    CmdEntry {
-        code: "ECx",
-        description: "Note cut at tick x",
-    },
-    CmdEntry {
-        code: "EDx",
-        description: "Note delay to tick x",
-    },
-    CmdEntry {
-        code: "Fxx",
-        description: "Set BPM",
-    },
-    CmdEntry {
-        code: "Gxx",
-        description: "Set global volume (00-40)",
-    },
-    CmdEntry {
-        code: "Kxx",
-        description: "Key off at tick x",
-    },
-    CmdEntry {
-        code: "Lxx",
-        description: "Set envelope position",
-    },
-];
-
-fn draw_commands_section(ui: &mut egui::Ui) {
-    ui.add_space(12.0);
-    ui.label(
-        RichText::new("Commands")
-            .font(FontId::monospace(13.0))
-            .color(COLOR_PATTERN_EFFECT)
-            .strong(),
-    );
-    ui.add_space(4.0);
-
-    egui::Grid::new("controls_grid_commands")
-        .num_columns(2)
-        .spacing([12.0, 4.0])
-        .striped(true)
-        .show(ui, |ui| {
-            for cmd in COMMANDS {
-                ui.label(
-                    RichText::new(cmd.code)
-                        .font(FontId::monospace(12.0))
-                        .color(COLOR_PATTERN_EFFECT),
-                );
-                ui.label(
-                    RichText::new(cmd.description)
-                        .font(FontId::monospace(11.0))
-                        .color(COLOR_TEXT_DIM),
-                );
-                ui.end_row();
-            }
         });
 }

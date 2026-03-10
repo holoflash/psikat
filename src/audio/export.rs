@@ -9,10 +9,10 @@ pub fn export_wav(
     order: &[usize],
     bpm: u16,
     path: &Path,
-    instruments: &[crate::project::Instrument],
+    tracks: &[crate::project::Track],
     master_volume: f32,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut source = mixer::export_source(patterns, order, bpm, instruments, master_volume);
+    let mut source = mixer::export_source(patterns, order, bpm, tracks, master_volume);
 
     let spec = WavSpec {
         channels: 2,

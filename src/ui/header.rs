@@ -113,21 +113,7 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                             ui.close();
                             app.do_save_as();
                         }
-                        ui.separator();
-                        ui.menu_button(RichText::new("Demos").color(COLOR_TEXT_ACTIVE), |ui| {
-                            for demo in crate::demos::DEMOS {
-                                if ui
-                                    .selectable_label(
-                                        false,
-                                        RichText::new(demo.name).color(COLOR_TEXT_ACTIVE),
-                                    )
-                                    .clicked()
-                                {
-                                    ui.close();
-                                    app.do_load_demo(demo);
-                                }
-                            }
-                        });
+
                         ui.separator();
                         if ui
                             .selectable_label(
@@ -250,13 +236,13 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                     let btn = ui
                         .add(
                             egui::Button::new(
-                                RichText::new("INSTRUMENT")
-                                    .font(FontId::monospace(12.0))
-                                    .color(if app.show_sidebar {
+                                RichText::new("TRACK").font(FontId::monospace(12.0)).color(
+                                    if app.show_sidebar {
                                         COLOR_TEXT
                                     } else {
                                         COLOR_TEXT_DIM
-                                    }),
+                                    },
+                                ),
                             )
                             .fill(COLOR_LAYOUT_BG_PANEL)
                             .stroke(Stroke::new(

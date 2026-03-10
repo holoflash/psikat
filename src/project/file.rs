@@ -73,10 +73,10 @@ mod tests {
         assert_eq!(loaded.bpm, project.bpm);
         assert_eq!(loaded.order, project.order);
         assert_eq!(loaded.patterns.len(), project.patterns.len());
-        assert_eq!(loaded.instruments.len(), project.instruments.len());
+        assert_eq!(loaded.tracks.len(), project.tracks.len());
         assert_eq!(loaded.patterns[0].rows, project.patterns[0].rows);
         assert_eq!(loaded.patterns[0].channels, project.patterns[0].channels);
-        assert_eq!(loaded.instruments[0].name, project.instruments[0].name);
+        assert_eq!(loaded.tracks[0].name, project.tracks[0].name);
 
         let _ = std::fs::remove_file(&path);
     }

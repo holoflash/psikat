@@ -131,7 +131,7 @@ impl VolEnvelope {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Instrument {
+pub struct Track {
     pub name: String,
     pub waveform: WaveformKind,
     pub vol_envelope: VolEnvelope,
@@ -141,13 +141,9 @@ pub struct Instrument {
     pub note_to_sample: Vec<u8>,
     pub vol_fadeout: u16,
     pub default_panning: f32,
-    pub vibrato_type: u8,
-    pub vibrato_sweep: u8,
-    pub vibrato_depth: u8,
-    pub vibrato_rate: u8,
 }
 
-impl Instrument {
+impl Track {
     pub fn sample_for_note(&self, pitch: u8) -> (&Arc<SampleData>, f32) {
         if !self.note_to_sample.is_empty() && !self.samples.is_empty() {
             let map_idx = (pitch as usize).min(self.note_to_sample.len() - 1);
@@ -161,7 +157,7 @@ impl Instrument {
     }
 
     pub fn defaults() -> Vec<Self> {
-        vec![Self::new_empty("Instrument 00")]
+        vec![Self::new_empty("Track 00")]
     }
 
     pub fn new_empty(name: &str) -> Self {
@@ -170,15 +166,11 @@ impl Instrument {
             waveform: WaveformKind::Square,
             vol_envelope: VolEnvelope::default_preset(),
             sample_data: SampleData::square(),
-            default_volume: 0.5,
+            default_volume: 0.2,
             samples: Vec::new(),
             note_to_sample: Vec::new(),
             vol_fadeout: 0,
             default_panning: 0.5,
-            vibrato_type: 0,
-            vibrato_sweep: 0,
-            vibrato_depth: 0,
-            vibrato_rate: 0,
         }
     }
 }

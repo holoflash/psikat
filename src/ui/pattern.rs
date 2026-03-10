@@ -4,11 +4,11 @@ use egui_extras::{Column, TableBuilder};
 
 use crate::app::{App, Mode, SubColumn};
 use crate::audio::mixer::SCOPE_SIZE;
-use crate::project::{Cell, effect_display, instrument_display, volume_display};
+use crate::project::{Cell, effect_display, panning_display, volume_display};
 
 use super::{
     COLOR_LAYOUT_BG_DARK, COLOR_PATTERN_CURSOR_BG, COLOR_PATTERN_CURSOR_TEXT, COLOR_PATTERN_EFFECT,
-    COLOR_PATTERN_INSTRUMENT, COLOR_PATTERN_NOTE, COLOR_PATTERN_NOTE_OFF,
+    COLOR_PATTERN_PANNING, COLOR_PATTERN_NOTE, COLOR_PATTERN_NOTE_OFF,
     COLOR_PATTERN_PLAYBACK_HIGHLIGHT, COLOR_PATTERN_PLAYBACK_TEXT, COLOR_PATTERN_SELECTION_BG,
     COLOR_PATTERN_SELECTION_TEXT, COLOR_PATTERN_SUBDIVISION, COLOR_PATTERN_VOLUME, COLOR_TEXT_DIM,
 };
@@ -367,7 +367,7 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
         };
         let pat = app.project.current_pattern();
         let mut cell = pat.get(ch, row_idx);
-        let mut inst_val = pat.get_instrument(ch, row_idx);
+        let mut inst_val = pat.get_panning(ch, row_idx);
         let mut volume_val = pat.get_volume(ch, row_idx);
         let mut effect_cmd = pat.get_effect(ch, row_idx);
 
@@ -384,7 +384,7 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
                         if preview.move_notes {
                             cell = *p_cell;
                         }
-                        if preview.move_inst {
+                        if preview.move_pan {
                             inst_val = *p_inst;
                         }
                         if preview.move_vol {
@@ -431,19 +431,19 @@ fn draw_body_row(row: &mut egui_extras::TableRow<'_, '_>, app: &mut App, channel
             );
         });
 
-        let inst_text = instrument_display(inst_val);
+        let inst_text = panning_display(inst_val);
         row.col(|ui| {
             draw_sub_column(
                 ui,
                 app,
                 ch,
                 row_idx,
-                SubColumn::Instrument,
+                SubColumn::Panning,
                 &inst_text,
                 inst_val.is_none(),
-                COLOR_PATTERN_INSTRUMENT,
+                COLOR_PATTERN_PANNING,
                 is_cursor_ch_row,
-                sub_selected(SubColumn::Instrument),
+                sub_selected(SubColumn::Panning),
                 is_playback_row,
                 row_bg,
                 CELL_PAD_HALF,
