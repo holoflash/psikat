@@ -189,7 +189,21 @@ impl App {
 
         let on_note = self.cursor.sub_column;
 
-        if let Some((min_ch, max_ch, min_row, max_row, _, _)) = self.selection_bounds() {
+        if let Some((min_ch, max_ch, min_row, max_row, min_sub, max_sub)) = self.selection_bounds()
+        {
+            let has_sub = |sub: SubColumn| -> bool {
+                (min_ch..=max_ch).any(|ch| {
+                    let flat = ch * 4 + sub as usize;
+                    let sel_start = min_ch * 4 + min_sub as usize;
+                    let sel_end = max_ch * 4 + max_sub as usize;
+                    flat >= sel_start && flat <= sel_end
+                })
+            };
+            let move_notes = has_sub(SubColumn::Note);
+            let move_inst = has_sub(SubColumn::Instrument);
+            let move_vol = has_sub(SubColumn::Volume);
+            let move_fx = has_sub(SubColumn::Effect);
+
             let in_bounds = min_row.checked_add_signed(dr).is_some()
                 && max_row
                     .checked_add_signed(dr)
@@ -208,40 +222,42 @@ impl App {
                         let vol = self.project.current_pattern().get_volume(ch, row);
                         let fx = self.project.current_pattern().get_effect(ch, row);
                         cells.push((ch, row, cell, inst, vol, fx));
-                        match on_note {
-                            SubColumn::Note => self.project.current_pattern_mut().clear(ch, row),
-                            SubColumn::Instrument => {
-                                self.project.current_pattern_mut().clear_instrument(ch, row)
-                            }
-                            SubColumn::Volume => {
-                                self.project.current_pattern_mut().clear_volume(ch, row)
-                            }
-                            SubColumn::Effect => {
-                                self.project.current_pattern_mut().clear_effect(ch, row)
-                            }
+                        if move_notes {
+                            self.project.current_pattern_mut().clear(ch, row);
+                        }
+                        if move_inst {
+                            self.project.current_pattern_mut().clear_instrument(ch, row);
+                        }
+                        if move_vol {
+                            self.project.current_pattern_mut().clear_volume(ch, row);
+                        }
+                        if move_fx {
+                            self.project.current_pattern_mut().clear_effect(ch, row);
                         }
                     }
                 }
                 for (ch, row, cell, inst, vol, fx) in cells {
                     let new_ch = ch.checked_add_signed(dc).unwrap();
                     let new_row = row.checked_add_signed(dr).unwrap();
-                    match on_note {
-                        SubColumn::Note => self
-                            .project
+                    if move_notes {
+                        self.project
                             .current_pattern_mut()
-                            .set(new_ch, new_row, cell),
-                        SubColumn::Instrument => self
-                            .project
+                            .set(new_ch, new_row, cell);
+                    }
+                    if move_inst {
+                        self.project
                             .current_pattern_mut()
-                            .set_instrument(new_ch, new_row, inst),
-                        SubColumn::Volume => self
-                            .project
+                            .set_instrument(new_ch, new_row, inst);
+                    }
+                    if move_vol {
+                        self.project
                             .current_pattern_mut()
-                            .set_volume(new_ch, new_row, vol),
-                        SubColumn::Effect => self
-                            .project
+                            .set_volume(new_ch, new_row, vol);
+                    }
+                    if move_fx {
+                        self.project
                             .current_pattern_mut()
-                            .set_effect(new_ch, new_row, fx),
+                            .set_effect(new_ch, new_row, fx);
                     }
                 }
                 self.cursor.channel = self.cursor.channel.checked_add_signed(dc).unwrap();
