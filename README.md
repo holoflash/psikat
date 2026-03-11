@@ -45,7 +45,11 @@ A lightweight cross-platform music tracker built with Rust and egui.
 
 - Make effects more intuitive to use
 - Add an effect macro palette
-- More demos
+- Compound patterns (parts)
+- Inline pattern subdivision
+- Built in sample library
+- Track effects. Move away from tracker style effects?
+- Investigate MIDI compatibility
 - ...and more
 
 > _All features are subject to change without notice before version 1.0.0_
