@@ -1,6 +1,6 @@
 # PSIKAT
 
-A lightweight cross-platform tracker inspired sequencer built with Rust and egui.
+A lightweight cross-platform tracker-like sequencer built with Rust and egui.
 
 ![screenshot](screenshot.png)
 
