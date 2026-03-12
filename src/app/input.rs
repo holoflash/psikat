@@ -12,6 +12,7 @@ impl App {
         if self.text_editing || ctx.wants_keyboard_input() {
             return false;
         }
+        self.clamp_cursor();
         ctx.input(|input| {
             let cmd = input.modifiers.command;
             let shift = input.modifiers.shift;
@@ -490,27 +491,20 @@ impl App {
             self.cursor.row,
         ));
         let pat = self.project.current_pattern();
+        let base_flat = self.flat_col(min_ch, min_v);
+        let end_flat = self.flat_col(max_ch, max_v);
 
-        let data: Vec<Vec<Vec<Cell>>> = (min_ch..=max_ch)
-            .map(|ch| {
-                let voices = pat.voice_count(ch);
-                (0..voices)
-                    .filter(|&v| {
-                        if min_ch == max_ch {
-                            v >= min_v && v <= max_v
-                        } else if ch == min_ch {
-                            v >= min_v
-                        } else if ch == max_ch {
-                            v <= max_v
-                        } else {
-                            true
-                        }
-                    })
-                    .map(|v| (min_row..=max_row).map(|r| pat.data[ch][v][r]).collect())
-                    .collect()
-            })
-            .collect();
-        self.clipboard = Some(ClipboardData::Notes(data));
+        let mut cells = Vec::new();
+        for flat in base_flat..=end_flat {
+            if let Some((ch, v)) = self.resolve_flat_col(flat) {
+                let col_off = flat - base_flat;
+                for row in min_row..=max_row {
+                    let cell = pat.get(ch, v, row);
+                    cells.push((col_off, row - min_row, cell));
+                }
+            }
+        }
+        self.clipboard = Some(ClipboardData::Notes(cells));
     }
 
     fn handle_paste(&mut self) {
@@ -519,27 +513,18 @@ impl App {
         };
         self.clear_selection();
 
-        let pat = self.project.current_pattern_mut();
-        let ch_start = self.cursor.channel;
+        let cursor_flat = self.flat_col(self.cursor.channel, self.cursor.voice);
         let row_start = self.cursor.row;
 
         match clip {
-            ClipboardData::Notes(data) => {
-                for (ci, ch_data) in data.iter().enumerate() {
-                    let ch = ch_start + ci;
-                    if ch >= pat.channels {
-                        break;
-                    }
-                    for (vi, voice_data) in ch_data.iter().enumerate() {
-                        if vi >= pat.data[ch].len() {
-                            break;
-                        }
-                        for (ri, &cell) in voice_data.iter().enumerate() {
-                            let row = row_start + ri;
-                            if row >= pat.rows {
-                                break;
-                            }
-                            pat.data[ch][vi][row] = cell;
+            ClipboardData::Notes(cells) => {
+                for &(col_off, row_off, cell) in &cells {
+                    let target_flat = cursor_flat + col_off;
+                    let target_row = row_start + row_off;
+                    if let Some((ch, v)) = self.resolve_flat_col(target_flat) {
+                        let pat = self.project.current_pattern_mut();
+                        if target_row < pat.rows {
+                            pat.data[ch][v][target_row] = cell;
                         }
                     }
                 }

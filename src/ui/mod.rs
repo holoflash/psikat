@@ -1,6 +1,7 @@
 mod about_modal;
 mod controls_modal;
 mod header;
+mod mixer;
 mod order_bar;
 mod pattern;
 mod sidebar;
@@ -40,6 +41,7 @@ pub fn draw(ctx: &egui::Context, app: &mut App) {
     header::draw_header(ctx, app);
     sidebar::draw_sidebar(ctx, app);
     order_bar::draw_order_bar(ctx, app);
+    mixer::draw_mixer(ctx, app);
     pattern::draw_pattern(ctx, app);
     controls_modal::draw_controls_modal(ctx, app);
     about_modal::draw_about_modal(ctx, app);

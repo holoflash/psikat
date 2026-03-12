@@ -91,6 +91,7 @@ impl SampleData {
     }
 
     fn generate(samples_f32: Vec<f32>, looped: bool) -> Arc<Self> {
+        let samples_f32: Vec<f32> = samples_f32.iter().map(|&s| s * 0.5).collect();
         let samples_i16: Vec<i16> = samples_f32
             .iter()
             .map(|&s| (s * f32::from(i16::MAX)) as i16)
@@ -212,8 +213,8 @@ mod tests {
         assert!((sine.samples_f32[0]).abs() < 0.01);
 
         let square = SampleData::square();
-        assert!((square.samples_f32[0] - 1.0).abs() < 0.01);
-        assert!((square.samples_f32[WAVE_LEN / 2] + 1.0).abs() < 0.01);
+        assert!((square.samples_f32[0] - 0.5).abs() < 0.01);
+        assert!((square.samples_f32[WAVE_LEN / 2] + 0.5).abs() < 0.01);
 
         let noise = SampleData::noise();
         assert_eq!(noise.samples_f32.len(), 4096);

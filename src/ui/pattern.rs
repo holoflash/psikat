@@ -12,8 +12,6 @@ use super::{
     COLOR_TEXT_DIM,
 };
 
-const COLOR_MUTED: egui::Color32 = egui::Color32::from_rgb(180, 80, 70);
-
 const FONT: FontId = FontId::monospace(14.0);
 const ROW_HEIGHT: f32 = 18.0;
 const CELL_PAD: f32 = 8.0;
@@ -93,7 +91,6 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                                 &mut header,
                                 channels,
                                 &voice_counts,
-                                &mut app.muted_channels,
                             );
                         })
                         .body(|body| {
@@ -109,96 +106,32 @@ fn draw_header_row(
     header: &mut egui_extras::TableRow<'_, '_>,
     channels: usize,
     voice_counts: &[usize],
-    muted: &mut Vec<bool>,
 ) {
     header.col(|ui| {
         let full = ui.max_rect();
         ui.painter().rect_filled(full, 0.0, COLOR_LAYOUT_BG_DARK);
     });
 
-    for ch in 0..channels {
-        let is_muted = muted.get(ch).copied().unwrap_or(false);
+    for (ch, &voices) in voice_counts.iter().enumerate().take(channels) {
         let label = format!("{}", ch + 1);
-        let voices = voice_counts[ch];
-
-        let cell_bg = if is_muted {
-            COLOR_MUTED
-        } else {
-            egui::Color32::TRANSPARENT
-        };
-        let text_color = if is_muted {
-            COLOR_PATTERN_CURSOR_TEXT
-        } else {
-            COLOR_TEXT_DIM
-        };
 
         header.col(|ui| {
             let full = ui.max_rect();
-            ui.painter().rect_filled(full, 0.0, cell_bg);
             draw_left_border(ui);
-
-            let response = ui.interact(full, ui.id().with(("ch_lbl", ch)), Sense::click());
 
             ui.painter().text(
                 full.left_center() + egui::vec2(CELL_PAD, 0.0),
                 egui::Align2::LEFT_CENTER,
                 &label,
                 FONT,
-                text_color,
+                COLOR_TEXT_DIM,
             );
-
-            if response.hovered() {
-                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
-            }
-            if response.secondary_clicked() {
-                toggle_solo(muted, ch, channels);
-            } else if response.clicked() {
-                if ch >= muted.len() {
-                    muted.resize(ch + 1, false);
-                }
-                muted[ch] = !muted[ch];
-            }
         });
 
-        for v in 1..voices {
+        for _ in 1..voices {
             header.col(|ui| {
-                let full = ui.max_rect();
-                ui.painter().rect_filled(full, 0.0, cell_bg);
-
-                let response =
-                    ui.interact(full, ui.id().with(("ch_lbl_voice", ch, v)), Sense::click());
-
-                if response.hovered() {
-                    ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
-                }
-                if response.secondary_clicked() {
-                    toggle_solo(muted, ch, channels);
-                } else if response.clicked() {
-                    if ch >= muted.len() {
-                        muted.resize(ch + 1, false);
-                    }
-                    muted[ch] = !muted[ch];
-                }
+                let _ = ui.max_rect();
             });
-        }
-    }
-}
-
-fn toggle_solo(muted: &mut Vec<bool>, ch: usize, channels: usize) {
-    if muted.len() < channels {
-        muted.resize(channels, false);
-    }
-
-    let is_soloed =
-        !muted[ch] && (0..channels).all(|c| c == ch || muted.get(c).copied().unwrap_or(false));
-
-    if is_soloed {
-        for m in muted.iter_mut() {
-            *m = false;
-        }
-    } else {
-        for (c, m) in muted.iter_mut().enumerate() {
-            *m = c != ch;
         }
     }
 }
@@ -294,7 +227,8 @@ fn draw_body_row(
                 Cell::NoteOff => "OFF".to_string(),
                 Cell::Empty => "\u{00b7}\u{00b7}\u{00b7}".to_string(),
             };
-            let note_data_color = if matches!(cell, Cell::Empty) {
+            let is_muted = app.muted_channels.get(ch).copied().unwrap_or(false);
+            let note_data_color = if matches!(cell, Cell::Empty) || is_muted {
                 COLOR_TEXT_DIM
             } else if matches!(cell, Cell::NoteOff) {
                 COLOR_PATTERN_NOTE_OFF

@@ -248,7 +248,7 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 let r = ui
                     .add(
                         egui::DragValue::new(&mut app.project.step)
-                            .range(1..=64)
+                            .range(0..=64)
                             .speed(0.2),
                     )
                     .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
@@ -260,7 +260,7 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                     let btn = ui
                         .add(
                             egui::Button::new(
-                                RichText::new("TRACK").font(FontId::monospace(12.0)).color(
+                                RichText::new("EDIT").font(FontId::monospace(12.0)).color(
                                     if app.show_sidebar {
                                         COLOR_TEXT
                                     } else {
@@ -282,6 +282,33 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                     btn.surrender_focus();
                     if btn.clicked() {
                         app.show_sidebar = !app.show_sidebar;
+                    }
+
+                    let mixer_btn = ui
+                        .add(
+                            egui::Button::new(
+                                RichText::new("MIXER").font(FontId::monospace(12.0)).color(
+                                    if app.show_mixer {
+                                        COLOR_TEXT
+                                    } else {
+                                        COLOR_TEXT_DIM
+                                    },
+                                ),
+                            )
+                            .fill(COLOR_LAYOUT_BG_PANEL)
+                            .stroke(Stroke::new(
+                                1.0,
+                                if app.show_mixer {
+                                    COLOR_TEXT
+                                } else {
+                                    COLOR_TEXT_DIM
+                                },
+                            )),
+                        )
+                        .on_hover_cursor(egui::CursorIcon::PointingHand);
+                    mixer_btn.surrender_focus();
+                    if mixer_btn.clicked() {
+                        app.show_mixer = !app.show_mixer;
                     }
 
                     ui.add_space(8.0);

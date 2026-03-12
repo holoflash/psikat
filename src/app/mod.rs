@@ -22,7 +22,7 @@ pub enum Mode {
 
 #[derive(Clone)]
 pub enum ClipboardData {
-    Notes(Vec<Vec<Vec<Cell>>>),
+    Notes(Vec<(usize, usize, Cell)>),
 }
 
 pub struct MovePreview {
@@ -68,6 +68,7 @@ pub struct App {
 
     pub follow_scroll_offset: f32,
     pub show_sidebar: bool,
+    pub show_mixer: bool,
     pub text_editing: bool,
     pub channel_scopes: Arc<Vec<ScopeBuffer>>,
     pub display_scopes: Vec<[f32; SCOPE_SIZE]>,
@@ -124,6 +125,7 @@ impl App {
 
             follow_scroll_offset: 0.0,
             show_sidebar: true,
+            show_mixer: true,
             text_editing: false,
             channel_scopes,
             display_scopes: vec![[0.0; SCOPE_SIZE]; 32],
@@ -209,6 +211,20 @@ impl App {
             self.cursor.channel = channel;
             self.cursor.voice = voice;
             self.cursor.row = row;
+        }
+    }
+
+    pub fn clamp_cursor(&mut self) {
+        let pat = self.project.current_pattern();
+        if self.cursor.channel >= pat.channels {
+            self.cursor.channel = pat.channels.saturating_sub(1);
+        }
+        if self.cursor.row >= pat.rows {
+            self.cursor.row = pat.rows.saturating_sub(1);
+        }
+        let voices = pat.voice_count(self.cursor.channel);
+        if self.cursor.voice >= voices {
+            self.cursor.voice = voices.saturating_sub(1);
         }
     }
 

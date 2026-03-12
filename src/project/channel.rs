@@ -233,7 +233,7 @@ impl Track {
             waveform: WaveformKind::Square,
             vol_envelope: VolEnvelope::default_preset(),
             sample_data: SampleData::square(),
-            default_volume: 0.2,
+            default_volume: 1.0,
             samples: Vec::new(),
             note_to_sample: Vec::new(),
             vol_fadeout: 0,

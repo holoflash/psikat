@@ -58,7 +58,10 @@ impl Pattern {
     }
 
     pub fn clear(&mut self, channel: usize, voice: usize, row: usize) {
-        self.data[channel][voice][row] = Cell::Empty;
+        let voices = &mut self.data[channel];
+        if voice < voices.len() {
+            voices[voice][row] = Cell::Empty;
+        }
     }
 
     pub fn voice_count(&self, channel: usize) -> usize {
