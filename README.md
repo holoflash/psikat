@@ -6,14 +6,18 @@ A lightweight cross-platform tracker-like sequencer built with Rust and egui.
 
 ## 🚧 UNDER DEVELOPMENT
 
+**Latest changes**
+
+- Added mixer
+- Polyphonic tracks (up to 8 voices)
+- Removed all .xm effect commands in preparation of unique approach
+
 **TODO**
 
-- Make effects more intuitive to use
+- Make ADSRs easier to use
 - Add an effect macro palette
 - Compound patterns (parts)
 - Inline pattern subdivision
-- Built in sample library
-- Track effects. Move away from tracker style effects?
 - Investigate MIDI compatibility
 - ...and more
 
