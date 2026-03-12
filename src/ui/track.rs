@@ -3,6 +3,7 @@ use std::sync::Arc;
 use eframe::egui::{self, FontId, Pos2, RichText, Stroke, Vec2};
 
 use crate::app::{App, WaveformDrag};
+use crate::audio::mixer::SCOPE_SIZE;
 use crate::project::SampleData;
 use crate::project::channel::{FilterType, VolEnvelope};
 use crate::project::sample::LoopType;
@@ -142,6 +143,8 @@ pub fn draw_track(ui: &mut egui::Ui, app: &mut App) {
                 .id_salt("track_scroll")
                 .show(ui, |ui| {
                     ui.add_space(8.0);
+                    draw_scope(ui, app, inst_idx);
+                    ui.add_space(6.0);
                     draw_interactive_waveform(ui, app, inst_idx);
                     ui.add_space(6.0);
 
@@ -308,6 +311,52 @@ fn draw_loop_controls(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
             }
         }
     });
+}
+
+fn draw_scope(ui: &mut egui::Ui, app: &App, inst_idx: usize) {
+    let width = ui.available_width();
+    let height = 48.0;
+
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(width, height), egui::Sense::hover());
+    let painter = ui.painter_at(rect);
+
+    painter.rect_filled(rect, 2.0, COLOR_LAYOUT_BG_DARK);
+
+    let is_muted = app.muted_channels.get(inst_idx).copied().unwrap_or(false);
+    let color = if is_muted {
+        egui::Color32::from_rgb(180, 80, 70)
+    } else if app.playback.playing {
+        COLOR_PATTERN_PLAYBACK_TEXT
+    } else {
+        COLOR_TEXT_DIM
+    };
+
+    if let Some(data) = app.display_scopes.get(inst_idx) {
+        let w = rect.width();
+        let h = rect.height();
+        let mid_y = rect.min.y + h * 0.5;
+
+        let step = SCOPE_SIZE as f32 / w;
+        let points: Vec<Pos2> = (0..w as usize)
+            .map(|px| {
+                let idx = ((px as f32) * step) as usize;
+                let sample = data[idx.min(SCOPE_SIZE - 1)];
+                let y = mid_y - sample.clamp(-1.0, 1.0) * h * 0.45;
+                Pos2::new(rect.min.x + px as f32, y)
+            })
+            .collect();
+
+        if points.len() >= 2 {
+            painter.add(egui::Shape::line(points, Stroke::new(1.0, color)));
+        }
+    }
+
+    // center line
+    let mid_y = rect.min.y + height * 0.5;
+    painter.line_segment(
+        [Pos2::new(rect.left(), mid_y), Pos2::new(rect.right(), mid_y)],
+        Stroke::new(0.5, egui::Color32::from_rgba_premultiplied(80, 70, 90, 40)),
+    );
 }
 
 fn draw_interactive_waveform(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {

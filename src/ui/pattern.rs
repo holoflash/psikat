@@ -1,9 +1,8 @@
 use eframe::egui::scroll_area::ScrollBarVisibility;
-use eframe::egui::{self, FontId, Pos2, RichText, Sense, Stroke};
+use eframe::egui::{self, FontId, RichText, Sense, Stroke};
 use egui_extras::{Column, TableBuilder};
 
 use crate::app::{App, Mode, SubColumn};
-use crate::audio::mixer::SCOPE_SIZE;
 use crate::project::{Cell, effect_display, panning_display, volume_display};
 
 use super::{
@@ -85,13 +84,11 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                     }
 
                     table
-                        .header(SCOPE_HEIGHT + ROW_HEIGHT, |mut header| {
+                        .header(ROW_HEIGHT, |mut header| {
                             draw_header_row(
                                 &mut header,
                                 channels,
                                 &mut app.muted_channels,
-                                &app.display_scopes,
-                                app.playback.playing,
                             );
                         })
                         .body(|body| {
@@ -103,14 +100,10 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
         });
 }
 
-const SCOPE_HEIGHT: f32 = 40.0;
-
 fn draw_header_row(
     header: &mut egui_extras::TableRow<'_, '_>,
     channels: usize,
     muted: &mut Vec<bool>,
-    scopes: &[[f32; SCOPE_SIZE]],
-    playing: bool,
 ) {
     header.col(|ui| {
         let full = ui.max_rect();
@@ -132,30 +125,15 @@ fn draw_header_row(
             COLOR_TEXT_DIM
         };
 
-        let ch_start_x = std::cell::Cell::new(0.0_f32);
-        let scope_top = std::cell::Cell::new(0.0_f32);
-        let scope_bottom = std::cell::Cell::new(0.0_f32);
-
         header.col(|ui| {
             let full = ui.max_rect();
-            let scope_rect =
-                egui::Rect::from_min_max(full.min, Pos2::new(full.max.x, full.max.y - ROW_HEIGHT));
-            let label_rect =
-                egui::Rect::from_min_max(Pos2::new(full.min.x, full.max.y - ROW_HEIGHT), full.max);
-
-            ch_start_x.set(full.min.x);
-            scope_top.set(scope_rect.min.y);
-            scope_bottom.set(scope_rect.max.y);
-
-            ui.painter()
-                .rect_filled(scope_rect, 0.0, COLOR_LAYOUT_BG_DARK);
-            ui.painter().rect_filled(label_rect, 0.0, cell_bg);
+            ui.painter().rect_filled(full, 0.0, cell_bg);
             draw_left_border(ui);
 
-            let response = ui.interact(label_rect, ui.id().with(("ch_lbl", ch)), Sense::click());
+            let response = ui.interact(full, ui.id().with(("ch_lbl", ch)), Sense::click());
 
             ui.painter().text(
-                label_rect.left_center() + egui::vec2(CELL_PAD, 0.0),
+                full.left_center() + egui::vec2(CELL_PAD, 0.0),
                 egui::Align2::LEFT_CENTER,
                 &label,
                 FONT,
@@ -178,60 +156,10 @@ fn draw_header_row(
         for sub in 0..3 {
             header.col(|ui| {
                 let full = ui.max_rect();
-                let scope_rect = egui::Rect::from_min_max(
-                    full.min,
-                    Pos2::new(full.max.x, full.max.y - ROW_HEIGHT),
-                );
-                let label_rect = egui::Rect::from_min_max(
-                    Pos2::new(full.min.x, full.max.y - ROW_HEIGHT),
-                    full.max,
-                );
-
-                ui.painter()
-                    .rect_filled(scope_rect, 0.0, COLOR_LAYOUT_BG_DARK);
-                ui.painter().rect_filled(label_rect, 0.0, cell_bg);
-
-                if sub == 2
-                    && let Some(scope_data) = scopes.get(ch) {
-                        let wide_rect = egui::Rect::from_min_max(
-                            Pos2::new(ch_start_x.get(), scope_top.get()),
-                            Pos2::new(full.max.x, scope_bottom.get()),
-                        );
-                        let clip = wide_rect.intersect(ui.clip_rect());
-                        let wide_painter =
-                            egui::Painter::new(ui.ctx().clone(), ui.layer_id(), clip);
-                        draw_scope_with_painter(
-                            &wide_painter,
-                            wide_rect,
-                            scope_data,
-                            is_muted,
-                            playing,
-                        );
-
-                        wide_painter.line_segment(
-                            [wide_rect.left_bottom(), wide_rect.right_bottom()],
-                            Stroke::new(1.0, COLOR_TEXT_DIM),
-                        );
-
-                        let label_bottom_y = scope_bottom.get() + ROW_HEIGHT;
-                        let bottom_line_rect = egui::Rect::from_min_max(
-                            Pos2::new(ch_start_x.get(), label_bottom_y - 1.0),
-                            Pos2::new(full.max.x, label_bottom_y),
-                        );
-                        let bottom_clip = bottom_line_rect.intersect(ui.clip_rect());
-                        let bottom_painter =
-                            egui::Painter::new(ui.ctx().clone(), ui.layer_id(), bottom_clip);
-                        bottom_painter.line_segment(
-                            [
-                                Pos2::new(ch_start_x.get(), label_bottom_y),
-                                Pos2::new(full.max.x, label_bottom_y),
-                            ],
-                            Stroke::new(1.0, COLOR_TEXT_DIM),
-                        );
-                    }
+                ui.painter().rect_filled(full, 0.0, cell_bg);
 
                 let response = ui.interact(
-                    label_rect,
+                    full,
                     ui.id().with(("ch_lbl_sub", ch, sub)),
                     Sense::click(),
                 );
@@ -268,39 +196,6 @@ fn toggle_solo(muted: &mut Vec<bool>, ch: usize, channels: usize) {
         for (c, m) in muted.iter_mut().enumerate() {
             *m = c != ch;
         }
-    }
-}
-
-fn draw_scope_with_painter(
-    painter: &egui::Painter,
-    rect: egui::Rect,
-    data: &[f32; SCOPE_SIZE],
-    muted: bool,
-    playing: bool,
-) {
-    let w = rect.width();
-    let h = rect.height();
-    let mid_y = rect.min.y + h * 0.5;
-    let color = if muted {
-        COLOR_MUTED
-    } else if playing {
-        COLOR_PATTERN_PLAYBACK_TEXT
-    } else {
-        COLOR_TEXT_DIM
-    };
-
-    let step = SCOPE_SIZE as f32 / w;
-    let points: Vec<Pos2> = (0..w as usize)
-        .map(|px| {
-            let idx = ((px as f32) * step) as usize;
-            let sample = data[idx.min(SCOPE_SIZE - 1)];
-            let y = mid_y - sample.clamp(-1.0, 1.0) * h * 0.45;
-            Pos2::new(rect.min.x + px as f32, y)
-        })
-        .collect();
-
-    if points.len() >= 2 {
-        painter.add(egui::Shape::line(points, Stroke::new(1.0, color)));
     }
 }
 
