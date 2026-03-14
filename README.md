@@ -8,6 +8,7 @@ A lightweight cross-platform tracker-like sequencer built with Rust and egui.
 
 **Latest changes**
 
+- Pattern arranger!!!
 - BPM, Time signature/subdivison/beat are NOT global but can be set per pattern. This is huuuge!
 - Time signature/subdivision/beat system
 - Added mixer with channel strips
@@ -19,7 +20,6 @@ A lightweight cross-platform tracker-like sequencer built with Rust and egui.
 - Make ADSRs easier to use
 - Improve mixer channel strip design
 - Add an effect macro palette
-- Compound patterns (parts)
 - Investigate MIDI compatibility
 - ...and more
 
