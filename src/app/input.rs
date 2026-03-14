@@ -756,7 +756,7 @@ impl App {
         self.clear_selection();
         let voices = self.voices_for_channel(self.cursor.channel);
         for (i, &note) in notes.iter().enumerate() {
-            let v = i.min(voices - 1);
+            let v = (self.cursor.voice + i).min(voices - 1);
             self.project.current_pattern_mut().set(
                 self.cursor.channel,
                 v,
