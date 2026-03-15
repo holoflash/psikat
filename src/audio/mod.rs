@@ -190,7 +190,6 @@ impl AudioEngine {
             vol_envelope: track.vol_envelope.clone(),
             sample_data: Arc::clone(&track.sample_data),
             master_volume,
-            vol_fadeout: track.vol_fadeout,
             coarse_tune: track.coarse_tune,
             fine_tune: track.fine_tune,
             pitch_env_enabled: track.pitch_env_enabled,

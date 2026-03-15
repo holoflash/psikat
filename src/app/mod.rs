@@ -73,8 +73,6 @@ pub struct App {
     pub show_about_modal: bool,
     pub clipboard: Option<ClipboardData>,
     pub muted_channels: Vec<bool>,
-    pub envelope_point_idx: usize,
-    pub dragging_envelope_point: Option<usize>,
 
     pub follow_scroll_offset: f32,
     pub show_sidebar: bool,
@@ -92,10 +90,6 @@ pub struct App {
     pub show_new_confirm: bool,
     pub move_preview: Option<MovePreview>,
     pub dragging_waveform: Option<WaveformDrag>,
-    pub pitch_envelope_point_idx: usize,
-    pub dragging_pitch_env_point: Option<usize>,
-    pub filter_envelope_point_idx: usize,
-    pub dragging_filter_env_point: Option<usize>,
     pub chord_buffer: Vec<Note>,
     pub chord_frames_remaining: u8,
 
@@ -134,8 +128,6 @@ impl App {
             show_about_modal: false,
             clipboard: None,
             muted_channels: vec![false; 32],
-            envelope_point_idx: 0,
-            dragging_envelope_point: None,
 
             follow_scroll_offset: 0.0,
             show_sidebar: true,
@@ -153,10 +145,6 @@ impl App {
             show_new_confirm: false,
             move_preview: None,
             dragging_waveform: None,
-            pitch_envelope_point_idx: 0,
-            dragging_pitch_env_point: None,
-            filter_envelope_point_idx: 0,
-            dragging_filter_env_point: None,
             chord_buffer: Vec::new(),
             chord_frames_remaining: 0,
 
@@ -317,7 +305,6 @@ impl App {
                     self.cursor.voice = 0;
                     self.cursor.row = 0;
                     self.current_track = 0;
-                    self.envelope_point_idx = 0;
                 }
                 Err(e) => {
                     eprintln!("Failed to open project: {e}");
@@ -344,7 +331,6 @@ impl App {
         self.cursor.voice = 0;
         self.cursor.row = 0;
         self.current_track = 0;
-        self.envelope_point_idx = 0;
         self.arranger_selection.clear();
         self.arranger_drag = None;
         self.arranger_renaming = None;

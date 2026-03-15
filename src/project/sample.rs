@@ -32,10 +32,7 @@ pub struct SampleData {
     pub reverse: bool,
 }
 impl SampleData {
-    #[inline]
-    pub fn loop_end(&self) -> usize {
-        self.loop_start + self.loop_length
-    }
+
     pub fn load_from_path(path: &Path) -> Result<Arc<Self>, String> {
         let file = File::open(path).map_err(|e| format!("Failed to open file: {e}"))?;
         let reader = BufReader::new(file);

@@ -32,6 +32,7 @@ pub fn draw_mixer(ctx: &egui::Context, app: &mut App) {
 
             egui::ScrollArea::horizontal()
                 .id_salt("mixer_scroll")
+                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {

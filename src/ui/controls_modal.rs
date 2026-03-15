@@ -4,8 +4,7 @@ use crate::app::App;
 use crate::app::keybindings::KeyBindings;
 
 use super::{
-    COLOR_LAYOUT_BG_PANEL, COLOR_LAYOUT_BORDER_ACTIVE, COLOR_MODE_PLAYING, COLOR_TEXT,
-    COLOR_TEXT_ACTIVE, COLOR_TEXT_DIM,
+    COLOR_LAYOUT_BG_PANEL, COLOR_MODE_PLAYING, COLOR_TEXT, COLOR_TEXT_ACTIVE, COLOR_TEXT_DIM,
 };
 
 pub fn draw_controls_modal(ctx: &egui::Context, app: &mut App) {
@@ -17,20 +16,22 @@ pub fn draw_controls_modal(ctx: &egui::Context, app: &mut App) {
         .open(&mut app.show_controls_modal)
         .collapsible(false)
         .resizable(false)
+        .auto_sized()
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-        .fixed_size([520.0, 540.0])
         .frame(
             egui::Frame::new()
                 .fill(COLOR_LAYOUT_BG_PANEL)
-                .stroke(egui::Stroke::new(1.0, COLOR_LAYOUT_BORDER_ACTIVE))
+                .stroke(egui::Stroke::new(1.0, COLOR_TEXT_DIM))
                 .inner_margin(egui::Margin::same(16))
                 .corner_radius(4.0),
         )
         .show(ctx, |ui| {
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                draw_keybinding_categories(ui, &app.keybindings);
-                draw_notes_section(ui);
-            });
+            egui::ScrollArea::vertical()
+                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                .show(ui, |ui| {
+                    draw_keybinding_categories(ui, &app.keybindings);
+                    draw_notes_section(ui);
+                });
         });
 }
 
