@@ -11,6 +11,8 @@ Hang tight...this is gonna take a while! It's still missing a lot of features th
 
 **Latest changes**
 
+- Wiped out all ADSR envelopes before a big change
+- Stereo sample playback
 - Right click waveform to trim sample to selection
 - Overall UI improvements
 - Allow each track to use different subdivisions = POLYRHYTHMS!!!

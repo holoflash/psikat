@@ -187,15 +187,10 @@ impl AudioEngine {
             frequencies: freqs.to_vec(),
             volume: track.default_volume,
             panning: track.default_panning,
-            vol_envelope: track.vol_envelope.clone(),
             sample_data: Arc::clone(&track.sample_data),
             master_volume,
             coarse_tune: track.coarse_tune,
             fine_tune: track.fine_tune,
-            pitch_env_enabled: track.pitch_env_enabled,
-            pitch_env_depth: track.pitch_env_depth,
-            pitch_envelope: track.pitch_envelope.clone(),
-            filter: Box::new(track.filter.clone()),
         });
     }
 }

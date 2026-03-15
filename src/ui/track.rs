@@ -4,11 +4,11 @@ use eframe::egui::{self, FontId, Pos2, RichText, Stroke, Vec2};
 
 use crate::app::{App, WaveformDrag};
 use crate::project::SampleData;
-use crate::project::channel::FilterType;
+
 use crate::project::sample::LoopType;
 
 use super::{
-    COLOR_ACCENT, COLOR_LAYOUT_BG_DARK, COLOR_LAYOUT_BG_PANEL, COLOR_PATTERN_PLAYBACK_TEXT,
+    COLOR_ACCENT, COLOR_LAYOUT_BG_DARK, COLOR_LAYOUT_BG_PANEL,
     COLOR_TEXT, COLOR_TEXT_ACTIVE, COLOR_TEXT_DIM,
 };
 
@@ -30,30 +30,6 @@ fn separator(ui: &mut egui::Ui) {
         Stroke::new(1.0, COLOR_TEXT_DIM),
     );
     ui.add_space(6.0);
-}
-
-fn toggle_checkbox(ui: &mut egui::Ui, checked: &mut bool) {
-    let size = Vec2::new(14.0, 14.0);
-    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
-    let painter = ui.painter();
-    painter.rect_filled(
-        rect,
-        2.0,
-        if *checked {
-            COLOR_PATTERN_PLAYBACK_TEXT
-        } else {
-            egui::Color32::TRANSPARENT
-        },
-    );
-    painter.rect_stroke(
-        rect,
-        2.0,
-        Stroke::new(1.0, COLOR_TEXT_DIM),
-        egui::StrokeKind::Outside,
-    );
-    if response.clicked() {
-        *checked = !*checked;
-    }
 }
 
 fn section_header(ui: &mut egui::Ui, label: &str) {
@@ -181,15 +157,7 @@ pub fn draw_track_sidebar(ctx: &egui::Context, app: &mut App) {
                             ui.add_space(4.0);
                             separator(ui);
 
-                            draw_vol_envelope_section(ui, app, inst_idx);
-                            ui.add_space(4.0);
-                            separator(ui);
-
                             draw_pitch_section(ui, app, inst_idx);
-                            ui.add_space(4.0);
-                            separator(ui);
-
-                            draw_filter_section(ui, app, inst_idx);
                             ui.add_space(8.0);
                         });
                 });
@@ -597,25 +565,6 @@ fn load_sample_dialog(app: &mut App, inst_idx: usize) {
     }
 }
 
-fn draw_vol_envelope_section(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
-    ui.add_space(4.0);
-    ui.horizontal(|ui| {
-        field_label(ui, "ENVELOPE");
-        let mut enabled = app.project.tracks[inst_idx].vol_envelope.enabled;
-        toggle_checkbox(ui, &mut enabled);
-        app.project.tracks[inst_idx].vol_envelope.enabled = enabled;
-    });
-
-    if app.project.tracks[inst_idx].vol_envelope.enabled {
-        draw_adsr_controls(
-            ui,
-            &mut app.project.tracks[inst_idx].vol_envelope,
-            &mut app.text_editing,
-            "vol",
-        );
-    }
-}
-
 fn draw_pitch_section(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
     section_header(ui, "PITCH");
     ui.add_space(4.0);
@@ -654,239 +603,4 @@ fn draw_pitch_section(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
         }
         app.project.tracks[inst_idx].fine_tune = v as i8;
     });
-    ui.add_space(4.0);
-
-    ui.horizontal(|ui| {
-        field_label(ui, "PITCH ENV");
-        let mut enabled = app.project.tracks[inst_idx].pitch_env_enabled;
-        toggle_checkbox(ui, &mut enabled);
-        if enabled != app.project.tracks[inst_idx].pitch_env_enabled {
-            app.project.tracks[inst_idx].pitch_env_enabled = enabled;
-            if enabled {
-                app.project.tracks[inst_idx].pitch_envelope.enabled = true;
-            }
-        }
-    });
-
-    if app.project.tracks[inst_idx].pitch_env_enabled {
-        ui.add_space(2.0);
-        ui.horizontal(|ui| {
-            field_label(ui, "DEPTH");
-            let mut v = app.project.tracks[inst_idx].pitch_env_depth as f64;
-            let r = ui
-                .add(
-                    egui::DragValue::new(&mut v)
-                        .range(0.0..=48.0)
-                        .speed(0.15)
-                        .suffix(" st"),
-                )
-                .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-            if r.has_focus() {
-                app.text_editing = true;
-            }
-            app.project.tracks[inst_idx].pitch_env_depth = v as f32;
-        });
-
-        draw_adsr_controls(
-            ui,
-            &mut app.project.tracks[inst_idx].pitch_envelope,
-            &mut app.text_editing,
-            "pitch",
-        );
-    }
 }
-
-fn draw_filter_section(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
-    section_header(ui, "FILTER");
-    ui.add_space(4.0);
-
-    ui.horizontal(|ui| {
-        field_label(ui, "FILTER");
-        let mut enabled = app.project.tracks[inst_idx].filter.enabled;
-        toggle_checkbox(ui, &mut enabled);
-        app.project.tracks[inst_idx].filter.enabled = enabled;
-    });
-
-    if app.project.tracks[inst_idx].filter.enabled {
-        ui.add_space(4.0);
-
-        ui.horizontal(|ui| {
-            field_label(ui, "TYPE");
-            let current = app.project.tracks[inst_idx].filter.filter_type;
-            let mut selected = current;
-            egui::ComboBox::from_id_salt("filter_type_combo")
-                .selected_text(RichText::new(current.label()).font(FontId::monospace(12.0)))
-                .width(80.0)
-                .show_ui(ui, |ui| {
-                    for &kind in FilterType::ALL {
-                        ui.selectable_value(
-                            &mut selected,
-                            kind,
-                            RichText::new(kind.label()).color(if kind == current {
-                                COLOR_ACCENT
-                            } else {
-                                COLOR_TEXT
-                            }),
-                        );
-                    }
-                });
-            app.project.tracks[inst_idx].filter.filter_type = selected;
-        });
-        ui.add_space(2.0);
-
-        ui.horizontal(|ui| {
-            field_label(ui, "CUTOFF");
-            let mut v = app.project.tracks[inst_idx].filter.cutoff as f64;
-            let r = ui
-                .add(
-                    egui::DragValue::new(&mut v)
-                        .range(20.0..=20000.0)
-                        .speed(20.0)
-                        .suffix(" Hz"),
-                )
-                .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-            if r.has_focus() {
-                app.text_editing = true;
-            }
-            app.project.tracks[inst_idx].filter.cutoff = v as f32;
-        });
-        ui.add_space(2.0);
-
-        ui.horizontal(|ui| {
-            field_label(ui, "RESONANCE");
-            let mut v = (app.project.tracks[inst_idx].filter.resonance * 100.0) as f64;
-            let r = ui
-                .add(
-                    egui::DragValue::new(&mut v)
-                        .range(0.0..=100.0)
-                        .speed(0.3)
-                        .suffix("%"),
-                )
-                .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-            if r.has_focus() {
-                app.text_editing = true;
-            }
-            app.project.tracks[inst_idx].filter.resonance = (v as f32 / 100.0).clamp(0.0, 1.0);
-        });
-        ui.add_space(2.0);
-
-        ui.horizontal(|ui| {
-            field_label(ui, "ENV DEPTH");
-            let mut v = (app.project.tracks[inst_idx].filter.env_depth * 100.0) as f64;
-            let r = ui
-                .add(
-                    egui::DragValue::new(&mut v)
-                        .range(-100.0..=100.0)
-                        .speed(0.3)
-                        .suffix("%"),
-                )
-                .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-            if r.has_focus() {
-                app.text_editing = true;
-            }
-            app.project.tracks[inst_idx].filter.env_depth = (v as f32 / 100.0).clamp(-1.0, 1.0);
-        });
-        ui.add_space(4.0);
-
-        ui.horizontal(|ui| {
-            field_label(ui, "FILT ENV");
-            let mut env_enabled = app.project.tracks[inst_idx].filter.envelope.enabled;
-            toggle_checkbox(ui, &mut env_enabled);
-            app.project.tracks[inst_idx].filter.envelope.enabled = env_enabled;
-        });
-
-        if app.project.tracks[inst_idx].filter.envelope.enabled {
-            draw_adsr_controls(
-                ui,
-                &mut app.project.tracks[inst_idx].filter.envelope,
-                &mut app.text_editing,
-                "filt",
-            );
-        }
-    }
-}
-
-fn draw_adsr_controls(
-    ui: &mut egui::Ui,
-    env: &mut crate::project::channel::AdsrEnvelope,
-    text_editing: &mut bool,
-    _id_prefix: &str,
-) {
-    ui.add_space(2.0);
-
-    ui.horizontal(|ui| {
-        field_label(ui, "ATTACK");
-        let mut v = env.attack_ms as f64;
-        let r = ui
-            .add(
-                egui::DragValue::new(&mut v)
-                    .range(0.0..=5000.0)
-                    .speed(1.0)
-                    .suffix(" ms")
-                    .custom_formatter(|v, _| format!("{:.0}", v)),
-            )
-            .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-        if r.has_focus() {
-            *text_editing = true;
-        }
-        env.attack_ms = v as f32;
-    });
-    ui.add_space(2.0);
-
-    ui.horizontal(|ui| {
-        field_label(ui, "DECAY");
-        let mut v = env.decay_ms as f64;
-        let r = ui
-            .add(
-                egui::DragValue::new(&mut v)
-                    .range(0.0..=5000.0)
-                    .speed(1.0)
-                    .suffix(" ms")
-                    .custom_formatter(|v, _| format!("{:.0}", v)),
-            )
-            .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-        if r.has_focus() {
-            *text_editing = true;
-        }
-        env.decay_ms = v as f32;
-    });
-    ui.add_space(2.0);
-
-    ui.horizontal(|ui| {
-        field_label(ui, "SUSTAIN");
-        let mut v = (env.sustain * 100.0) as f64;
-        let r = ui
-            .add(
-                egui::DragValue::new(&mut v)
-                    .range(0.0..=100.0)
-                    .speed(0.3)
-                    .suffix("%")
-                    .custom_formatter(|v, _| format!("{:.0}", v)),
-            )
-            .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-        if r.has_focus() {
-            *text_editing = true;
-        }
-        env.sustain = (v as f32 / 100.0).clamp(0.0, 1.0);
-    });
-    ui.add_space(2.0);
-
-    ui.horizontal(|ui| {
-        field_label(ui, "RELEASE");
-        let mut v = env.release_ms as f64;
-        let r = ui
-            .add(
-                egui::DragValue::new(&mut v)
-                    .range(0.0..=5000.0)
-                    .speed(1.0)
-                    .suffix(" ms")
-                    .custom_formatter(|v, _| format!("{:.0}", v)),
-            )
-            .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-        if r.has_focus() {
-            *text_editing = true;
-        }
-        env.release_ms = v as f32;
-    });
-}
-

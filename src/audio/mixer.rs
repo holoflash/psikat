@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use rodio::Source;
 
-use crate::project::channel::{AdsrEnvelope, FilterSettings, FilterType, Track};
+use crate::project::channel::Track;
 use crate::project::sample::LoopType;
 use crate::project::{Cell, SampleData};
 
@@ -82,15 +82,10 @@ pub enum Command {
         frequencies: Vec<f32>,
         volume: f32,
         panning: f32,
-        vol_envelope: AdsrEnvelope,
         sample_data: Arc<SampleData>,
         master_volume: f32,
         coarse_tune: i8,
         fine_tune: i8,
-        pitch_env_enabled: bool,
-        pitch_env_depth: f32,
-        pitch_envelope: AdsrEnvelope,
-        filter: Box<FilterSettings>,
     },
 }
 
@@ -136,7 +131,7 @@ struct TrackTiming {
 }
 
 const RELEASE_FADE_SAMPLES: u32 = 64;
-const SAMPLE_RATE_F64: f64 = SAMPLE_RATE as f64;
+
 
 struct Channel {
     active: bool,
@@ -145,38 +140,14 @@ struct Channel {
     base_sample_step: f64,
     sample_step: f64,
     sample_direction: f64,
-    vol_envelope: AdsrEnvelope,
     volume: f32,
     pan_l: f32,
     pan_r: f32,
 
-    env_elapsed: f64,
-    release_elapsed: Option<f64>,
-    cached_env_amp: f32,
     note_released: bool,
 
     coarse_tune: i8,
     fine_tune: i8,
-    pitch_env_enabled: bool,
-    pitch_env_depth: f32,
-    pitch_envelope: AdsrEnvelope,
-    pitch_env_elapsed: f64,
-    pitch_release_elapsed: Option<f64>,
-    cached_pitch_env: f32,
-
-    filter: FilterSettings,
-    filter_env_elapsed: f64,
-    filter_release_elapsed: Option<f64>,
-    cached_filter_env: f32,
-    filter_state_1: f32,
-    filter_state_2: f32,
-    filter_state_1_r: f32,
-    filter_state_2_r: f32,
-    filter_b0: f32,
-    filter_b1: f32,
-    filter_b2: f32,
-    filter_a1: f32,
-    filter_a2: f32,
 
     region_start: usize,
     region_end: usize,
@@ -197,37 +168,13 @@ impl Channel {
             base_sample_step: 0.0,
             sample_step: 0.0,
             sample_direction: 1.0,
-            vol_envelope: AdsrEnvelope::disabled(),
             volume: 1.0,
             pan_l: 0.5_f32.sqrt(),
             pan_r: 0.5_f32.sqrt(),
-            env_elapsed: 0.0,
-            release_elapsed: None,
-            cached_env_amp: 1.0,
             note_released: false,
 
             coarse_tune: 0,
             fine_tune: 0,
-            pitch_env_enabled: false,
-            pitch_env_depth: 12.0,
-            pitch_envelope: AdsrEnvelope::disabled(),
-            pitch_env_elapsed: 0.0,
-            pitch_release_elapsed: None,
-            cached_pitch_env: 0.5,
-
-            filter: FilterSettings::default(),
-            filter_env_elapsed: 0.0,
-            filter_release_elapsed: None,
-            cached_filter_env: 1.0,
-            filter_state_1: 0.0,
-            filter_state_2: 0.0,
-            filter_state_1_r: 0.0,
-            filter_state_2_r: 0.0,
-            filter_b0: 1.0,
-            filter_b1: 0.0,
-            filter_b2: 0.0,
-            filter_a1: 0.0,
-            filter_a2: 0.0,
 
             region_start: 0,
             region_end: 0,
@@ -264,17 +211,12 @@ impl Channel {
         &mut self,
         frequency: f32,
         volume: f32,
-        vol_envelope: AdsrEnvelope,
         sample_data: &Arc<SampleData>,
         coarse_tune: i8,
         fine_tune: i8,
-        pitch_env_enabled: bool,
-        pitch_env_depth: f32,
-        pitch_envelope: AdsrEnvelope,
-        filter: FilterSettings,
     ) {
         if self.active {
-            let mut gain = self.cached_env_amp * self.volume;
+            let mut gain = self.volume;
             if self.release_fade_remaining > 0 {
                 gain *= self.release_fade_remaining as f32 / RELEASE_FADE_SAMPLES as f32;
             }
@@ -285,7 +227,6 @@ impl Channel {
         }
         self.active = true;
         self.volume = volume;
-        self.vol_envelope = vol_envelope;
         self.sample_data = Arc::clone(sample_data);
 
         self.coarse_tune = coarse_tune;
@@ -307,113 +248,15 @@ impl Channel {
         };
 
         self.sample_direction = if sample_data.reverse { -1.0 } else { 1.0 };
-        self.env_elapsed = 0.0;
-        self.release_elapsed = None;
-        self.cached_env_amp = self.vol_envelope.amplitude(0.0, None, SAMPLE_RATE_F64);
         self.note_released = false;
         self.release_fade_remaining = 0;
-
-        self.pitch_env_enabled = pitch_env_enabled;
-        self.pitch_env_depth = pitch_env_depth;
-        self.pitch_envelope = pitch_envelope;
-        self.pitch_env_elapsed = 0.0;
-        self.pitch_release_elapsed = None;
-        self.cached_pitch_env = if self.pitch_env_enabled {
-            self.pitch_envelope.amplitude(0.0, None, SAMPLE_RATE_F64)
-        } else {
-            0.5
-        };
-
-        self.filter = filter;
-        self.filter_env_elapsed = 0.0;
-        self.filter_release_elapsed = None;
-        self.cached_filter_env = if self.filter.enabled && self.filter.envelope.enabled {
-            self.filter.envelope.amplitude(0.0, None, SAMPLE_RATE_F64)
-        } else {
-            1.0
-        };
-        self.filter_state_1 = 0.0;
-        self.filter_state_2 = 0.0;
-        self.filter_state_1_r = 0.0;
-        self.filter_state_2_r = 0.0;
-        if self.filter.enabled {
-            self.update_filter_coeffs();
-        }
     }
 
-    fn note_off(&mut self, _fade_samples: u32) {
+    fn note_off(&mut self) {
         self.note_released = true;
-        self.release_elapsed = Some(0.0);
-        self.pitch_release_elapsed = Some(0.0);
-        self.filter_release_elapsed = Some(0.0);
-        if !self.vol_envelope.enabled && self.release_fade_remaining == 0 {
+        if self.release_fade_remaining == 0 {
             self.release_fade_remaining = RELEASE_FADE_SAMPLES;
         }
-    }
-
-    fn update_filter_coeffs(&mut self) {
-        let envelope_mod = if self.filter.envelope.enabled {
-            let mod_octaves = self.filter.env_depth * (self.cached_filter_env * 2.0 - 1.0) * 4.0;
-            mod_octaves.exp2()
-        } else {
-            1.0
-        };
-
-        let cutoff = (self.filter.cutoff * envelope_mod).clamp(20.0, 20000.0);
-        let quality_factor = 0.5 + self.filter.resonance * 9.5;
-
-        let omega = std::f32::consts::TAU * cutoff / SAMPLE_RATE as f32;
-        let sin_omega = omega.sin();
-        let cos_omega = omega.cos();
-        let alpha = sin_omega / (2.0 * quality_factor);
-
-        let (b0, b1, b2, a0, a1, a2) = match self.filter.filter_type {
-            FilterType::LowPass => {
-                let b1 = 1.0 - cos_omega;
-                let b0 = b1 / 2.0;
-                let b2 = b0;
-                let a0 = 1.0 + alpha;
-                let a1 = -2.0 * cos_omega;
-                let a2 = 1.0 - alpha;
-                (b0, b1, b2, a0, a1, a2)
-            }
-            FilterType::HighPass => {
-                let b1 = -(1.0 + cos_omega);
-                let b0 = (1.0 + cos_omega) / 2.0;
-                let b2 = b0;
-                let a0 = 1.0 + alpha;
-                let a1 = -2.0 * cos_omega;
-                let a2 = 1.0 - alpha;
-                (b0, b1, b2, a0, a1, a2)
-            }
-            FilterType::BandPass => {
-                let b0 = alpha;
-                let b1 = 0.0;
-                let b2 = -alpha;
-                let a0 = 1.0 + alpha;
-                let a1 = -2.0 * cos_omega;
-                let a2 = 1.0 - alpha;
-                (b0, b1, b2, a0, a1, a2)
-            }
-        };
-
-        let inv_a0 = 1.0 / a0;
-        self.filter_b0 = b0 * inv_a0;
-        self.filter_b1 = b1 * inv_a0;
-        self.filter_b2 = b2 * inv_a0;
-        self.filter_a1 = a1 * inv_a0;
-        self.filter_a2 = a2 * inv_a0;
-    }
-
-    #[inline]
-    fn apply_filter_stereo(&mut self, left: f32, right: f32) -> (f32, f32) {
-        let out_l = self.filter_b0 * left + self.filter_state_1;
-        self.filter_state_1 = self.filter_b1 * left - self.filter_a1 * out_l + self.filter_state_2;
-        self.filter_state_2 = self.filter_b2 * left - self.filter_a2 * out_l;
-        let out_r = self.filter_b0 * right + self.filter_state_1_r;
-        self.filter_state_1_r = self.filter_b1 * right - self.filter_a1 * out_r + self.filter_state_2_r;
-        self.filter_state_2_r = self.filter_b2 * right - self.filter_a2 * out_r;
-        (out_l, out_r)
     }
 
     #[inline]
@@ -489,27 +332,15 @@ impl Channel {
     }
 
     #[inline]
-    fn compute_volume_gain(&mut self) -> Option<f32> {
-        let envelope_amplitude = self.cached_env_amp;
-        if self.note_released && envelope_amplitude <= 0.0 {
-            return None;
-        }
-        Some(envelope_amplitude * self.volume)
-    }
-
-    #[inline]
     fn next_sample(&mut self) -> (f32, f32) {
         if !self.active {
             return (0.0, 0.0);
         }
 
-        let volume_gain = match self.compute_volume_gain() {
-            Some(gain) => gain,
-            None => {
-                self.active = false;
-                return (0.0, 0.0);
-            }
-        };
+        if self.note_released && self.release_fade_remaining == 0 {
+            self.active = false;
+            return (0.0, 0.0);
+        }
 
         let (raw_l, raw_r) = self.read_interpolated_sample_stereo();
 
@@ -518,12 +349,8 @@ impl Channel {
             return (0.0, 0.0);
         }
 
-        let (out_l, out_r) = if self.filter.enabled {
-            let (fl, fr) = self.apply_filter_stereo(raw_l, raw_r);
-            (fl * volume_gain, fr * volume_gain)
-        } else {
-            (raw_l * volume_gain, raw_r * volume_gain)
-        };
+        let out_l = raw_l * self.volume;
+        let out_r = raw_r * self.volume;
 
         if self.xfade_remaining > 0 {
             let t = self.xfade_remaining as f32 / 64.0;
@@ -542,58 +369,12 @@ impl Channel {
     }
 
     #[inline]
-    fn tick_envelopes(&mut self, samples_per_tick: f64) {
+    fn tick_envelopes(&mut self) {
         if !self.active {
             return;
         }
-
-        self.env_elapsed += samples_per_tick;
-        if self.vol_envelope.enabled {
-            self.cached_env_amp = self.vol_envelope.amplitude(
-                self.env_elapsed,
-                self.release_elapsed,
-                SAMPLE_RATE_F64,
-            );
-        } else if self.note_released && !self.vol_envelope.enabled
-            && self.release_fade_remaining == 0
-        {
+        if self.note_released && self.release_fade_remaining == 0 {
             self.active = false;
-        }
-        if let Some(ref mut rel) = self.release_elapsed {
-            *rel += samples_per_tick;
-        }
-
-        if self.note_released && self.cached_env_amp <= 0.0 {
-            self.active = false;
-            return;
-        }
-
-        if self.pitch_env_enabled && self.pitch_envelope.enabled {
-            self.pitch_env_elapsed += samples_per_tick;
-            if let Some(ref mut rel) = self.pitch_release_elapsed {
-                *rel += samples_per_tick;
-            }
-            self.cached_pitch_env = self.pitch_envelope.amplitude(
-                self.pitch_env_elapsed,
-                self.pitch_release_elapsed,
-                SAMPLE_RATE_F64,
-            );
-            let pitch_mod_semitones = (self.cached_pitch_env - 0.5) * 2.0 * self.pitch_env_depth;
-            let pitch_ratio = (f64::from(pitch_mod_semitones) / 12.0).exp2();
-            self.sample_step = self.base_sample_step * pitch_ratio;
-        }
-
-        if self.filter.enabled && self.filter.envelope.enabled {
-            self.filter_env_elapsed += samples_per_tick;
-            if let Some(ref mut rel) = self.filter_release_elapsed {
-                *rel += samples_per_tick;
-            }
-            self.cached_filter_env = self.filter.envelope.amplitude(
-                self.filter_env_elapsed,
-                self.filter_release_elapsed,
-                SAMPLE_RATE_F64,
-            );
-            self.update_filter_coeffs();
         }
     }
 }
@@ -747,15 +528,10 @@ impl TrackerSource {
                     frequencies,
                     volume,
                     panning,
-                    vol_envelope,
                     sample_data,
                     master_volume,
                     coarse_tune,
                     fine_tune,
-                    pitch_env_enabled,
-                    pitch_env_depth,
-                    pitch_envelope,
-                    filter,
                 } => {
                     self.preview_channels.resize_with(frequencies.len(), Channel::new);
                     self.preview_channels.truncate(frequencies.len());
@@ -763,14 +539,9 @@ impl TrackerSource {
                         self.preview_channels[i].trigger(
                             freq,
                             volume,
-                            vol_envelope.clone(),
                             &sample_data,
                             coarse_tune,
                             fine_tune,
-                            pitch_env_enabled,
-                            pitch_env_depth,
-                            pitch_envelope.clone(),
-                            (*filter).clone(),
                         );
                         self.preview_channels[i].set_panning(panning);
                     }
@@ -869,7 +640,7 @@ impl TrackerSource {
             if let Some(timing) = self.track_timings.get_mut(track_index) {
                 timing.last_triggered_row = Some(track_row);
             }
-            Self::trigger_track_row(&settings, pattern, track_index, track_row, track_voices, self.samples_per_tick);
+            Self::trigger_track_row(&settings, pattern, track_index, track_row, track_voices);
         }
     }
 
@@ -879,7 +650,6 @@ impl TrackerSource {
         track_index: usize,
         track_row: usize,
         track_voices: &mut [Channel],
-        samples_per_tick: f64,
     ) {
         let track = &settings.tracks[track_index];
         let voices_in_pattern = pattern.data.get(track_index).map(|d| d.len()).unwrap_or(0);
@@ -898,18 +668,13 @@ impl TrackerSource {
                     voice.trigger(
                         note.frequency(),
                         sample_vol,
-                        track.vol_envelope.clone(),
                         sample_data,
                         track.coarse_tune,
                         track.fine_tune,
-                        track.pitch_env_enabled,
-                        track.pitch_env_depth,
-                        track.pitch_envelope.clone(),
-                        track.filter.clone(),
                     );
                     voice.set_panning(track.default_panning);
                 }
-                Cell::NoteOff => voice.note_off(samples_per_tick as u32),
+                Cell::NoteOff => voice.note_off(),
                 Cell::Empty => {}
             }
         }
@@ -952,7 +717,6 @@ impl TrackerSource {
                             track_index,
                             timing.current_row,
                             &mut self.channels[track_index],
-                            self.samples_per_tick,
                         );
                     }
                 }
@@ -1006,18 +770,18 @@ impl TrackerSource {
 
         for track_voices in &mut self.channels {
             for voice in track_voices.iter_mut() {
-                voice.tick_envelopes(self.samples_per_tick);
+                voice.tick_envelopes();
             }
         }
 
         for preview_voice in &mut self.preview_channels {
-            preview_voice.tick_envelopes(self.samples_per_tick);
+            preview_voice.tick_envelopes();
         }
         if self.preview_ticks_remaining > 0 {
             self.preview_ticks_remaining -= 1;
             if self.preview_ticks_remaining == 0 {
                 for preview_voice in &mut self.preview_channels {
-                    preview_voice.note_off(RELEASE_FADE_SAMPLES);
+                    preview_voice.note_off();
                 }
             }
         }
@@ -1294,20 +1058,15 @@ mod tests {
         channel.trigger(
             440.0,
             1.0,
-            AdsrEnvelope::disabled(),
             &sample_data,
             0,
             0,
-            false,
-            12.0,
-            AdsrEnvelope::disabled(),
-            FilterSettings::default(),
         );
         assert!(channel.active);
 
-        channel.note_off(100);
+        channel.note_off();
         for _ in 0..300 {
-            channel.tick_envelopes(1.0);
+            channel.tick_envelopes();
             channel.next_sample();
         }
         assert!(!channel.active);
