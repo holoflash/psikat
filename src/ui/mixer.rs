@@ -9,7 +9,6 @@ use super::{
 };
 
 const STRIP_WIDTH: f32 = 64.0;
-const MIXER_HEIGHT: f32 = 240.0;
 const SCOPE_HEIGHT: f32 = 36.0;
 const FADER_HEIGHT: f32 = 104.0;
 
@@ -23,15 +22,13 @@ pub fn draw_mixer(ctx: &egui::Context, app: &mut App) {
 
     egui::TopBottomPanel::bottom("mixer")
         .resizable(false)
-        .exact_height(MIXER_HEIGHT)
         .frame(
             egui::Frame::new()
                 .fill(COLOR_LAYOUT_BG_PANEL)
-                .inner_margin(egui::Margin::symmetric(4, 6))
                 .stroke(Stroke::new(1.0, COLOR_LAYOUT_BG_DARK)),
         )
         .show(ctx, |ui| {
-            ui.spacing_mut().item_spacing = egui::vec2(2.0, 2.0);
+            ui.spacing_mut().item_spacing = egui::vec2(4.0, 4.0);
 
             egui::ScrollArea::horizontal()
                 .id_salt("mixer_scroll")
@@ -51,7 +48,7 @@ fn draw_channel_strip(ui: &mut egui::Ui, app: &mut App, ch: usize, total_channel
     let is_current = ch == app.current_track;
 
     let border_color = if is_current {
-        COLOR_ACCENT
+        COLOR_TEXT_DIM
     } else {
         COLOR_LAYOUT_BG_DARK
     };
@@ -67,6 +64,13 @@ fn draw_channel_strip(ui: &mut egui::Ui, app: &mut App, ch: usize, total_channel
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing.y = 3.0;
 
+                let is_soloed = !is_muted
+                    && total_channels > 1
+                    && app.muted_channels.len() >= total_channels
+                    && (0..total_channels).all(|c| {
+                        c == ch || app.muted_channels.get(c).copied().unwrap_or(false)
+                    });
+
                 let label_color = if is_muted {
                     MUTED_COLOR
                 } else if is_current {
@@ -74,11 +78,27 @@ fn draw_channel_strip(ui: &mut egui::Ui, app: &mut App, ch: usize, total_channel
                 } else {
                     COLOR_TEXT
                 };
+                let label_bg = if is_muted {
+                    MUTED_COLOR
+                } else if is_soloed {
+                    COLOR_ACCENT
+                } else {
+                    egui::Color32::TRANSPARENT
+                };
+                let label_fg = if is_muted || is_soloed {
+                    COLOR_LAYOUT_BG_DARK
+                } else {
+                    label_color
+                };
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    ui.label(
-                        RichText::new(format!("{}", ch + 1))
-                            .font(FontId::monospace(11.0))
-                            .color(label_color),
+                    let (_, rect) = ui.allocate_space(Vec2::new(STRIP_WIDTH, 16.0));
+                    ui.painter().rect_filled(rect, 0.0, label_bg);
+                    ui.painter().text(
+                        rect.center(),
+                        egui::Align2::CENTER_CENTER,
+                        format!("{}", ch + 1),
+                        FontId::monospace(11.0),
+                        label_fg,
                     );
                 });
 
@@ -86,52 +106,51 @@ fn draw_channel_strip(ui: &mut egui::Ui, app: &mut App, ch: usize, total_channel
 
                 draw_pan_slider(ui, app, ch);
 
-                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    ui.horizontal(|ui| {
-                        let m_color = if is_muted {
-                            MUTED_COLOR
-                        } else {
-                            COLOR_TEXT_DIM
-                        };
-                        let m_btn = ui.add(
-                            egui::Button::new(
-                                RichText::new("M")
-                                    .font(FontId::monospace(10.0))
-                                    .color(m_color),
-                            )
-                            .min_size(Vec2::new(24.0, 16.0))
-                            .frame(is_muted),
-                        );
-                        if m_btn.clicked() {
-                            if ch >= app.muted_channels.len() {
-                                app.muted_channels.resize(ch + 1, false);
-                            }
-                            app.muted_channels[ch] = !app.muted_channels[ch];
-                        }
+                ui.horizontal(|ui| {
+                    let btn_width = 24.0;
+                    let spacing = ui.spacing().item_spacing.x;
+                    let total_btn_width = btn_width * 2.0 + spacing;
+                    let pad = ((STRIP_WIDTH - total_btn_width) / 2.0).max(0.0);
+                    ui.add_space(pad);
 
-                        let is_soloed = !is_muted
-                            && app.muted_channels.len() >= total_channels
-                            && (0..total_channels).all(|c| {
-                                c == ch || app.muted_channels.get(c).copied().unwrap_or(false)
-                            });
-                        let s_color = if is_soloed {
-                            COLOR_TEXT_ACTIVE
-                        } else {
-                            COLOR_TEXT_DIM
-                        };
-                        let s_btn = ui.add(
-                            egui::Button::new(
-                                RichText::new("S")
-                                    .font(FontId::monospace(10.0))
-                                    .color(s_color),
-                            )
-                            .min_size(Vec2::new(24.0, 16.0))
-                            .frame(is_soloed),
-                        );
-                        if s_btn.clicked() {
-                            toggle_solo(&mut app.muted_channels, ch, total_channels);
+                    let m_color = if is_muted {
+                        MUTED_COLOR
+                    } else {
+                        COLOR_TEXT_DIM
+                    };
+                    let m_btn = ui.add(
+                        egui::Button::new(
+                            RichText::new("M")
+                                .font(FontId::monospace(10.0))
+                                .color(m_color),
+                        )
+                        .min_size(Vec2::new(btn_width, 16.0))
+                        .frame(is_muted),
+                    );
+                    if m_btn.clicked() {
+                        if ch >= app.muted_channels.len() {
+                            app.muted_channels.resize(ch + 1, false);
                         }
-                    });
+                        app.muted_channels[ch] = !app.muted_channels[ch];
+                    }
+
+                    let s_color = if is_soloed {
+                        COLOR_TEXT_ACTIVE
+                    } else {
+                        COLOR_TEXT_DIM
+                    };
+                    let s_btn = ui.add(
+                        egui::Button::new(
+                            RichText::new("S")
+                                .font(FontId::monospace(10.0))
+                                .color(s_color),
+                        )
+                        .min_size(Vec2::new(btn_width, 16.0))
+                        .frame(is_soloed),
+                    );
+                    if s_btn.clicked() {
+                        toggle_solo(&mut app.muted_channels, ch, total_channels);
+                    }
                 });
 
                 draw_volume_fader(ui, app, ch, is_muted);
@@ -340,8 +359,9 @@ fn toggle_solo(muted: &mut Vec<bool>, ch: usize, channels: usize) {
         muted.resize(channels, false);
     }
 
-    let is_soloed =
-        !muted[ch] && (0..channels).all(|c| c == ch || muted.get(c).copied().unwrap_or(false));
+    let is_soloed = channels > 1
+        && !muted[ch]
+        && (0..channels).all(|c| c == ch || muted.get(c).copied().unwrap_or(false));
 
     if is_soloed {
         for m in muted.iter_mut() {

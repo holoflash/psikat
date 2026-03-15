@@ -68,7 +68,12 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                     );
                     let origin = response.rect.min;
 
-                    draw_header(&painter, origin, channels, &voice_counts);
+                    draw_header(
+                        &painter,
+                        origin,
+                        channels,
+                        &voice_counts,
+                    );
 
                     let body_origin = origin + egui::vec2(0.0, ROW_HEIGHT);
 
