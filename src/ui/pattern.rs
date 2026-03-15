@@ -13,9 +13,8 @@ use super::{
 
 const FONT: FontId = FontId::monospace(14.0);
 const ROW_HEIGHT: f32 = 18.0;
-const CELL_PAD: f32 = 8.0;
 const ROW_NUM_WIDTH: f32 = 40.0;
-const VOICE_COL_WIDTH: f32 = 42.0;
+const VOICE_COL_WIDTH: f32 = 34.0;
 
 pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
     egui::CentralPanel::default()
@@ -241,10 +240,13 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                                     COLOR_PATTERN_NOTE
                                 };
 
-                                let text_pos = cell_rect.left_top() + egui::vec2(CELL_PAD, 1.0);
+                                let text_pos = egui::pos2(
+                                    body_origin.x + vx + VOICE_COL_WIDTH / 2.0,
+                                    cell_rect.top() + 1.0,
+                                );
                                 painter.text(
                                     text_pos,
-                                    egui::Align2::LEFT_TOP,
+                                    egui::Align2::CENTER_TOP,
                                     &note_text,
                                     FONT,
                                     text_color,
@@ -262,13 +264,13 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                             let mut found_v = None;
                             for (ch, &voices) in voice_counts.iter().enumerate().take(channels) {
                                 for v in 0..voices {
-                                    let vx = ROW_NUM_WIDTH + cx;
+                                    let vx = ROW_NUM_WIDTH + cx + v as f32 * VOICE_COL_WIDTH;
                                     if rel.x >= vx && rel.x < vx + VOICE_COL_WIDTH {
                                         found_ch = Some(ch);
                                         found_v = Some(v);
                                     }
-                                    cx += VOICE_COL_WIDTH;
                                 }
+                                cx += voices as f32 * VOICE_COL_WIDTH;
                             }
                             if let (Some(ch), Some(v)) = (found_ch, found_v) {
                                 let track_rows = app.project.current_pattern().track_rows(ch);
@@ -310,16 +312,17 @@ fn draw_header(
         let bottom = egui::pos2(x, origin.y + ROW_HEIGHT);
         painter.line_segment([top, bottom], Stroke::new(1.0, COLOR_TEXT_DIM));
 
-        let text_pos = egui::pos2(x + CELL_PAD, origin.y + ROW_HEIGHT / 2.0);
+        let ch_w = voices as f32 * VOICE_COL_WIDTH;
+        let text_pos = egui::pos2(x + ch_w / 2.0, origin.y + ROW_HEIGHT / 2.0);
         painter.text(
             text_pos,
-            egui::Align2::LEFT_CENTER,
+            egui::Align2::CENTER_CENTER,
             format!("{}", ch + 1),
             FONT,
             COLOR_TEXT_DIM,
         );
 
-        col_x += voices as f32 * VOICE_COL_WIDTH;
+        col_x += ch_w;
     }
 }
 
@@ -377,8 +380,8 @@ fn draw_row_numbers(
             COLOR_TEXT_DIM
         };
         painter.text(
-            rect.left_top() + egui::vec2(CELL_PAD, 2.0),
-            egui::Align2::LEFT_TOP,
+            egui::pos2(rect.left() + ROW_NUM_WIDTH / 2.0, rect.top() + 2.0),
+            egui::Align2::CENTER_TOP,
             format!("{:02}", r + 1),
             FONT,
             text_color,
