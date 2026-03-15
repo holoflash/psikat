@@ -102,25 +102,38 @@ pub struct PlaybackSettings {
 }
 
 pub struct PatternSnapshot {
-    pub channels: usize,
     pub rows: usize,
     pub bpm: u16,
     pub time_sig_denominator: u8,
     pub note_value: u8,
+    pub track_rows: Vec<usize>,
+    pub track_note_values: Vec<u8>,
     pub data: Vec<Vec<Vec<Cell>>>,
 }
 
 impl PatternSnapshot {
     pub fn from_pattern(pattern: &crate::project::Pattern) -> Self {
+        let track_rows: Vec<usize> = (0..pattern.data.len())
+            .map(|ch| pattern.track_rows(ch))
+            .collect();
         Self {
-            channels: pattern.data.len(),
             rows: pattern.rows,
             bpm: pattern.bpm,
             time_sig_denominator: pattern.time_sig_denominator,
             note_value: pattern.note_value,
+            track_rows,
+            track_note_values: pattern.track_note_values.clone(),
             data: pattern.data.clone(),
         }
     }
+}
+
+struct TrackTiming {
+    total_rows: usize,
+    current_row: usize,
+    last_triggered_row: Option<usize>,
+    samples_per_row: f64,
+    sample_counter: f64,
 }
 
 const RELEASE_FADE_MIN_SAMPLES: u32 = 220;
@@ -542,6 +555,7 @@ pub struct TrackerSource {
     samples_per_tick: f64,
     tick_sample_counter: f64,
     tick_in_row: u16,
+    track_timings: Vec<TrackTiming>,
     receiver: mpsc::Receiver<Command>,
     playback_row: Arc<AtomicUsize>,
     playback_order: Arc<AtomicUsize>,
@@ -559,6 +573,11 @@ pub struct TrackerSource {
 fn compute_samples_per_tick(bpm: u16, note_value: u8, time_sig_denominator: u8) -> f64 {
     f64::from(SAMPLE_RATE) * 60.0 * f64::from(time_sig_denominator)
         / (f64::from(bpm) * f64::from(TICKS_PER_ROW) * f64::from(note_value))
+}
+
+fn compute_samples_per_row(bpm: u16, note_value: u8, time_sig_denominator: u8) -> f64 {
+    f64::from(SAMPLE_RATE) * 60.0 * f64::from(time_sig_denominator)
+        / (f64::from(bpm) * f64::from(note_value))
 }
 
 impl TrackerSource {
@@ -582,6 +601,7 @@ impl TrackerSource {
             samples_per_tick: compute_samples_per_tick(120, 16, 4),
             tick_sample_counter: 0.0,
             tick_in_row: 0,
+            track_timings: Vec::new(),
             receiver,
             playback_row,
             playback_order,
@@ -608,6 +628,7 @@ impl TrackerSource {
         self.current_order_idx = 0;
         self.tick_sample_counter = 0.0;
         self.tick_in_row = 0;
+        self.track_timings.clear();
         self.samples_per_tick = compute_samples_per_tick(120, 16, 4);
         self.master_volume = 1.0;
         self.stereo_phase = false;
@@ -746,6 +767,26 @@ impl TrackerSource {
         self.tick_in_row = 0;
         self.stop_at_end = stop_at_end;
         self.muted_channels = settings.muted_channels.clone();
+
+        self.track_timings.clear();
+        for (track_index, _) in settings.tracks.iter().enumerate() {
+            let track_rows = initial_pattern.track_rows.get(track_index).copied().unwrap_or(initial_pattern.rows);
+            let track_nv = initial_pattern.track_note_values.get(track_index).copied().unwrap_or(initial_pattern.note_value);
+            let spr = compute_samples_per_row(initial_pattern.bpm, track_nv, initial_pattern.time_sig_denominator);
+            let initial_track_row = if track_rows == initial_pattern.rows {
+                start_row
+            } else {
+                start_row * track_rows / initial_pattern.rows
+            };
+            self.track_timings.push(TrackTiming {
+                total_rows: track_rows,
+                current_row: initial_track_row,
+                last_triggered_row: None,
+                samples_per_row: spr,
+                sample_counter: 0.0,
+            });
+        }
+
         self.patterns = patterns;
         self.order = order;
         self.settings = Some(settings);
@@ -758,63 +799,125 @@ impl TrackerSource {
     }
 
     fn process_row(&mut self) {
-        let pattern_index = self.order[self.current_order_idx];
-        let pattern = match self.patterns.get(pattern_index) {
-            Some(p) => Arc::clone(p),
+        if self.patterns.is_empty() || !self.playing {
+            return;
+        }
+        let settings = match self.settings.as_ref() {
+            Some(s) => Arc::clone(s),
             None => return,
         };
-        let Some(settings) = self.settings.as_ref() else {
-            return;
-        };
+        let pattern_index = self.order[self.current_order_idx];
+        let pattern = &self.patterns[pattern_index];
 
-        for track_index in 0..pattern.channels.min(self.channels.len()) {
+        for (track_index, track_voices) in self.channels.iter_mut().enumerate() {
             if track_index >= settings.tracks.len() {
                 continue;
             }
-            let track = &settings.tracks[track_index];
-            let voices_in_pattern = pattern.data[track_index].len();
-            let voices_in_mixer = self.channels[track_index].len();
+            let track_row = self.track_timings.get(track_index)
+                .map(|t| t.current_row)
+                .unwrap_or(self.current_row);
+            if let Some(timing) = self.track_timings.get_mut(track_index) {
+                timing.last_triggered_row = Some(track_row);
+            }
+            Self::trigger_track_row(&settings, pattern, track_index, track_row, track_voices, self.samples_per_tick);
+        }
+    }
 
-            for voice_index in 0..voices_in_pattern.min(voices_in_mixer) {
-                let cell = pattern.data[track_index][voice_index][self.current_row];
-                let voice = &mut self.channels[track_index][voice_index];
+    fn trigger_track_row(
+        settings: &PlaybackSettings,
+        pattern: &PatternSnapshot,
+        track_index: usize,
+        track_row: usize,
+        track_voices: &mut [Channel],
+        samples_per_tick: f64,
+    ) {
+        let track = &settings.tracks[track_index];
+        let voices_in_pattern = pattern.data.get(track_index).map(|d| d.len()).unwrap_or(0);
+        let voices_in_mixer = track_voices.len();
 
-                match cell {
-                    Cell::NoteOn(note) => {
-                        let (sample_data, sample_vol) = track.sample_for_note(note.pitch);
-                        voice.trigger(
-                            note.frequency(),
-                            sample_vol,
-                            track.vol_envelope.clone(),
-                            sample_data,
-                            track.vol_fadeout,
-                            track.coarse_tune,
-                            track.fine_tune,
-                            track.pitch_env_enabled,
-                            track.pitch_env_depth,
-                            track.pitch_envelope.clone(),
-                            track.filter.clone(),
-                        );
-                        voice.set_panning(track.default_panning);
-                    }
-                    Cell::NoteOff => voice.note_off(self.samples_per_tick as u32),
-                    Cell::Empty => {}
+        for (voice_index, voice) in track_voices.iter_mut().enumerate().take(voices_in_pattern.min(voices_in_mixer)) {
+            let ch_data = &pattern.data[track_index][voice_index];
+            if track_row >= ch_data.len() {
+                continue;
+            }
+            let cell = ch_data[track_row];
+
+            match cell {
+                Cell::NoteOn(note) => {
+                    let (sample_data, sample_vol) = track.sample_for_note(note.pitch);
+                    voice.trigger(
+                        note.frequency(),
+                        sample_vol,
+                        track.vol_envelope.clone(),
+                        sample_data,
+                        track.vol_fadeout,
+                        track.coarse_tune,
+                        track.fine_tune,
+                        track.pitch_env_enabled,
+                        track.pitch_env_depth,
+                        track.pitch_envelope.clone(),
+                        track.filter.clone(),
+                    );
+                    voice.set_panning(track.default_panning);
                 }
+                Cell::NoteOff => voice.note_off(samples_per_tick as u32),
+                Cell::Empty => {}
             }
         }
     }
 
-    fn advance_to_next_row(&mut self) {
-        if self.patterns.is_empty() {
+    fn advance_tracks(&mut self) {
+        if self.patterns.is_empty() || !self.playing {
             return;
         }
-
+        let settings = match self.settings.as_ref() {
+            Some(s) => Arc::clone(s),
+            None => return,
+        };
         let pattern_index = self.order[self.current_order_idx];
-        let total_rows = self.patterns[pattern_index].rows;
-        self.current_row += 1;
+        let pattern = &self.patterns[pattern_index];
+        let max_rows = pattern.rows;
 
-        if self.current_row >= total_rows {
-            self.current_row = 0;
+        let mut densest_row = self.current_row;
+        let mut pattern_ended = false;
+
+        for (track_index, timing) in self.track_timings.iter_mut().enumerate() {
+            timing.sample_counter += 1.0;
+            if timing.sample_counter >= timing.samples_per_row {
+                timing.sample_counter -= timing.samples_per_row;
+                timing.current_row += 1;
+
+                if timing.current_row >= timing.total_rows {
+                    timing.current_row = 0;
+                    if timing.total_rows == max_rows {
+                        pattern_ended = true;
+                    }
+                }
+
+                if Some(timing.current_row) != timing.last_triggered_row {
+                    timing.last_triggered_row = Some(timing.current_row);
+                    if track_index < self.channels.len() && track_index < settings.tracks.len() {
+                        Self::trigger_track_row(
+                            &settings,
+                            pattern,
+                            track_index,
+                            timing.current_row,
+                            &mut self.channels[track_index],
+                            self.samples_per_tick,
+                        );
+                    }
+                }
+            }
+
+            if timing.total_rows == max_rows {
+                densest_row = timing.current_row;
+            }
+        }
+
+        self.current_row = densest_row;
+        self.playback_row.store(self.current_row, Ordering::Relaxed);
+
+        if pattern_ended {
             let next_order = self.current_order_idx + 1;
             if next_order >= self.order.len() && self.stop_at_end {
                 self.playing = false;
@@ -831,21 +934,24 @@ impl TrackerSource {
                 if (new_samples_per_tick - self.samples_per_tick).abs() > f64::EPSILON {
                     self.samples_per_tick = new_samples_per_tick;
                 }
+                for (i, timing) in self.track_timings.iter_mut().enumerate() {
+                    timing.total_rows = new_pattern.track_rows.get(i).copied().unwrap_or(new_pattern.rows);
+                    timing.current_row = 0;
+                    timing.last_triggered_row = None;
+                    timing.sample_counter = 0.0;
+                    let nv = new_pattern.track_note_values.get(i).copied().unwrap_or(new_pattern.note_value);
+                    timing.samples_per_row = compute_samples_per_row(new_pattern.bpm, nv, new_pattern.time_sig_denominator);
+                }
             }
         }
-        self.playback_row.store(self.current_row, Ordering::Relaxed);
     }
+
 
     fn tick(&mut self) {
         if self.playing {
             self.tick_in_row += 1;
             if self.tick_in_row >= TICKS_PER_ROW {
                 self.tick_in_row = 0;
-                self.advance_to_next_row();
-                if !self.playing {
-                    return;
-                }
-                self.process_row();
             }
         }
 
@@ -901,6 +1007,8 @@ impl Iterator for TrackerSource {
             self.tick_sample_counter -= self.samples_per_tick;
             self.tick();
         }
+
+        self.advance_tracks();
 
         if self.playing {
             for (track_index, track_voices) in self.channels.iter_mut().enumerate() {

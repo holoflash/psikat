@@ -1,4 +1,4 @@
-<h1><img src="assets/icon.png" alt="psikat" height="32" style="image-rendering: pixelated; vertical-align: middle;"/> psikat</h1>
+<h1><img src="assets/icon.png" alt="psikat" height="64" style="image-rendering: pixelated; vertical-align: middle;"/> psikat</h1>
 
 A lightweight cross-platform tracker-like sequencer built with Rust and egui.
 
@@ -7,10 +7,11 @@ A lightweight cross-platform tracker-like sequencer built with Rust and egui.
 ## 🚧 UNDER DEVELOPMENT 🚧
 
 Each time I sit down to work on piskat, I find new things I want to fix, add or change.
-Hang tight...this is gonna take a while!
+Hang tight...this is gonna take a while! It's still missing a lot of features that I would consider to be essential before an official 1.0.0 release, but I keep going on side-missions that unveil alot of new possibilities.
 
 **Latest changes**
 
+- Allow each track to use different subdivisions = POLYRHYTHMS!!!
 - Highly flexible musical subdivision system that doesn't force you to do maths
 - Pattern arranger!!!
 - BPM, Time signature/subdivison/beat are NOT global but can be set per pattern!

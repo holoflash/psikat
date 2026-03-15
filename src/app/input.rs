@@ -424,11 +424,11 @@ impl App {
                 if self.cursor.row > 0 {
                     self.cursor.row -= 1;
                 } else {
-                    self.cursor.row = self.project.current_pattern().rows - 1;
+                    self.cursor.row = self.project.current_pattern().track_rows(self.cursor.channel) - 1;
                 }
             }
             Action::CursorDown | Action::SelectDown => {
-                if self.cursor.row < self.project.current_pattern().rows - 1 {
+                if self.cursor.row < self.project.current_pattern().track_rows(self.cursor.channel) - 1 {
                     self.cursor.row += 1;
                 } else {
                     self.cursor.row = 0;
@@ -448,6 +448,10 @@ impl App {
                         .voices_for_channel(self.cursor.channel)
                         .saturating_sub(1);
                 }
+                let track_rows = self.project.current_pattern().track_rows(self.cursor.channel);
+                if self.cursor.row >= track_rows {
+                    self.cursor.row = track_rows.saturating_sub(1);
+                }
             }
             Action::CursorRight | Action::SelectRight => {
                 let voices = self.voices_for_channel(self.cursor.channel);
@@ -459,6 +463,10 @@ impl App {
                 } else {
                     self.cursor.channel = 0;
                     self.cursor.voice = 0;
+                }
+                let track_rows = self.project.current_pattern().track_rows(self.cursor.channel);
+                if self.cursor.row >= track_rows {
+                    self.cursor.row = track_rows.saturating_sub(1);
                 }
             }
             _ => {}
@@ -494,7 +502,7 @@ impl App {
                 self.cursor.voice,
                 self.cursor.row,
             );
-            self.cursor.row = self.cursor.row.wrapping_sub(1) % self.project.current_pattern().rows;
+            self.cursor.row = self.cursor.row.wrapping_sub(1) % self.project.current_pattern().track_rows(self.cursor.channel);
         }
     }
 
@@ -749,7 +757,7 @@ impl App {
     }
 
     fn advance_cursor(&mut self) {
-        let rows = self.project.current_pattern().rows;
+        let rows = self.project.current_pattern().track_rows(self.cursor.channel);
         self.cursor.row = (self.cursor.row + self.project.step) % rows;
     }
 }

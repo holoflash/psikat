@@ -129,6 +129,7 @@ pub struct Pattern {
     pub time_sig_denominator: u8,
     pub note_value: u8,
     pub measures: u8,
+    pub track_note_values: Vec<u8>,
     pub data: Vec<Vec<Vec<Cell>>>,
 }
 
@@ -144,34 +145,71 @@ impl Pattern {
             time_sig_denominator: 4,
             note_value: 16,
             measures: 1,
+            track_note_values: vec![16; channels],
             data: vec![vec![vec![Cell::Empty; rows]]; channels],
         }
     }
 
     pub fn new_from(source: &Pattern, name: String, channels: usize) -> Self {
-        let rows = source.computed_rows();
+        let mut track_nvs = source.track_note_values.clone();
+        let last_nv = track_nvs.last().copied().unwrap_or(source.note_value);
+        track_nvs.resize(channels, last_nv);
+
+        let mut data = Vec::with_capacity(channels);
+        for &nv in track_nvs.iter().take(channels) {
+            let ch_rows = Self::rows_per_measure_static(
+                nv,
+                source.time_sig_numerator,
+                source.time_sig_denominator,
+            ) * source.measures as usize;
+            data.push(vec![vec![Cell::Empty; ch_rows]]);
+        }
+        let max_rows = data.iter().map(|ch| ch[0].len()).max().unwrap_or(1);
+
         Self {
             name,
             color: source.color,
             repeat: source.repeat,
-            rows,
+            rows: max_rows,
             bpm: source.bpm,
             time_sig_numerator: source.time_sig_numerator,
             time_sig_denominator: source.time_sig_denominator,
             note_value: source.note_value,
             measures: source.measures,
-            data: vec![vec![vec![Cell::Empty; rows]]; channels],
+            track_note_values: track_nvs,
+            data,
         }
     }
 
+    fn rows_per_measure_static(note_value: u8, numerator: u8, denominator: u8) -> usize {
+        (note_value as usize * numerator as usize / denominator as usize).max(1)
+    }
+
     pub fn rows_per_measure(&self) -> usize {
-        (self.note_value as usize * self.time_sig_numerator as usize
-            / self.time_sig_denominator as usize)
-            .max(1)
+        Self::rows_per_measure_static(self.note_value, self.time_sig_numerator, self.time_sig_denominator)
+    }
+
+    pub fn rows_per_measure_for_track(&self, ch: usize) -> usize {
+        let nv = self.track_note_values.get(ch).copied().unwrap_or(self.note_value);
+        Self::rows_per_measure_static(nv, self.time_sig_numerator, self.time_sig_denominator)
     }
 
     pub fn computed_rows(&self) -> usize {
-        self.rows_per_measure() * self.measures as usize
+        if self.track_note_values.is_empty() {
+            return self.rows_per_measure() * self.measures as usize;
+        }
+        (0..self.track_note_values.len())
+            .map(|ch| self.computed_rows_for_track(ch))
+            .max()
+            .unwrap_or(1)
+    }
+
+    pub fn computed_rows_for_track(&self, ch: usize) -> usize {
+        self.rows_per_measure_for_track(ch) * self.measures as usize
+    }
+
+    pub fn track_rows(&self, ch: usize) -> usize {
+        self.data.get(ch).and_then(|voices| voices.first()).map(|v| v.len()).unwrap_or(self.rows)
     }
 
     pub fn primary_row_group(&self) -> usize {
@@ -180,8 +218,23 @@ impl Pattern {
         rpm / gcd(rpm, num)
     }
 
+    pub fn primary_row_group_for_track(&self, ch: usize) -> usize {
+        let rpm = self.rows_per_measure_for_track(ch);
+        let num = self.time_sig_numerator as usize;
+        rpm / gcd(rpm, num)
+    }
+
     pub fn secondary_row_group(&self) -> usize {
         let primary = self.primary_row_group();
+        if primary <= 1 {
+            return 0;
+        }
+        let spf = smallest_prime_factor(primary);
+        if spf < primary { primary / spf } else { 0 }
+    }
+
+    pub fn secondary_row_group_for_track(&self, ch: usize) -> usize {
+        let primary = self.primary_row_group_for_track(ch);
         if primary <= 1 {
             return 0;
         }
@@ -209,32 +262,64 @@ impl Pattern {
     }
 
     pub fn set_voice_count(&mut self, channel: usize, count: usize) {
+        let ch_rows = self.track_rows(channel);
         let current = self.data[channel].len();
         if count > current {
             for _ in current..count {
-                self.data[channel].push(vec![Cell::Empty; self.rows]);
+                self.data[channel].push(vec![Cell::Empty; ch_rows]);
             }
         } else if count < current && count >= 1 {
             self.data[channel].truncate(count);
         }
     }
 
-    pub fn resize(&mut self, new_rows: usize) {
-        for ch in &mut self.data {
-            for voice in ch.iter_mut() {
-                voice.resize(new_rows, Cell::Empty);
+    pub fn resize(&mut self, new_max_rows: usize) {
+        for (ch, ch_data) in self.data.iter_mut().enumerate() {
+            let ch_rows = self
+                .track_note_values
+                .get(ch)
+                .map(|&nv| {
+                    Self::rows_per_measure_static(
+                        nv,
+                        self.time_sig_numerator,
+                        self.time_sig_denominator,
+                    ) * self.measures as usize
+                })
+                .unwrap_or(new_max_rows);
+            for voice in ch_data.iter_mut() {
+                voice.resize(ch_rows, Cell::Empty);
             }
         }
-        self.rows = new_rows;
+        self.rows = new_max_rows;
+    }
+
+    pub fn resize_track(&mut self, ch: usize) {
+        let ch_rows = self.computed_rows_for_track(ch);
+        for voice in &mut self.data[ch] {
+            voice.resize(ch_rows, Cell::Empty);
+        }
+        self.rows = self.computed_rows();
     }
 
     pub fn add_channel(&mut self) {
-        self.data.push(vec![vec![Cell::Empty; self.rows]]);
+        let last_nv = self.track_note_values.last().copied().unwrap_or(self.note_value);
+        self.track_note_values.push(last_nv);
+        let ch_rows = Self::rows_per_measure_static(
+            last_nv,
+            self.time_sig_numerator,
+            self.time_sig_denominator,
+        ) * self.measures as usize;
+        self.data.push(vec![vec![Cell::Empty; ch_rows]]);
+        self.rows = self.computed_rows();
     }
 
     pub fn remove_channel(&mut self, idx: usize) {
         if idx < self.data.len() && self.data.len() > 1 {
             self.data.remove(idx);
+            if idx < self.track_note_values.len() {
+                self.track_note_values.remove(idx);
+            }
+            self.rows = self.computed_rows();
         }
     }
 }
@@ -301,24 +386,28 @@ mod tests {
         let mut pat = Pattern::new("P01".into(), 1, 16);
         pat.time_sig_numerator = 4;
         pat.note_value = 16;
+        pat.track_note_values[0] = 16;
         pat.measures = 2;
         assert_eq!(pat.computed_rows(), 32);
 
         pat.time_sig_numerator = 7;
         pat.time_sig_denominator = 8;
         pat.note_value = 8;
+        pat.track_note_values[0] = 8;
         pat.measures = 1;
         assert_eq!(pat.computed_rows(), 7);
 
         pat.time_sig_numerator = 3;
         pat.time_sig_denominator = 4;
         pat.note_value = 4;
+        pat.track_note_values[0] = 4;
         pat.measures = 3;
         assert_eq!(pat.computed_rows(), 9);
 
         pat.time_sig_numerator = 4;
         pat.time_sig_denominator = 4;
         pat.note_value = 24;
+        pat.track_note_values[0] = 24;
         pat.measures = 1;
         assert_eq!(pat.computed_rows(), 24);
         assert_eq!(pat.primary_row_group(), 6);
@@ -331,6 +420,7 @@ mod tests {
         source.time_sig_numerator = 7;
         source.time_sig_denominator = 8;
         source.note_value = 12;
+        source.track_note_values = vec![12; 2];
         source.measures = 2;
         source.repeat = 3;
         source.color = Some(PatternColor::Coral);
@@ -346,6 +436,25 @@ mod tests {
         assert_eq!(child.color, Some(PatternColor::Coral));
         assert_eq!(child.data.len(), 3);
         assert_eq!(child.rows, source.computed_rows());
+        assert_eq!(child.track_note_values, vec![12, 12, 12]);
+    }
+
+    #[test]
+    fn per_track_subdivisions() {
+        let mut pat = Pattern::new("P01".into(), 2, 16);
+        pat.time_sig_numerator = 4;
+        pat.time_sig_denominator = 4;
+        pat.measures = 1;
+        pat.track_note_values = vec![4, 16];
+        pat.resize_track(0);
+        pat.resize_track(1);
+
+        assert_eq!(pat.computed_rows_for_track(0), 4);
+        assert_eq!(pat.computed_rows_for_track(1), 16);
+        assert_eq!(pat.track_rows(0), 4);
+        assert_eq!(pat.track_rows(1), 16);
+        assert_eq!(pat.computed_rows(), 16);
+        assert_eq!(pat.rows, 16);
     }
 }
 

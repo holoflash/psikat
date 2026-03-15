@@ -239,8 +239,8 @@ impl App {
         if self.cursor.channel >= self.project.channels {
             self.cursor.channel = self.project.channels.saturating_sub(1);
         }
-        if self.cursor.row >= pat.rows {
-            self.cursor.row = pat.rows.saturating_sub(1);
+        if self.cursor.row >= pat.track_rows(self.cursor.channel) {
+            self.cursor.row = pat.track_rows(self.cursor.channel).saturating_sub(1);
         }
         let voices = pat.voice_count(self.cursor.channel);
         if self.cursor.voice >= voices {

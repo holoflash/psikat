@@ -46,6 +46,14 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 ui.spacing_mut().item_spacing.x = 4.0;
 
                 app.text_editing = false;
+                // Hack to allow TAB to be used for note-off and not steal focus
+                // Combo box blinks when using surrender_focus but an empty element seems to work
+                // TODO: look for a better way
+                let barrier = ui.allocate_response(
+                    egui::vec2(0.0, 0.0),
+                    egui::Sense::focusable_noninteractive(),
+                );
+                barrier.surrender_focus();
 
                 egui::ComboBox::from_id_salt("file_menu")
                     .selected_text(
@@ -155,7 +163,7 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
 
                 ui.label(
                     RichText::new("/")
-                        .font(FontId::monospace(12.0))
+                        .font(FontId::monospace(8.0))
                         .color(COLOR_TEXT_DIM),
                 );
 
@@ -205,7 +213,14 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 ];
 
                 draw_field(ui, "NOTE");
-                let current_nv = app.project.current_pattern().note_value;
+                let ch = app.cursor.channel;
+                let current_nv = app
+                    .project
+                    .current_pattern()
+                    .track_note_values
+                    .get(ch)
+                    .copied()
+                    .unwrap_or(app.project.current_pattern().note_value);
                 let current_label = SUBDIVISIONS
                     .iter()
                     .find(|(v, _)| *v == current_nv)
@@ -224,18 +239,20 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                             } else {
                                 COLOR_TEXT_ACTIVE
                             };
-                            if ui
-                                .selectable_value(
-                                    &mut app.project.current_pattern_mut().note_value,
-                                    nv,
-                                    RichText::new(label).color(color),
-                                )
-                                .changed()
+                            let pat = app.project.current_pattern_mut();
+                            if ch < pat.track_note_values.len()
+                                && ui
+                                    .selectable_value(
+                                        &mut pat.track_note_values[ch],
+                                        nv,
+                                        RichText::new(label).color(color),
+                                    )
+                                    .changed()
                             {
-                                let new_rows = app.project.current_pattern().computed_rows();
-                                app.project.current_pattern_mut().resize(new_rows);
-                                if app.cursor.row >= new_rows {
-                                    app.cursor.row = new_rows.saturating_sub(1);
+                                app.project.current_pattern_mut().resize_track(ch);
+                                let track_rows = app.project.current_pattern().track_rows(ch);
+                                if app.cursor.row >= track_rows {
+                                    app.cursor.row = track_rows.saturating_sub(1);
                                 }
                             }
                         }
@@ -258,7 +275,7 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                     }
                 }
 
-                draw_field(ui, "LOOP");
+                draw_field(ui, "REPEAT");
                 let mut rep = app.project.current_pattern().repeat;
                 let r = ui
                     .add(egui::DragValue::new(&mut rep).range(1..=999).speed(0.2))

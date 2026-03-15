@@ -29,7 +29,7 @@ pub const COLOR_PATTERN_SUBDIVISION: Color32 = Color32::from_rgb(24, 21, 38);
 pub const COLOR_PATTERN_CURSOR_BG: Color32 = Color32::from_rgb(105, 95, 115);
 pub const COLOR_PATTERN_CURSOR_TEXT: Color32 = Color32::from_rgb(255, 250, 235);
 
-pub const COLOR_PATTERN_PLAYBACK_HIGHLIGHT: Color32 = Color32::from_rgb(90, 75, 40);
+pub const COLOR_PATTERN_PLAYBACK_HIGHLIGHT: Color32 = Color32::from_rgb(105, 95, 115);
 pub const COLOR_PATTERN_PLAYBACK_TEXT: Color32 = Color32::from_rgb(255, 245, 220);
 
 pub const COLOR_PATTERN_SELECTION_BG: Color32 = Color32::from_rgb(100, 85, 50);

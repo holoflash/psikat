@@ -1,6 +1,5 @@
 use eframe::egui::scroll_area::ScrollBarVisibility;
-use eframe::egui::{self, FontId, RichText, Sense, Stroke};
-use egui_extras::{Column, TableBuilder};
+use eframe::egui::{self, FontId, Stroke};
 
 use crate::app::{App, Mode};
 use crate::project::Cell;
@@ -15,21 +14,8 @@ use super::{
 const FONT: FontId = FontId::monospace(14.0);
 const ROW_HEIGHT: f32 = 18.0;
 const CELL_PAD: f32 = 8.0;
-const CELL_PAD_HALF: f32 = 4.0;
-
-fn fill_cell(ui: &egui::Ui, color: egui::Color32) {
-    if color != egui::Color32::TRANSPARENT {
-        ui.painter().rect_filled(ui.max_rect(), 0.0, color);
-    }
-}
-
-fn draw_left_border(ui: &egui::Ui) {
-    let rect = ui.max_rect();
-    ui.painter().line_segment(
-        [rect.left_top(), rect.left_bottom()],
-        Stroke::new(1.0, COLOR_TEXT_DIM),
-    );
-}
+const ROW_NUM_WIDTH: f32 = 40.0;
+const VOICE_COL_WIDTH: f32 = 42.0;
 
 pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
     egui::CentralPanel::default()
@@ -48,31 +34,24 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
             ui.style_mut().interaction.selectable_labels = false;
 
             let channels = app.project.channels;
-            let col = Column::auto().at_least(0.0);
-
             let voice_counts: Vec<usize> =
                 (0..channels).map(|ch| app.voices_for_channel(ch)).collect();
-            let total_voice_cols: usize = voice_counts.iter().sum();
+            let pat = app.project.current_pattern();
+            let max_rows = pat.rows;
 
-            egui::ScrollArea::horizontal()
+            let total_voice_cols: usize = voice_counts.iter().sum();
+            let content_width = ROW_NUM_WIDTH + total_voice_cols as f32 * VOICE_COL_WIDTH;
+            let total_height = (max_rows as f32 * ROW_HEIGHT) + ROW_HEIGHT;
+
+            egui::ScrollArea::both()
                 .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     let visible_height = ui.available_height();
-                    let mut table = TableBuilder::new(ui)
-                        .striped(false)
-                        .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
-                        .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-                        .sense(Sense::hover())
-                        .drag_to_scroll(false)
-                        .column(col);
-
-                    for _ in 0..total_voice_cols {
-                        table = table.column(col);
-                    }
 
                     if app.playback.playing {
                         let target_y = (app.playback_row_display as f32 * ROW_HEIGHT
+                            + ROW_HEIGHT
                             - visible_height / 2.0
                             + ROW_HEIGHT / 2.0)
                             .max(0.0);
@@ -82,260 +61,292 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
                         } else {
                             app.follow_scroll_offset += diff * 0.15;
                         }
-                        table = table.vertical_scroll_offset(app.follow_scroll_offset);
+                        ui.scroll_with_delta(egui::vec2(0.0, 0.0));
                     }
 
-                    table
-                        .header(ROW_HEIGHT, |mut header| {
-                            draw_header_row(
-                                &mut header,
-                                channels,
-                                &voice_counts,
-                            );
-                        })
-                        .body(|body| {
-                            body.rows(ROW_HEIGHT, app.project.current_pattern().rows, |mut row| {
-                                draw_body_row(&mut row, app, channels, &voice_counts);
-                            });
-                        });
+                    let (response, painter) = ui.allocate_painter(
+                        egui::vec2(content_width, total_height),
+                        egui::Sense::click_and_drag(),
+                    );
+                    let origin = response.rect.min;
+
+                    draw_header(&painter, origin, channels, &voice_counts);
+
+                    let body_origin = origin + egui::vec2(0.0, ROW_HEIGHT);
+
+                    draw_row_numbers(
+                        &painter,
+                        body_origin,
+                        max_rows,
+                        app.playback.playing,
+                        app.playback_row_display,
+                        app.project.current_pattern().primary_row_group(),
+                        app.project.current_pattern().secondary_row_group(),
+                    );
+
+                    let sel_bounds = app.selection_bounds();
+                    let has_selection = app.cursor.selection_anchor.is_some();
+
+                    let mut col_x = ROW_NUM_WIDTH;
+                    for (ch, &voices) in voice_counts.iter().enumerate().take(channels) {
+                        let track_rows = app.project.current_pattern().track_rows(ch);
+                        let cell_h = if track_rows > 0 {
+                            (max_rows as f32 * ROW_HEIGHT) / track_rows as f32
+                        } else {
+                            ROW_HEIGHT
+                        };
+
+                        let ch_primary = app.project.current_pattern().primary_row_group_for_track(ch);
+                        let ch_secondary = app.project.current_pattern().secondary_row_group_for_track(ch);
+
+                        for v in 0..voices {
+                            let is_first_voice = v == 0;
+                            let vx = col_x + v as f32 * VOICE_COL_WIDTH;
+
+                            if is_first_voice {
+                                let top = body_origin + egui::vec2(vx, 0.0);
+                                let bottom = top + egui::vec2(0.0, max_rows as f32 * ROW_HEIGHT);
+                                painter.line_segment([top, bottom], Stroke::new(1.0, COLOR_TEXT_DIM));
+                            }
+
+                            for t in 0..track_rows {
+                                let y = body_origin.y + t as f32 * cell_h;
+                                let cell_rect = egui::Rect::from_min_size(
+                                    egui::pos2(body_origin.x + vx, y),
+                                    egui::vec2(VOICE_COL_WIDTH, cell_h),
+                                );
+
+                                let is_playback_cell = app.playback.playing && {
+                                    let row_top = t as f32 / track_rows as f32;
+                                    let row_bot = (t + 1) as f32 / track_rows as f32;
+                                    let pb_frac = app.playback_row_display as f32 / max_rows as f32;
+                                    pb_frac >= row_top && pb_frac < row_bot
+                                };
+
+                                let ch_is_beat = ch_primary > 0 && t.is_multiple_of(ch_primary);
+                                let ch_is_subdivision = ch_secondary > 0 && !ch_is_beat && t.is_multiple_of(ch_secondary);
+
+                                let row_bg = if is_playback_cell {
+                                    COLOR_PATTERN_PLAYBACK_HIGHLIGHT
+                                } else if ch_is_beat {
+                                    COLOR_PATTERN_BEATMARKER
+                                } else if ch_is_subdivision {
+                                    COLOR_PATTERN_SUBDIVISION
+                                } else {
+                                    egui::Color32::TRANSPARENT
+                                };
+
+                                let is_cursor_cell = !app.playback.playing
+                                    && app.mode == Mode::Edit
+                                    && ch == app.cursor.channel
+                                    && v == app.cursor.voice
+                                    && t == app.cursor.row
+                                    && !has_selection;
+
+                                let is_selected = sel_bounds.is_some_and(
+                                    |(min_ch, max_ch, min_v, max_v, min_row, max_row)| {
+                                        if t < min_row || t > max_row || ch < min_ch || ch > max_ch {
+                                            return false;
+                                        }
+                                        if min_ch == max_ch {
+                                            v >= min_v && v <= max_v
+                                        } else if ch == min_ch {
+                                            v >= min_v
+                                        } else if ch == max_ch {
+                                            v <= max_v
+                                        } else {
+                                            true
+                                        }
+                                    },
+                                );
+
+                                let pat = app.project.current_pattern();
+                                let mut cell = if v < pat.voice_count(ch) && t < pat.track_rows(ch) {
+                                    pat.get(ch, v, t)
+                                } else {
+                                    Cell::Empty
+                                };
+
+                                if let Some(ref preview) = app.move_preview
+                                    && let Some((min_ch, _, min_v, _, min_row, _)) = sel_bounds
+                                {
+                                    let base_flat = app.flat_col(min_ch, min_v);
+                                    let cur_flat = app.flat_col(ch, v);
+                                    let col_off = cur_flat.wrapping_sub(base_flat);
+                                    let row_off = t.wrapping_sub(min_row);
+                                    if is_selected
+                                        && let Some((_, _, p_cell)) = preview
+                                            .cells
+                                            .iter()
+                                            .find(|(co, ro, _)| *co == col_off && *ro == row_off)
+                                    {
+                                        cell = *p_cell;
+                                    }
+                                }
+
+                                let bg = if is_cursor_cell {
+                                    COLOR_PATTERN_CURSOR_BG
+                                } else if is_selected {
+                                    COLOR_PATTERN_SELECTION_BG
+                                } else {
+                                    row_bg
+                                };
+
+                                if bg != egui::Color32::TRANSPARENT {
+                                    let fill_rect = egui::Rect::from_min_size(
+                                        cell_rect.left_top(),
+                                        egui::vec2(VOICE_COL_WIDTH, ROW_HEIGHT.min(cell_h)),
+                                    );
+                                    painter.rect_filled(fill_rect, 0.0, bg);
+                                }
+
+                                let is_muted = app.muted_channels.get(ch).copied().unwrap_or(false);
+                                let note_text = match cell {
+                                    Cell::NoteOn(note) => note.name(),
+                                    Cell::NoteOff => "OFF".to_string(),
+                                    Cell::Empty => "\u{00b7}\u{00b7}\u{00b7}".to_string(),
+                                };
+
+                                let text_color = if is_cursor_cell {
+                                    COLOR_PATTERN_CURSOR_TEXT
+                                } else if is_selected {
+                                    COLOR_PATTERN_SELECTION_TEXT
+                                } else if matches!(cell, Cell::Empty) || is_muted {
+                                    COLOR_TEXT_DIM
+                                } else if is_playback_cell {
+                                    COLOR_PATTERN_PLAYBACK_TEXT
+                                } else if matches!(cell, Cell::NoteOff) {
+                                    COLOR_PATTERN_NOTE_OFF
+                                } else {
+                                    COLOR_PATTERN_NOTE
+                                };
+
+                                let text_pos = cell_rect.left_top() + egui::vec2(CELL_PAD, 1.0);
+                                painter.text(
+                                    text_pos,
+                                    egui::Align2::LEFT_TOP,
+                                    &note_text,
+                                    FONT,
+                                    text_color,
+                                );
+                            }
+                        }
+                        col_x += voices as f32 * VOICE_COL_WIDTH;
+                    }
+
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        let rel = pos - body_origin;
+                        if rel.y >= 0.0 {
+                            let mut cx = 0.0;
+                            let mut found_ch = None;
+                            let mut found_v = None;
+                            for (ch, &voices) in voice_counts.iter().enumerate().take(channels) {
+                                for v in 0..voices {
+                                    let vx = ROW_NUM_WIDTH + cx;
+                                    if rel.x >= vx && rel.x < vx + VOICE_COL_WIDTH {
+                                        found_ch = Some(ch);
+                                        found_v = Some(v);
+                                    }
+                                    cx += VOICE_COL_WIDTH;
+                                }
+                            }
+                            if let (Some(ch), Some(v)) = (found_ch, found_v) {
+                                let track_rows = app.project.current_pattern().track_rows(ch);
+                                let cell_h = if track_rows > 0 {
+                                    (max_rows as f32 * ROW_HEIGHT) / track_rows as f32
+                                } else {
+                                    ROW_HEIGHT
+                                };
+                                let track_row = (rel.y / cell_h).floor() as usize;
+                                let track_row = track_row.min(track_rows.saturating_sub(1));
+                                if response.clicked() {
+                                    app.clear_selection();
+                                    app.set_cursor(ch, v, track_row);
+                                    if app.mode != Mode::Edit {
+                                        app.mode = Mode::Edit;
+                                    }
+                                }
+                                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                            }
+                        }
+                    }
                 });
         });
 }
 
-fn draw_header_row(
-    header: &mut egui_extras::TableRow<'_, '_>,
+fn draw_header(
+    painter: &egui::Painter,
+    origin: egui::Pos2,
     channels: usize,
     voice_counts: &[usize],
 ) {
-    header.col(|ui| {
-        let full = ui.max_rect();
-        ui.painter().rect_filled(full, 0.0, COLOR_LAYOUT_BG_DARK);
-    });
+    let header_rect = egui::Rect::from_min_size(origin, egui::vec2(ROW_NUM_WIDTH, ROW_HEIGHT));
+    painter.rect_filled(header_rect, 0.0, COLOR_LAYOUT_BG_DARK);
 
+    let mut col_x = ROW_NUM_WIDTH;
     for (ch, &voices) in voice_counts.iter().enumerate().take(channels) {
-        let label = format!("{}", ch + 1);
+        let x = origin.x + col_x;
+        let top = egui::pos2(x, origin.y);
+        let bottom = egui::pos2(x, origin.y + ROW_HEIGHT);
+        painter.line_segment([top, bottom], Stroke::new(1.0, COLOR_TEXT_DIM));
 
-        header.col(|ui| {
-            let full = ui.max_rect();
-            draw_left_border(ui);
-
-            ui.painter().text(
-                full.left_center() + egui::vec2(CELL_PAD, 0.0),
-                egui::Align2::LEFT_CENTER,
-                &label,
-                FONT,
-                COLOR_TEXT_DIM,
-            );
-        });
-
-        for _ in 1..voices {
-            header.col(|ui| {
-                let _ = ui.max_rect();
-            });
-        }
-    }
-}
-
-fn draw_body_row(
-    row: &mut egui_extras::TableRow<'_, '_>,
-    app: &mut App,
-    channels: usize,
-    voice_counts: &[usize],
-) {
-    let row_idx = row.index();
-    let is_playback_row = app.playback.playing && row_idx == app.playback_row_display;
-    let pat = app.project.current_pattern();
-    let primary = pat.primary_row_group();
-    let secondary = pat.secondary_row_group();
-    let is_beat = primary > 0 && row_idx.is_multiple_of(primary);
-    let is_subdivision = secondary > 0 && !is_beat && row_idx.is_multiple_of(secondary);
-
-    let row_bg = if is_playback_row {
-        COLOR_PATTERN_PLAYBACK_HIGHLIGHT
-    } else if is_beat {
-        COLOR_PATTERN_BEATMARKER
-    } else if is_subdivision {
-        COLOR_PATTERN_SUBDIVISION
-    } else {
-        egui::Color32::TRANSPARENT
-    };
-
-    let row_text_color = if is_playback_row {
-        COLOR_PATTERN_PLAYBACK_TEXT
-    } else {
-        COLOR_TEXT_DIM
-    };
-
-    row.col(|ui| {
-        fill_cell(ui, row_bg);
-        ui.add_space(CELL_PAD);
-        ui.label(
-            RichText::new(format!("{:02}", row_idx + 1))
-                .font(FONT)
-                .color(row_text_color),
+        let text_pos = egui::pos2(x + CELL_PAD, origin.y + ROW_HEIGHT / 2.0);
+        painter.text(
+            text_pos,
+            egui::Align2::LEFT_CENTER,
+            format!("{}", ch + 1),
+            FONT,
+            COLOR_TEXT_DIM,
         );
-        ui.add_space(CELL_PAD);
-    });
 
-    let sel_bounds = app.selection_bounds();
-    let has_selection = app.cursor.selection_anchor.is_some();
-
-    for (ch, &voices) in voice_counts.iter().enumerate().take(channels) {
-        for v in 0..voices {
-            let is_cursor_cell = app.mode == Mode::Edit
-                && ch == app.cursor.channel
-                && v == app.cursor.voice
-                && row_idx == app.cursor.row
-                && !has_selection;
-
-            let is_selected =
-                sel_bounds.is_some_and(|(min_ch, max_ch, min_v, max_v, min_row, max_row)| {
-                    if row_idx < min_row || row_idx > max_row || ch < min_ch || ch > max_ch {
-                        return false;
-                    }
-                    if min_ch == max_ch {
-                        v >= min_v && v <= max_v
-                    } else if ch == min_ch {
-                        v >= min_v
-                    } else if ch == max_ch {
-                        v <= max_v
-                    } else {
-                        true
-                    }
-                });
-
-            let pat = app.project.current_pattern();
-            let mut cell = if v < pat.voice_count(ch) {
-                pat.get(ch, v, row_idx)
-            } else {
-                Cell::Empty
-            };
-
-            if let Some(ref preview) = app.move_preview
-                && let Some((min_ch, _, min_v, _, min_row, _)) = sel_bounds
-            {
-                let base_flat = app.flat_col(min_ch, min_v);
-                let cur_flat = app.flat_col(ch, v);
-                let col_off = cur_flat.wrapping_sub(base_flat);
-                let row_off = row_idx.wrapping_sub(min_row);
-                if is_selected
-                    && let Some((_, _, p_cell)) = preview
-                        .cells
-                        .iter()
-                        .find(|(co, ro, _)| *co == col_off && *ro == row_off)
-                {
-                    cell = *p_cell;
-                }
-            }
-
-            let note_text = match cell {
-                Cell::NoteOn(note) => note.name(),
-                Cell::NoteOff => "OFF".to_string(),
-                Cell::Empty => "\u{00b7}\u{00b7}\u{00b7}".to_string(),
-            };
-            let is_muted = app.muted_channels.get(ch).copied().unwrap_or(false);
-            let note_data_color = if matches!(cell, Cell::Empty) || is_muted {
-                COLOR_TEXT_DIM
-            } else if matches!(cell, Cell::NoteOff) {
-                COLOR_PATTERN_NOTE_OFF
-            } else {
-                COLOR_PATTERN_NOTE
-            };
-
-            let is_first_voice = v == 0;
-            let is_last_voice = v == voices - 1;
-            let pad_left = if is_first_voice {
-                CELL_PAD
-            } else {
-                CELL_PAD_HALF
-            };
-            let pad_right = if is_last_voice {
-                CELL_PAD
-            } else {
-                CELL_PAD_HALF
-            };
-
-            row.col(|ui| {
-                if is_first_voice {
-                    draw_left_border(ui);
-                }
-                draw_voice_column(
-                    ui,
-                    app,
-                    ch,
-                    v,
-                    row_idx,
-                    &note_text,
-                    matches!(cell, Cell::Empty),
-                    note_data_color,
-                    is_cursor_cell,
-                    is_selected,
-                    is_playback_row,
-                    row_bg,
-                    pad_left,
-                    pad_right,
-                );
-            });
-        }
+        col_x += voices as f32 * VOICE_COL_WIDTH;
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn draw_voice_column(
-    ui: &mut egui::Ui,
-    app: &mut App,
-    ch: usize,
-    voice: usize,
-    row_idx: usize,
-    text: &str,
-    is_empty: bool,
-    data_color: egui::Color32,
-    is_cursor: bool,
-    is_selected: bool,
-    is_playback_row: bool,
-    row_bg: egui::Color32,
-    pad_left: f32,
-    pad_right: f32,
+fn draw_row_numbers(
+    painter: &egui::Painter,
+    body_origin: egui::Pos2,
+    max_rows: usize,
+    playing: bool,
+    playback_row: usize,
+    primary: usize,
+    secondary: usize,
 ) {
-    let bg = if is_cursor {
-        COLOR_PATTERN_CURSOR_BG
-    } else if is_selected {
-        COLOR_PATTERN_SELECTION_BG
-    } else {
-        row_bg
-    };
-    fill_cell(ui, bg);
+    for r in 0..max_rows {
+        let y = body_origin.y + r as f32 * ROW_HEIGHT;
+        let rect = egui::Rect::from_min_size(
+            egui::pos2(body_origin.x, y),
+            egui::vec2(ROW_NUM_WIDTH, ROW_HEIGHT),
+        );
 
-    let color = if is_cursor {
-        COLOR_PATTERN_CURSOR_TEXT
-    } else if is_selected {
-        COLOR_PATTERN_SELECTION_TEXT
-    } else if is_empty {
-        COLOR_TEXT_DIM
-    } else if is_playback_row {
-        COLOR_PATTERN_PLAYBACK_TEXT
-    } else {
-        data_color
-    };
+        let is_playback = playing && r == playback_row;
+        let is_beat = primary > 0 && r.is_multiple_of(primary);
+        let is_sub = secondary > 0 && !is_beat && r.is_multiple_of(secondary);
 
-    let mut rt = RichText::new(text).font(FONT).color(color);
-    if is_cursor {
-        rt = rt.strong();
-    }
-
-    ui.add_space(pad_left);
-    ui.label(rt);
-    ui.add_space(pad_right);
-
-    let pointer_pos = ui.input(|i| i.pointer.hover_pos());
-    if pointer_pos.is_some_and(|p| ui.max_rect().contains(p)) {
-        ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
-        if ui.input(|i| i.pointer.primary_pressed()) {
-            app.clear_selection();
-            app.set_cursor(ch, voice, row_idx);
-            if app.mode != Mode::Edit {
-                app.mode = Mode::Edit;
-            }
+        let bg = if is_playback {
+            COLOR_PATTERN_PLAYBACK_HIGHLIGHT
+        } else if is_beat {
+            COLOR_PATTERN_BEATMARKER
+        } else if is_sub {
+            COLOR_PATTERN_SUBDIVISION
+        } else {
+            egui::Color32::TRANSPARENT
+        };
+        if bg != egui::Color32::TRANSPARENT {
+            painter.rect_filled(rect, 0.0, bg);
         }
+
+        let text_color = if is_playback {
+            COLOR_PATTERN_PLAYBACK_TEXT
+        } else {
+            COLOR_TEXT_DIM
+        };
+        painter.text(
+            rect.left_center() + egui::vec2(CELL_PAD, 0.0),
+            egui::Align2::LEFT_CENTER,
+            format!("{:02}", r + 1),
+            FONT,
+            text_color,
+        );
     }
 }
