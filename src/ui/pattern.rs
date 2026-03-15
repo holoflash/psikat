@@ -144,10 +144,11 @@ fn draw_body_row(
 ) {
     let row_idx = row.index();
     let is_playback_row = app.playback.playing && row_idx == app.playback_row_display;
-    let rows_per_beat = app.project.current_pattern().rows_per_beat();
-    let is_beat = rows_per_beat > 0 && row_idx.is_multiple_of(rows_per_beat);
-    let half_beat = (rows_per_beat / 2).max(1);
-    let is_subdivision = !is_beat && rows_per_beat > 1 && row_idx.is_multiple_of(half_beat);
+    let pat = app.project.current_pattern();
+    let primary = pat.primary_row_group();
+    let secondary = pat.secondary_row_group();
+    let is_beat = primary > 0 && row_idx.is_multiple_of(primary);
+    let is_subdivision = secondary > 0 && !is_beat && row_idx.is_multiple_of(secondary);
 
     let row_bg = if is_playback_row {
         COLOR_PATTERN_PLAYBACK_HIGHLIGHT

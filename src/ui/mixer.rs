@@ -11,7 +11,7 @@ use super::{
 const STRIP_WIDTH: f32 = 64.0;
 const MIXER_HEIGHT: f32 = 240.0;
 const SCOPE_HEIGHT: f32 = 36.0;
-const FADER_HEIGHT: f32 = 80.0;
+const FADER_HEIGHT: f32 = 104.0;
 
 const MUTED_COLOR: egui::Color32 = egui::Color32::from_rgb(180, 80, 70);
 

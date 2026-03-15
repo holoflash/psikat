@@ -105,7 +105,8 @@ pub struct PatternSnapshot {
     pub channels: usize,
     pub rows: usize,
     pub bpm: u16,
-    pub rows_per_beat: usize,
+    pub time_sig_denominator: u8,
+    pub note_value: u8,
     pub data: Vec<Vec<Vec<Cell>>>,
 }
 
@@ -115,7 +116,8 @@ impl PatternSnapshot {
             channels: pattern.channels,
             rows: pattern.rows,
             bpm: pattern.bpm,
-            rows_per_beat: pattern.rows_per_beat(),
+            time_sig_denominator: pattern.time_sig_denominator,
+            note_value: pattern.note_value,
             data: pattern.data.clone(),
         }
     }
@@ -554,9 +556,9 @@ pub struct TrackerSource {
     command_check_counter: usize,
 }
 
-fn compute_samples_per_tick(bpm: u16, rows_per_beat: usize) -> f64 {
-    f64::from(SAMPLE_RATE) * 60.0
-        / (f64::from(bpm) * f64::from(TICKS_PER_ROW) * rows_per_beat as f64)
+fn compute_samples_per_tick(bpm: u16, note_value: u8, time_sig_denominator: u8) -> f64 {
+    f64::from(SAMPLE_RATE) * 60.0 * f64::from(time_sig_denominator)
+        / (f64::from(bpm) * f64::from(TICKS_PER_ROW) * f64::from(note_value))
 }
 
 impl TrackerSource {
@@ -577,7 +579,7 @@ impl TrackerSource {
             current_order_idx: 0,
             settings: None,
             current_row: 0,
-            samples_per_tick: compute_samples_per_tick(120, 4),
+            samples_per_tick: compute_samples_per_tick(120, 16, 4),
             tick_sample_counter: 0.0,
             tick_in_row: 0,
             receiver,
@@ -606,7 +608,7 @@ impl TrackerSource {
         self.current_order_idx = 0;
         self.tick_sample_counter = 0.0;
         self.tick_in_row = 0;
-        self.samples_per_tick = compute_samples_per_tick(120, 4);
+        self.samples_per_tick = compute_samples_per_tick(120, 16, 4);
         self.master_volume = 1.0;
         self.stereo_phase = false;
         self.right_sample = 0.0;
@@ -736,7 +738,7 @@ impl TrackerSource {
 
         let pattern_index = order[start_order];
         let initial_pattern = &patterns[pattern_index];
-        self.samples_per_tick = compute_samples_per_tick(initial_pattern.bpm, initial_pattern.rows_per_beat);
+        self.samples_per_tick = compute_samples_per_tick(initial_pattern.bpm, initial_pattern.note_value, initial_pattern.time_sig_denominator);
         self.master_volume = settings.master_volume;
         self.current_row = start_row;
         self.current_order_idx = start_order;
@@ -825,7 +827,7 @@ impl TrackerSource {
             let new_pattern_index = self.order[self.current_order_idx];
             if let Some(new_pattern) = self.patterns.get(new_pattern_index) {
                 let new_samples_per_tick =
-                    compute_samples_per_tick(new_pattern.bpm, new_pattern.rows_per_beat);
+                    compute_samples_per_tick(new_pattern.bpm, new_pattern.note_value, new_pattern.time_sig_denominator);
                 if (new_samples_per_tick - self.samples_per_tick).abs() > f64::EPSILON {
                     self.samples_per_tick = new_samples_per_tick;
                 }
@@ -922,10 +924,10 @@ impl Iterator for TrackerSource {
                     right_mix += sample * voice.pan_r;
                 }
 
-                if write_scope {
-                    if let Some(scope) = self.channel_scopes.get(track_index) {
-                        scope.push(if muted { 0.0 } else { track_sample_sum });
-                    }
+                if write_scope
+                    && let Some(scope) = self.channel_scopes.get(track_index)
+                {
+                    scope.push(if muted { 0.0 } else { track_sample_sum });
                 }
             }
         }
@@ -1159,10 +1161,10 @@ mod tests {
 
     #[test]
     fn compute_samples_per_tick_values() {
-        let spt_120 = compute_samples_per_tick(120, 4);
+        let spt_120 = compute_samples_per_tick(120, 16, 4);
         assert!((spt_120 - 918.75).abs() < 0.01);
 
-        let spt_240 = compute_samples_per_tick(240, 4);
+        let spt_240 = compute_samples_per_tick(240, 16, 4);
         assert!((spt_240 - 918.75 / 2.0).abs() < 0.01);
     }
 

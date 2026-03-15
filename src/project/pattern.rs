@@ -97,6 +97,27 @@ pub enum Cell {
     NoteOff,
 }
 
+fn gcd(a: usize, b: usize) -> usize {
+    if b == 0 { a } else { gcd(b, a % b) }
+}
+
+fn smallest_prime_factor(n: usize) -> usize {
+    if n <= 1 {
+        return n;
+    }
+    if n.is_multiple_of(2) {
+        return 2;
+    }
+    let mut i = 3;
+    while i * i <= n {
+        if n.is_multiple_of(i) {
+            return i;
+        }
+        i += 2;
+    }
+    n
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Pattern {
     pub name: String,
@@ -123,7 +144,7 @@ impl Pattern {
             bpm: 120,
             time_sig_numerator: 4,
             time_sig_denominator: 4,
-            note_value: 4,
+            note_value: 16,
             measures: 1,
             data: vec![vec![vec![Cell::Empty; rows]]; channels],
         }
@@ -146,14 +167,29 @@ impl Pattern {
         }
     }
 
-    pub fn computed_rows(&self) -> usize {
-        self.time_sig_numerator as usize
-            * self.note_value as usize
-            * self.measures as usize
+    pub fn rows_per_measure(&self) -> usize {
+        (self.note_value as usize * self.time_sig_numerator as usize
+            / self.time_sig_denominator as usize)
+            .max(1)
     }
 
-    pub fn rows_per_beat(&self) -> usize {
-        self.note_value as usize
+    pub fn computed_rows(&self) -> usize {
+        self.rows_per_measure() * self.measures as usize
+    }
+
+    pub fn primary_row_group(&self) -> usize {
+        let rpm = self.rows_per_measure();
+        let num = self.time_sig_numerator as usize;
+        rpm / gcd(rpm, num)
+    }
+
+    pub fn secondary_row_group(&self) -> usize {
+        let primary = self.primary_row_group();
+        if primary <= 1 {
+            return 0;
+        }
+        let spf = smallest_prime_factor(primary);
+        if spf < primary { primary / spf } else { 0 }
     }
 
     pub fn get(&self, channel: usize, voice: usize, row: usize) -> Cell {
@@ -259,10 +295,10 @@ mod tests {
         assert_eq!(pat.bpm, 120);
         assert_eq!(pat.time_sig_numerator, 4);
         assert_eq!(pat.time_sig_denominator, 4);
-        assert_eq!(pat.note_value, 4);
+        assert_eq!(pat.note_value, 16);
         assert_eq!(pat.measures, 1);
         assert_eq!(pat.computed_rows(), 16);
-        assert_eq!(pat.rows_per_beat(), 4);
+        assert_eq!(pat.primary_row_group(), 4);
     }
 
     #[test]
@@ -271,17 +307,26 @@ mod tests {
         pat.time_sig_numerator = 4;
         pat.note_value = 16;
         pat.measures = 2;
-        assert_eq!(pat.computed_rows(), 128);
+        assert_eq!(pat.computed_rows(), 32);
 
         pat.time_sig_numerator = 7;
+        pat.time_sig_denominator = 8;
         pat.note_value = 8;
         pat.measures = 1;
-        assert_eq!(pat.computed_rows(), 56);
+        assert_eq!(pat.computed_rows(), 7);
 
         pat.time_sig_numerator = 3;
+        pat.time_sig_denominator = 4;
         pat.note_value = 4;
         pat.measures = 3;
-        assert_eq!(pat.computed_rows(), 36);
+        assert_eq!(pat.computed_rows(), 9);
+
+        pat.time_sig_numerator = 4;
+        pat.time_sig_denominator = 4;
+        pat.note_value = 24;
+        pat.measures = 1;
+        assert_eq!(pat.computed_rows(), 24);
+        assert_eq!(pat.primary_row_group(), 6);
     }
 
     #[test]
@@ -290,7 +335,7 @@ mod tests {
         source.bpm = 140;
         source.time_sig_numerator = 7;
         source.time_sig_denominator = 8;
-        source.note_value = 8;
+        source.note_value = 12;
         source.measures = 2;
         source.repeat = 3;
         source.color = Some(PatternColor::Coral);
@@ -300,7 +345,7 @@ mod tests {
         assert_eq!(child.bpm, 140);
         assert_eq!(child.time_sig_numerator, 7);
         assert_eq!(child.time_sig_denominator, 8);
-        assert_eq!(child.note_value, 8);
+        assert_eq!(child.note_value, 12);
         assert_eq!(child.measures, 2);
         assert_eq!(child.repeat, 3);
         assert_eq!(child.color, Some(PatternColor::Coral));

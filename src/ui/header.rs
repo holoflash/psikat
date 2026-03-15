@@ -142,11 +142,7 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 draw_field(ui, "BPM");
                 let mut bpm = app.project.current_pattern().bpm;
                 let r = ui
-                    .add(
-                        egui::DragValue::new(&mut bpm)
-                            .range(20..=666)
-                            .speed(0.5),
-                    )
+                    .add(egui::DragValue::new(&mut bpm).range(20..=666).speed(0.5))
                     .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
                 if r.has_focus() {
                     app.text_editing = true;
@@ -187,24 +183,78 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 }
                 if r.changed() {
                     app.project.current_pattern_mut().time_sig_denominator = den;
-                }
-
-                draw_field(ui, "NOTE");
-                let mut nv = app.project.current_pattern().note_value;
-                let r = ui
-                    .add(egui::DragValue::new(&mut nv).range(1..=64).speed(0.2))
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
-                }
-                if r.changed() {
-                    app.project.current_pattern_mut().note_value = nv;
                     let new_rows = app.project.current_pattern().computed_rows();
                     app.project.current_pattern_mut().resize(new_rows);
                     if app.cursor.row >= new_rows {
                         app.cursor.row = new_rows.saturating_sub(1);
                     }
                 }
+
+                const SUBDIVISIONS: [(u8, &str); 26] = [
+                    (1, "1/1"),
+                    (2, "1/2"),
+                    (3, "1/2T"),
+                    (4, "1/4"),
+                    (5, "1/4·5"),
+                    (6, "1/4T"),
+                    (7, "1/4·7"),
+                    (8, "1/8"),
+                    (9, "1/8·9"),
+                    (10, "1/8·5"),
+                    (11, "1/8·11"),
+                    (12, "1/8T"),
+                    (14, "1/8·7"),
+                    (16, "1/16"),
+                    (18, "1/16·9"),
+                    (20, "1/16·5"),
+                    (22, "1/16·11"),
+                    (24, "1/16T"),
+                    (28, "1/16·7"),
+                    (32, "1/32"),
+                    (36, "1/32·9"),
+                    (40, "1/32·5"),
+                    (44, "1/32·11"),
+                    (48, "1/32T"),
+                    (56, "1/32·7"),
+                    (64, "1/64"),
+                ];
+
+                draw_field(ui, "NOTE");
+                let current_nv = app.project.current_pattern().note_value;
+                let current_label = SUBDIVISIONS
+                    .iter()
+                    .find(|(v, _)| *v == current_nv)
+                    .map_or_else(|| format!("{current_nv}"), |(_, l)| l.to_string());
+                egui::ComboBox::from_id_salt("note_value")
+                    .selected_text(
+                        RichText::new(&current_label)
+                            .font(FontId::monospace(12.0))
+                            .color(COLOR_TEXT_ACTIVE),
+                    )
+                    .width(60.0)
+                    .show_ui(ui, |ui| {
+                        for &(nv, label) in &SUBDIVISIONS {
+                            let color = if nv == current_nv {
+                                COLOR_ACCENT
+                            } else {
+                                COLOR_TEXT_ACTIVE
+                            };
+                            if ui
+                                .selectable_value(
+                                    &mut app.project.current_pattern_mut().note_value,
+                                    nv,
+                                    RichText::new(label).color(color),
+                                )
+                                .changed()
+                            {
+                                let new_rows = app.project.current_pattern().computed_rows();
+                                app.project.current_pattern_mut().resize(new_rows);
+                                if app.cursor.row >= new_rows {
+                                    app.cursor.row = new_rows.saturating_sub(1);
+                                }
+                            }
+                        }
+                    });
 
                 draw_field(ui, "BARS");
                 let mut bars = app.project.current_pattern().measures;

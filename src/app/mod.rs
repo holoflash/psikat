@@ -140,7 +140,7 @@ impl App {
 
             follow_scroll_offset: 0.0,
             show_sidebar: true,
-            show_mixer: true,
+            show_mixer: false,
             show_arranger: true,
             text_editing: false,
             channel_scopes,

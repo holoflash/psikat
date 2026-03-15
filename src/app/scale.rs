@@ -100,9 +100,9 @@ pub const PROMETHEUS: Scale = Scale {
 };
 
 pub const SCALES: &[Scale] = &[
-    CHROMATIC,
     MAJOR,
     MINOR,
+    CHROMATIC,
     MINOR_PENTATONIC,
     MAJOR_PENTATONIC,
     HARMONIC_MINOR,

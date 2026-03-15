@@ -6,8 +6,12 @@ A lightweight cross-platform tracker-like sequencer built with Rust and egui.
 
 ## 🚧 UNDER DEVELOPMENT
 
+Each time I sit down to work on piskat, I find new things I want to fix, add or change.
+Hang tight...this is gonna take a while!
+
 **Latest changes**
 
+- Highly flexible musical subdivision system that doesn't force you to do maths
 - Pattern arranger!!!
 - BPM, Time signature/subdivison/beat are NOT global but can be set per pattern!
 - Time signature/subdivision/beat system
