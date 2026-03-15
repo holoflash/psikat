@@ -97,6 +97,43 @@ fn draw_track(ui: &mut egui::Ui, app: &mut App) {
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
             ui.set_min_height(ui.available_height());
+
+            ui.horizontal(|ui| {
+                if ui
+                    .add(egui::Button::new(
+                        RichText::new("Add Track")
+                            .font(FontId::monospace(11.0))
+                            .color(COLOR_TEXT_ACTIVE),
+                    ))
+                    .clicked()
+                {
+                    app.project.add_track();
+                    let new_idx = app.project.tracks.len() - 1;
+                    app.current_track = new_idx;
+                    app.cursor.channel = new_idx;
+                    app.envelope_point_idx = 0;
+                }
+
+                if app.project.tracks.len() > 1
+                    && ui
+                        .add(egui::Button::new(
+                            RichText::new("Delete Track")
+                                .font(FontId::monospace(11.0))
+                                .color(egui::Color32::from_rgb(200, 130, 120)),
+                        ))
+                        .clicked()
+                {
+                    let idx = app.current_track;
+                    app.project.delete_track(idx);
+                    if app.current_track >= app.project.tracks.len() {
+                        app.current_track = app.project.tracks.len() - 1;
+                    }
+                    app.cursor.channel = app.current_track;
+                    app.envelope_point_idx = 0;
+                }
+            });
+            ui.add_space(8.0);
+
             let inst_idx = app.current_track;
             let selected_label = format!("{:02X}: {}", inst_idx, app.project.tracks[inst_idx].name);
             ui.horizontal(|ui| {
@@ -120,45 +157,11 @@ fn draw_track(ui: &mut egui::Ui, app: &mut App) {
                                 .changed()
                             {
                                 app.envelope_point_idx = 0;
-                                app.cursor.channel =
-                                    i.min(app.project.channels.saturating_sub(1));
+                                app.cursor.channel = i.min(app.project.channels.saturating_sub(1));
                             }
-                        }
-                        ui.separator();
-                        if ui.button("+ Add Track").clicked() {
-                            app.project.add_track();
-                            let new_idx = app.project.tracks.len() - 1;
-                            app.current_track = new_idx;
-                            app.cursor.channel = new_idx;
-                            app.envelope_point_idx = 0;
                         }
                     });
             });
-
-            if app.project.tracks.len() > 1 {
-                ui.horizontal(|ui| {
-                    if ui
-                        .add(
-                            egui::Button::new(
-                                RichText::new("Delete Track")
-                                    .font(FontId::monospace(11.0))
-                                    .color(egui::Color32::from_rgb(200, 130, 120)),
-                            )
-                            .frame(false),
-                        )
-                        .clicked()
-                    {
-                        let idx = app.current_track;
-                        app.project.delete_track(idx);
-                        if app.current_track >= app.project.tracks.len() {
-                            app.current_track = app.project.tracks.len() - 1;
-                        }
-                        app.cursor.channel = app.current_track;
-                        app.envelope_point_idx = 0;
-                    }
-                });
-                ui.add_space(8.0);
-            }
 
             let inst_idx = app.current_track;
 
@@ -475,6 +478,14 @@ fn draw_interactive_waveform(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) 
         app.dragging_waveform = None;
     }
 
+    let near_drag_handle = app.dragging_waveform.is_some()
+        || ui.input(|i| i.pointer.hover_pos()).is_some_and(|pointer| {
+            rect.contains(pointer)
+                && [(pointer.x - rs_x).abs(), (pointer.x - re_x).abs()]
+                    .iter()
+                    .any(|d| *d <= handle_grab_radius)
+        });
+
     if app.dragging_waveform.is_some() {
         ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
     } else if let Some(pointer) = ui.input(|i| i.pointer.hover_pos())
@@ -490,6 +501,12 @@ fn draw_interactive_waveform(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) 
 
     if response.double_clicked() {
         load_sample_dialog(app, inst_idx);
+    }
+
+    if !near_drag_handle {
+        response.on_hover_ui(|ui| {
+            ui.label("Double-click or drag-and-drop a WAV to load sample");
+        });
     }
 }
 
@@ -1220,6 +1237,7 @@ fn handle_sample_drop(ui: &mut egui::Ui, app: &mut App) {
 
         if let Ok(data) = SampleData::load_from_path(&path) {
             app.project.tracks[idx].sample_data = data;
+            app.project.tracks[idx].waveform = crate::project::channel::WaveformKind::Sample;
             if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                 app.project.tracks[idx].name = stem.to_string();
             }
