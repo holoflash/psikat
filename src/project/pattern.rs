@@ -123,7 +123,6 @@ pub struct Pattern {
     pub name: String,
     pub color: Option<PatternColor>,
     pub repeat: u16,
-    pub channels: usize,
     pub rows: usize,
     pub bpm: u16,
     pub time_sig_numerator: u8,
@@ -139,7 +138,6 @@ impl Pattern {
             name,
             color: None,
             repeat: 1,
-            channels,
             rows,
             bpm: 120,
             time_sig_numerator: 4,
@@ -156,7 +154,6 @@ impl Pattern {
             name,
             color: source.color,
             repeat: source.repeat,
-            channels,
             rows,
             bpm: source.bpm,
             time_sig_numerator: source.time_sig_numerator,
@@ -233,13 +230,11 @@ impl Pattern {
 
     pub fn add_channel(&mut self) {
         self.data.push(vec![vec![Cell::Empty; self.rows]]);
-        self.channels += 1;
     }
 
     pub fn remove_channel(&mut self, idx: usize) {
-        if idx < self.channels && self.channels > 1 {
+        if idx < self.data.len() && self.data.len() > 1 {
             self.data.remove(idx);
-            self.channels -= 1;
         }
     }
 }
@@ -349,7 +344,7 @@ mod tests {
         assert_eq!(child.measures, 2);
         assert_eq!(child.repeat, 3);
         assert_eq!(child.color, Some(PatternColor::Coral));
-        assert_eq!(child.channels, 3);
+        assert_eq!(child.data.len(), 3);
         assert_eq!(child.rows, source.computed_rows());
     }
 }

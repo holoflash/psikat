@@ -113,7 +113,7 @@ pub struct PatternSnapshot {
 impl PatternSnapshot {
     pub fn from_pattern(pattern: &crate::project::Pattern) -> Self {
         Self {
-            channels: pattern.channels,
+            channels: pattern.data.len(),
             rows: pattern.rows,
             bpm: pattern.bpm,
             time_sig_denominator: pattern.time_sig_denominator,

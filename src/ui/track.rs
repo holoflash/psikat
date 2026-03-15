@@ -97,7 +97,7 @@ pub fn draw_track(ui: &mut egui::Ui, app: &mut App) {
                             {
                                 app.envelope_point_idx = 0;
                                 app.cursor.channel =
-                                    i.min(app.project.current_pattern().channels.saturating_sub(1));
+                                    i.min(app.project.channels.saturating_sub(1));
                             }
                         }
                         ui.separator();
@@ -228,7 +228,7 @@ fn draw_basic_fields(ui: &mut egui::Ui, app: &mut App, inst_idx: usize) {
             if btn.clicked() && n != current {
                 app.project.tracks[inst_idx].polyphony = n;
                 for pat in &mut app.project.patterns {
-                    if inst_idx < pat.channels {
+                    if inst_idx < pat.data.len() {
                         pat.set_voice_count(inst_idx, n as usize);
                     }
                 }

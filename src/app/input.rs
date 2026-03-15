@@ -413,7 +413,7 @@ impl App {
     }
 
     fn move_cursor(&mut self, dir: Action) {
-        let total_channels = self.project.current_pattern().channels;
+        let total_channels = self.project.channels;
 
         match dir {
             Action::CursorUp | Action::SelectUp => {

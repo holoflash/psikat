@@ -47,7 +47,7 @@ pub fn draw_pattern(ctx: &egui::Context, app: &mut App) {
             ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
             ui.style_mut().interaction.selectable_labels = false;
 
-            let channels = app.project.current_pattern().channels;
+            let channels = app.project.channels;
             let col = Column::auto().at_least(0.0);
 
             let voice_counts: Vec<usize> =

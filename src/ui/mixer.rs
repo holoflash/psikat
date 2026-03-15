@@ -19,7 +19,7 @@ pub fn draw_mixer(ctx: &egui::Context, app: &mut App) {
     if !app.show_mixer {
         return;
     }
-    let channels = app.project.current_pattern().channels;
+    let channels = app.project.channels;
 
     egui::TopBottomPanel::bottom("mixer")
         .resizable(false)

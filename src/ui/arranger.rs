@@ -769,7 +769,7 @@ fn process_actions(app: &mut App, actions: Vec<ArrangerAction>) {
                 app.save_undo_snapshot();
                 let name = app.project.next_pattern_name();
                 let current = app.project.current_pattern();
-                let channels = current.channels;
+                let channels = app.project.channels;
                 let new_pat = crate::project::Pattern::new_from(current, name, channels);
                 let new_idx = app.project.patterns.len();
                 app.project.patterns.push(new_pat);

@@ -42,6 +42,7 @@ pub struct Project {
     pub current_item_idx: usize,
     pub current_sub_pattern_idx: usize,
     pub tracks: Vec<Track>,
+    pub channels: usize,
     pub step: usize,
     pub scale_index: ScaleIndex,
     pub transpose: i8,
@@ -57,6 +58,7 @@ impl Project {
             current_item_idx: 0,
             current_sub_pattern_idx: 0,
             tracks: Track::defaults(),
+            channels: 1,
             step: 1,
             scale_index: ScaleIndex::default(),
             transpose: 0,
@@ -186,8 +188,10 @@ impl Project {
         let idx = self.tracks.len();
         self.tracks
             .push(Track::new_empty(&format!("Track {:02}", idx)));
-        let pat_idx = self.current_pattern_idx();
-        self.patterns[pat_idx].add_channel();
+        for pat in &mut self.patterns {
+            pat.add_channel();
+        }
+        self.channels += 1;
     }
 
     pub fn delete_track(&mut self, idx: usize) {
@@ -195,8 +199,10 @@ impl Project {
             return;
         }
         self.tracks.remove(idx);
-        let pat_idx = self.current_pattern_idx();
-        self.patterns[pat_idx].remove_channel(idx);
+        for pat in &mut self.patterns {
+            pat.remove_channel(idx);
+        }
+        self.channels -= 1;
     }
 
     pub fn next_pattern_name(&self) -> String {

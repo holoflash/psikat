@@ -227,7 +227,7 @@ impl App {
 
     pub fn set_cursor(&mut self, channel: usize, voice: usize, row: usize) {
         let pat = self.project.current_pattern();
-        if channel < pat.channels && row < pat.rows && voice < pat.voice_count(channel) {
+        if channel < self.project.channels && row < pat.rows && voice < pat.voice_count(channel) {
             self.cursor.channel = channel;
             self.cursor.voice = voice;
             self.cursor.row = row;
@@ -236,8 +236,8 @@ impl App {
 
     pub fn clamp_cursor(&mut self) {
         let pat = self.project.current_pattern();
-        if self.cursor.channel >= pat.channels {
-            self.cursor.channel = pat.channels.saturating_sub(1);
+        if self.cursor.channel >= self.project.channels {
+            self.cursor.channel = self.project.channels.saturating_sub(1);
         }
         if self.cursor.row >= pat.rows {
             self.cursor.row = pat.rows.saturating_sub(1);
@@ -387,7 +387,7 @@ impl App {
     }
 
     pub fn resolve_flat_col(&self, flat: usize) -> Option<(usize, usize)> {
-        let channels = self.project.current_pattern().channels;
+        let channels = self.project.channels;
         let mut remaining = flat;
         for ch in 0..channels {
             let voices = self.voices_for_channel(ch);
@@ -400,7 +400,7 @@ impl App {
     }
 
     pub fn total_columns(&self) -> usize {
-        let channels = self.project.current_pattern().channels;
+        let channels = self.project.channels;
         (0..channels).map(|ch| self.voices_for_channel(ch)).sum()
     }
 }
