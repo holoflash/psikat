@@ -562,7 +562,7 @@ impl App {
 
     fn handle_note_off(&mut self) {
         self.clear_selection();
-        if self.poly_input {
+        if self.is_poly_input() {
             let voices = self.voices_for_channel(self.cursor.channel);
             for v in 0..voices {
                 self.project.current_pattern_mut().set(
@@ -687,7 +687,7 @@ impl App {
         if new_notes.is_empty() {
             return;
         }
-        if self.poly_input {
+        if self.is_poly_input() {
             if self.chord_buffer.is_empty() {
                 self.save_undo_snapshot();
             }
@@ -729,7 +729,7 @@ impl App {
     }
 
     fn tick_chord_buffer(&mut self) {
-        if !self.poly_input || self.chord_buffer.is_empty() {
+        if !self.is_poly_input() || self.chord_buffer.is_empty() {
             return;
         }
         if self.chord_frames_remaining > 0 {

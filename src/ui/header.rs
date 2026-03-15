@@ -2,10 +2,9 @@ use std::sync::atomic::Ordering;
 
 use eframe::egui::{self, FontId, RichText, Stroke, Vec2};
 
-use crate::{
-    app::{App, scale::SCALES},
-    ui::COLOR_TEXT,
-};
+
+use crate::app::App;
+use crate::ui::COLOR_TEXT;
 
 use super::{COLOR_ACCENT, COLOR_LAYOUT_BG_PANEL, COLOR_TEXT_ACTIVE, COLOR_TEXT_DIM};
 
@@ -285,97 +284,6 @@ pub fn draw_header(ctx: &egui::Context, app: &mut App) {
                 }
                 if r.changed() {
                     app.project.current_pattern_mut().repeat = rep;
-                }
-
-                ui.add_space(6.0);
-                ui.separator();
-                ui.add_space(6.0);
-
-                draw_field(ui, "PITCH");
-                let r = ui
-                    .add(
-                        egui::DragValue::new(&mut app.project.transpose)
-                            .range(-12..=12)
-                            .speed(0.15)
-                            .custom_formatter(|v, _| {
-                                let i = v as i32;
-                                if i > 0 {
-                                    format!("+{i}")
-                                } else if i == 0 {
-                                    " 0".to_string()
-                                } else {
-                                    format!("{i}")
-                                }
-                            }),
-                    )
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
-                }
-
-                draw_field(ui, "OCT");
-                let r = ui
-                    .add(
-                        egui::DragValue::new(&mut app.cursor.octave)
-                            .range(0..=8)
-                            .speed(0.15),
-                    )
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
-                }
-
-                let current_name = app.project.scale_index.scale().name;
-                egui::ComboBox::from_id_salt("scale_combo")
-                    .selected_text(RichText::new(current_name).font(FontId::monospace(12.0)))
-                    .width(140.0)
-                    .show_ui(ui, |ui| {
-                        for (i, scale) in SCALES.iter().enumerate() {
-                            let color = if app.project.scale_index.0 == i {
-                                COLOR_ACCENT
-                            } else {
-                                COLOR_TEXT_ACTIVE
-                            };
-                            ui.selectable_value(
-                                &mut app.project.scale_index.0,
-                                i,
-                                RichText::new(scale.name).color(color),
-                            );
-                        }
-                    });
-
-                draw_field(ui, "STEP");
-                let r = ui
-                    .add(
-                        egui::DragValue::new(&mut app.project.step)
-                            .range(0..=64)
-                            .speed(0.2),
-                    )
-                    .on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if r.has_focus() {
-                    app.text_editing = true;
-                }
-
-                let poly_label = if app.poly_input { "POLY" } else { "MONO" };
-                let poly_color = if app.poly_input {
-                    COLOR_ACCENT
-                } else {
-                    COLOR_TEXT_DIM
-                };
-                let poly_btn = ui
-                    .add(
-                        egui::Button::new(
-                            RichText::new(poly_label)
-                                .font(FontId::monospace(12.0))
-                                .color(poly_color),
-                        )
-                        .fill(COLOR_LAYOUT_BG_PANEL)
-                        .stroke(Stroke::new(1.0, poly_color)),
-                    )
-                    .on_hover_cursor(egui::CursorIcon::PointingHand);
-                poly_btn.surrender_focus();
-                if poly_btn.clicked() {
-                    app.poly_input = !app.poly_input;
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {

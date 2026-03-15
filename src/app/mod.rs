@@ -96,7 +96,6 @@ pub struct App {
     pub dragging_pitch_env_point: Option<usize>,
     pub filter_envelope_point_idx: usize,
     pub dragging_filter_env_point: Option<usize>,
-    pub poly_input: bool,
     pub chord_buffer: Vec<Note>,
     pub chord_frames_remaining: u8,
 
@@ -158,7 +157,6 @@ impl App {
             dragging_pitch_env_point: None,
             filter_envelope_point_idx: 0,
             dragging_filter_env_point: None,
-            poly_input: false,
             chord_buffer: Vec::new(),
             chord_frames_remaining: 0,
 
@@ -376,6 +374,10 @@ impl App {
             .get(ch)
             .map(|t| t.polyphony.max(1) as usize)
             .unwrap_or(1)
+    }
+
+    pub fn is_poly_input(&self) -> bool {
+        self.voices_for_channel(self.cursor.channel) > 1
     }
 
     pub fn flat_col(&self, ch: usize, v: usize) -> usize {
