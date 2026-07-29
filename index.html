@@ -5,9 +5,32 @@
     <link rel="icon" type="icon" href="/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>psikat-js</title>
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <div id="app"></div>
+    <header>
+      <img src="/icon.png" height="80px" />
+    </header>
+    <main>
+      <section id="main-grid">
+        <!-- This is just a placeholder for now, gonna render the grid on a canvas later -->
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">BEAT</th>
+              <th scope="col">NOTE</th>
+              <th scope="col">NOTE</th>
+              <th scope="col">NOTE</th>
+              <th scope="col">NOTE</th>
+              <th scope="col">FX</th>
+            </tr>
+          </thead>
+          <tbody id="mock-grid"></tbody>
+        </table>
+      </section>
+    </main>
+    <footer>psikat 2026</footer>
+    <!-- No JavaScript needed yet -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
