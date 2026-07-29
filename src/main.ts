@@ -1,3 +1,5 @@
+import { attachKeyListener } from "./keyboard_handler";
+
 // This is all really stupid but it's just a placeholder.
 const mock_grid = document.getElementById("mock-grid");
 const notes = ["C-4", "D-4", "E-4", "F-4", "G-4", "A-4", "B-4", "C-5", "···"];
@@ -33,3 +35,5 @@ for (let i = 0; i < 11; i++) {
   table_tr.append(beat, note1, note2, note3, note4, fx);
   mock_grid?.append(table_tr);
 }
+
+attachKeyListener();
