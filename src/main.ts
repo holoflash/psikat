@@ -1,6 +1,5 @@
-import { attachKeyListener } from "./keyboard_handler";
+import { attach_key_listener } from "./keyboard/attach_key_listener";
 
-// This is all really stupid but it's just a placeholder.
 const mock_grid = document.getElementById("mock-grid");
 const notes = [
   "C-4",
@@ -27,8 +26,6 @@ function getRandomNote() {
 //   <td>C#4</td>
 //   <td>··</td>
 // </tr>
-
-// Feels insane writing this by hand in 2026 but it's relaxing
 for (let i = 0; i <= 10; i++) {
   const table_tr = document.createElement("tr");
 
@@ -50,4 +47,4 @@ for (let i = 0; i <= 10; i++) {
   mock_grid?.append(table_tr);
 }
 
-attachKeyListener();
+attach_key_listener();
