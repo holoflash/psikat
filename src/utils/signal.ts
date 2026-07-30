@@ -1,6 +1,6 @@
 // https://plainvanillaweb.com/blog/articles/2024-08-30-poor-mans-signals/
-export class Signal extends EventTarget {
-  #value;
+export class Signal<T> extends EventTarget {
+  #value: T;
   get value() {
     return this.#value;
   }
@@ -10,12 +10,12 @@ export class Signal extends EventTarget {
     this.dispatchEvent(new CustomEvent("change"));
   }
 
-  constructor(value: any) {
+  constructor(value: T) {
     super();
     this.#value = value;
   }
 
-  equals(value: any) {
+  equals(value: T) {
     return this.#value === value;
   }
 

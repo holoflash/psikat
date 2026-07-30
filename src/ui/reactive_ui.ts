@@ -1,4 +1,4 @@
-import { STATE } from "./state";
+import { STATE } from "../state";
 
 export function reactive_ui() {
   const app_octave_state_display = document.getElementById("octave-state");
