@@ -1,5 +1,7 @@
 import { AppState } from "../state";
 
+// All of this can be moved out into "components" later on
+// Just threw everything in here for now
 export function reactive_ui() {
   const app_octave_state_display = document.getElementById("octave-state");
   const app_playing_state_display = document.getElementById("playing-state");
