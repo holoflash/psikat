@@ -25,9 +25,8 @@ class SquareWave extends AudioWorkletProcessor {
     for (let i = 0; i < left_channel.length; i++) {
       const sample_value = this.phase < 0.5 ? 0.2 : -0.2;
       left_channel[i] = sample_value;
-      if (output[1]) {
-        right_channel[i] = sample_value;
-      }
+      if (output[1]) right_channel[i] = sample_value;
+
       const frequency = parameters.frequency[i] ?? parameters.frequency[0];
 
       this.phase += frequency / sampleRate;
@@ -35,7 +34,6 @@ class SquareWave extends AudioWorkletProcessor {
         this.phase -= 1.0;
       }
     }
-
     return true;
   }
 }

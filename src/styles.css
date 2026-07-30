@@ -122,9 +122,10 @@ th:first-of-type {
 }
 /*#######################################*/
 
-#instrument_panel {
+#instrument-panel {
   background-color: var(--BG_2);
   padding: var(--PADDING_MD);
+  width: 30%;
 }
 
 #command-palette {
