@@ -1,4 +1,4 @@
-import { get_css_var } from "../utils/css_root_var";
+import { get_css_var } from "../utils/get_css_var";
 
 const canvas = document.createElement("canvas");
 const instrument_panel = document.getElementById("instrument-panel")!;
