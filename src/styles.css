@@ -78,6 +78,7 @@ header {
   background-color: var(--BG_2);
   color: var(--TEXT);
   display: flex;
+  gap: 1rem;
   align-items: center;
   padding: var(--PADDING_MD);
 }

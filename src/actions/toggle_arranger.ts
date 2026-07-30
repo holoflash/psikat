@@ -1,9 +1,6 @@
-import { APP_STATE } from "../state";
+import { STATE } from "../state";
 
-const app_arranger_state_display = document.getElementById("arranger-state");
-
+// This doesn't do anything important yet but will be crucial later
 export function k_ToggleArranger() {
-  APP_STATE.arranger = !APP_STATE.arranger;
-  if (!app_arranger_state_display) return;
-  app_arranger_state_display.textContent = APP_STATE.arranger ? "ARRANGER" : "PATTERN EDITOR";
+  STATE.arranger.value = !STATE.arranger.value;
 }
