@@ -7,8 +7,9 @@
   --BG_6: #282437;
   --ACCENT: #d2be8c;
   --TEXT: #f8f5ec;
+  --TEXT_DIM: #9b9b9b;
 
-  --PADDING_MD: 0.5rem;
+  --PADDING_MD: 0.4rem;
 }
 
 /* RESET AND NICER DEFAULTS */
@@ -75,6 +76,7 @@ main {
 header {
   width: 100%;
   background-color: var(--BG_2);
+  color: var(--TEXT);
   display: flex;
   align-items: center;
   padding: var(--PADDING_MD);
@@ -90,7 +92,7 @@ footer {
 /* The grid will be later rendered in a canvas so this table code is really just placeholder */
 table {
   border-collapse: collapse;
-  letter-spacing: 1px;
+  font-size: 1.5rem;
   text-align: center;
 }
 
@@ -102,23 +104,20 @@ tfoot {
 th,
 td {
   border: 1px solid var(--BG_6);
-  padding: var(--PADDING_MD);
-}
-
-td:last-of-type {
-  text-align: center;
+  padding-inline: var(--PADDING_MD);
+  min-width: 4rem;
 }
 
 tbody > tr:nth-of-type(even) {
   background-color: var(--BG_4);
 }
 
-tfoot th {
-  text-align: right;
+tbody > tr {
+  color: var(--ACCENT);
 }
-
-tfoot td {
-  font-weight: bold;
+th:first-of-type {
+  color: var(--TEXT_DIM);
+  font-weight: 100;
 }
 /*#######################################*/
 
