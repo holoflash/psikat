@@ -1,5 +1,5 @@
 import { play_note } from "../audio/audio";
-import { STATE } from "../state";
+import { AppState } from "../state";
 
 const chromatic_notes = [
   130.81, // C3
@@ -34,18 +34,18 @@ function transpose_by_octave(frequency: number, octave: number) {
   return frequency * 2 ** octave;
 }
 
-export function k_note(note: number) {
-  if (STATE.octave.value === 0) {
+export function key_note(note: number) {
+  if (AppState.octave.value === 0) {
     play_note(chromatic_notes[note]);
   } else {
-    play_note(transpose_by_octave(chromatic_notes[note], STATE.octave.value));
+    play_note(transpose_by_octave(chromatic_notes[note], AppState.octave.value));
   }
 }
 
-export function k_OctaveUp() {
-  STATE.octave.value += 1;
+export function octave_up() {
+  AppState.octave.value += 1;
 }
 
-export function k_OctaveDown() {
-  STATE.octave.value -= 1;
+export function octave_down() {
+  AppState.octave.value -= 1;
 }

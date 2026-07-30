@@ -1,4 +1,4 @@
-import { k_OctaveDown, k_OctaveUp } from "../actions/note";
+import { octave_down, octave_up } from "../actions/note";
 import { key_bindings } from "./key_bindings";
 
 export function attach_key_listener() {
@@ -14,12 +14,12 @@ export function attach_key_listener() {
     if (event.key === "ArrowUp" && event.metaKey && event.shiftKey) {
       event.preventDefault();
       event.stopPropagation();
-      k_OctaveUp();
+      octave_up();
     }
     if (event.key === "ArrowDown" && event.metaKey && event.shiftKey) {
       event.preventDefault();
       event.stopPropagation();
-      k_OctaveDown();
+      octave_down();
     }
     return;
   });

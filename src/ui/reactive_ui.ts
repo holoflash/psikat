@@ -1,22 +1,24 @@
-import { STATE } from "../state";
+import { AppState } from "../state";
 
 export function reactive_ui() {
   const app_octave_state_display = document.getElementById("octave-state");
   const app_playing_state_display = document.getElementById("playing-state");
   const app_arranger_state_display = document.getElementById("arranger-state");
 
-  STATE.octave.effect(() => {
+  AppState.octave.effect(() => {
     if (!app_octave_state_display) return;
-    app_octave_state_display.textContent = `OCTAVE ${STATE.octave.value}`;
+    app_octave_state_display.textContent = `OCTAVE ${AppState.octave.value}`;
   });
 
-  STATE.playing.effect(() => {
+  AppState.playing.effect(() => {
     if (!app_playing_state_display) return;
-    app_playing_state_display.textContent = STATE.playing.value ? "PLAYING" : "STOPPED";
+    app_playing_state_display.textContent = AppState.playing.value ? "PLAYING" : "STOPPED";
   });
 
-  STATE.arranger.effect(() => {
+  AppState.arranger.effect(() => {
     if (!app_arranger_state_display) return;
-    app_arranger_state_display.textContent = STATE.arranger.value ? "ARRANGER" : "PATTERN EDITOR";
+    app_arranger_state_display.textContent = AppState.arranger.value
+      ? "ARRANGER"
+      : "PATTERN EDITOR";
   });
 }
