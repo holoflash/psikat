@@ -126,3 +126,13 @@ th:first-of-type {
   background-color: var(--BG_2);
   padding: var(--PADDING_MD);
 }
+
+#command-palette {
+  left: 50%;
+  top: 25%;
+  transform: translate(-50%, -50%);
+  background-color: var(--BG_6);
+  color: var(--TEXT);
+  height: 30rem;
+  width: 50rem;
+}

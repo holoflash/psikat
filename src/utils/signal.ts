@@ -1,4 +1,3 @@
-// https://plainvanillaweb.com/blog/articles/2024-08-30-poor-mans-signals/
 export class Signal<T> extends EventTarget {
   #value: T;
   get value() {
@@ -23,13 +22,6 @@ export class Signal<T> extends EventTarget {
     fn();
     this.addEventListener("change", fn);
     return () => this.removeEventListener("change", fn);
-  }
-
-  valueOf() {
-    return this.#value;
-  }
-  toString() {
-    return String(this.#value);
   }
 }
 
