@@ -6,6 +6,14 @@ export function reactive_ui() {
   const app_octave_state_display = document.getElementById("octave-state");
   const app_playing_state_display = document.getElementById("playing-state");
   const app_arranger_state_display = document.getElementById("arranger-state");
+  const app_enable_audio_button = document.getElementById("worklet-init");
+
+  AppState.audio_initialized.effect(() => {
+    if (!app_enable_audio_button) return;
+    app_enable_audio_button.textContent = AppState.audio_initialized.value
+      ? "AUDIO ENGAGED"
+      : "ENABLE AUDIO";
+  });
 
   AppState.octave.effect(() => {
     if (!app_octave_state_display) return;
