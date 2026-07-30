@@ -19,18 +19,12 @@
     </header>
     <main>
       <section id="main-grid">
-        <!-- This is just a placeholder for now, gonna render the grid on a canvas later -->
+        <canvas id="grid-canvas"></canvas>
+        <!-- Gonna see first how well an HTML Table can handle the job before pulling out canvas-->
         <table>
-          <thead>
-            <tr>
-              <th scope="col"></th>
-              <th scope="col" colspan="4">Pattern 1</th>
-              <th scope="col">FX</th>
-            </tr>
-          </thead>
+          <thead id="grid-head"></thead>
           <tbody id="mock-grid"></tbody>
         </table>
-        <!-- ---------------------- -->
       </section>
       <section id="instrument-panel">
         <header>INSTRUMENT</header>
