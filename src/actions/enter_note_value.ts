@@ -2,18 +2,21 @@ import { play_note } from "../audio/audio";
 import { chromatic_notes } from "../data/notes";
 import { AppState } from "../state";
 
-function calculate_current_pitch(frequency: number, octave: number, semitone: number) {
-  // Now that I have the full midi range hardcoded, I don't need to calculate the frequency like this!
+function calculate_current_pitch(note_index: number, octave: number, semitone: number) {
   const octave_in_semitones = octave === 0 ? octave : octave * 12;
-  const desired_transpostion = octave_in_semitones + semitone;
-  console.log(desired_transpostion);
-  return frequency * 2 ** (desired_transpostion / 12);
+  let desired_note = note_index + octave_in_semitones + semitone;
+
+  if (desired_note > 127) {
+    return chromatic_notes[127];
+  } else if (desired_note <= 0) {
+    return chromatic_notes[0];
+  } else {
+    return chromatic_notes[desired_note];
+  }
 }
 
 // Trying to keep ALL commands in this folder
 // Gonna end up with a lot of wrapper functions
 export function enter_note_value(note: number) {
-  play_note(
-    calculate_current_pitch(chromatic_notes[note], AppState.octave.value, AppState.semitone.value),
-  );
+  play_note(calculate_current_pitch(note, AppState.octave.value, AppState.semitone.value));
 }
