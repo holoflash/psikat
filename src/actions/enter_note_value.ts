@@ -6,7 +6,7 @@ function calculate_current_pitch(note_index: number, octave: number, semitone: n
   const octave_in_semitones = octave === 0 ? octave : octave * 12;
   let desired_note = note_index + octave_in_semitones + semitone;
 
-  if (desired_note > 127) {
+  if (desired_note >= 127) {
     return chromatic_notes[127];
   } else if (desired_note <= 0) {
     return chromatic_notes[0];
