@@ -4,7 +4,7 @@ export default defineConfig({
   staged: {
     "*": "vp check --fix",
   },
-  fmt: {},
+  fmt: { ignorePatterns: ["./data"] },
   lint: {
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     plugins: ["eslint", "import", "oxc", "typescript", "unicorn"],
