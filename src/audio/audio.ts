@@ -1,5 +1,5 @@
 import { AppState } from "../state";
-import { draw_waveform } from "./draw_waveform";
+import { draw_waveform } from "../interface/draw_waveform";
 
 let audio_context: AudioContext | null = null;
 let square_node: AudioWorkletNode | null = null;

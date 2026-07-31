@@ -30,22 +30,17 @@ const chromatic_notes = [
   554.37, // C#5
 ];
 
-function transpose_by_octave(frequency: number, octave: number) {
-  return frequency * 2 ** octave;
+function calculate_current_pitch(frequency: number, octave: number, semitone: number) {
+  // Can probably be done in a cleaner way but it works
+  const octave_in_semitones = octave === 0 ? octave : octave * 12;
+  const desired_transpostion = octave_in_semitones + semitone;
+  return frequency * 2 ** (desired_transpostion / 12);
 }
 
+// Trying to keep ALL commands in this folder
+// Gonna end up with a lot of wrapper functions
 export function key_note(note: number) {
-  if (AppState.octave.value === 0) {
-    play_note(chromatic_notes[note]);
-  } else {
-    play_note(transpose_by_octave(chromatic_notes[note], AppState.octave.value));
-  }
-}
-
-export function octave_up() {
-  AppState.octave.value += 1;
-}
-
-export function octave_down() {
-  AppState.octave.value -= 1;
+  play_note(
+    calculate_current_pitch(chromatic_notes[note], AppState.octave.value, AppState.semitone.value),
+  );
 }

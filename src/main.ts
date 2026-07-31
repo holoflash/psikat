@@ -1,6 +1,7 @@
 import { init_audio } from "./audio/audio";
 import { command_palette } from "./interface/command_palette/dialog";
 import { generate_mock_grid } from "./interface/grid/generate_mock_grid";
+import { print_mock } from "./interface/grid/model";
 import { reactive_ui } from "./interface/reactive_ui";
 import { attach_key_listener } from "./keys/attach_key_listener";
 
@@ -13,3 +14,5 @@ command_palette();
 document.getElementById("worklet-init")?.addEventListener("click", () => {
   void init_audio();
 });
+
+print_mock();

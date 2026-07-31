@@ -4,6 +4,7 @@ import { AppState } from "../state";
 // Just threw everything in here for now
 export function reactive_ui() {
   const app_octave_state_display = document.getElementById("octave-state");
+  const app_semitone_state_display = document.getElementById("semitone-state");
   const app_playing_state_display = document.getElementById("playing-state");
   const app_arranger_state_display = document.getElementById("arranger-state");
   const app_enable_audio_button = document.getElementById("worklet-init");
@@ -18,6 +19,11 @@ export function reactive_ui() {
   AppState.octave.effect(() => {
     if (!app_octave_state_display) return;
     app_octave_state_display.textContent = `OCTAVE ${AppState.octave.value}`;
+  });
+
+  AppState.semitone.effect(() => {
+    if (!app_semitone_state_display) return;
+    app_semitone_state_display.textContent = `SEMITONE ${AppState.semitone.value}`;
   });
 
   AppState.playing.effect(() => {

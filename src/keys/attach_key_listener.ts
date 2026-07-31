@@ -1,4 +1,3 @@
-import { octave_down, octave_up } from "../actions/note";
 import { AppState } from "../state";
 import { key_bindings } from "./key_bindings";
 
@@ -18,12 +17,22 @@ export function attach_key_listener() {
     if (event.key === "ArrowUp" && cmd_shift) {
       event.preventDefault();
       event.stopPropagation();
-      octave_up();
+      AppState.octave.value += 1;
     }
     if (event.key === "ArrowDown" && cmd_shift) {
       event.preventDefault();
       event.stopPropagation();
-      octave_down();
+      AppState.octave.value -= 1;
+    }
+    if (event.key === "ArrowLeft" && cmd_shift) {
+      event.preventDefault();
+      event.stopPropagation();
+      AppState.semitone.value -= 1;
+    }
+    if (event.key === "ArrowRight" && cmd_shift) {
+      event.preventDefault();
+      event.stopPropagation();
+      AppState.semitone.value += 1;
     }
     if (event.key === "p" && cmd_shift) {
       AppState.command_palette_open.value = !AppState.command_palette_open.value;
