@@ -5,6 +5,7 @@ type AppState = {
   arranger: Signal<boolean>;
   octave: Signal<number>;
   semitone: Signal<number>;
+  transposition: Signal<number>;
   command_palette_open: Signal<boolean>;
   pitch: Signal<number>; // just put this here for now
   audio_initialized: Signal<boolean>;
@@ -15,6 +16,7 @@ const DEFAULT_STATE: AppState = {
   arranger: signal(false),
   octave: signal(0),
   semitone: signal(0),
+  transposition: signal(48),
   command_palette_open: signal(false),
   pitch: signal(440),
   audio_initialized: signal(false),

@@ -7,8 +7,8 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.oxc": "explicit"
   },
-  "typescript.experimental.useTsgo": true,
-  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "js/ts.experimental.useTsgo": true,
+  "js/ts.tsserver.experimental.enableProjectDiagnostics": true,
   "[typescript]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
   },

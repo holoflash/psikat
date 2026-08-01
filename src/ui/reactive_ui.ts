@@ -18,7 +18,7 @@ export function reactive_ui() {
 
   AppState.octave.effect(() => {
     if (!app_octave_state_display) return;
-    app_octave_state_display.textContent = `OCTAVE ${AppState.octave.value}`;
+    app_octave_state_display.textContent = `OCTAVE ${AppState.octave.value / 12}`;
   });
 
   AppState.semitone.effect(() => {

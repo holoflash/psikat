@@ -27,6 +27,7 @@ export function draw_waveform(node: AudioWorkletNode, context: AudioContext) {
   bufferLength = analyzer.frequencyBinCount;
   dataArray = new Uint8Array(bufferLength);
   analyzer.getByteTimeDomainData(dataArray);
+
   function draw() {
     canvas_context.fillRect(0, 0, canvas.width, canvas.height);
     canvas_context.lineWidth = 1;
@@ -53,6 +54,7 @@ export function draw_waveform(node: AudioWorkletNode, context: AudioContext) {
 
     canvas_context.lineTo(canvas.width, canvas.height / 2);
     canvas_context.stroke();
+
     requestAnimationFrame(draw);
   }
   draw();
