@@ -81,10 +81,9 @@ header {
   gap: 1rem;
   align-items: center;
   padding: var(--PADDING_MD);
-}
-
-footer {
-  margin-bottom: 0 auto;
+  h1 {
+    font-size: 1.5rem;
+  }
 }
 
 /*#######################################*/
@@ -129,6 +128,10 @@ th:first-of-type {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  canvas {
+    border-radius: 2rem;
+    outline: inset var(--ACCENT) 2px;
+  }
 }
 
 #command-palette {

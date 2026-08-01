@@ -1,4 +1,4 @@
-import { getRandomNote } from "../../data/notes";
+import { NOTE_NAMES } from "../../data/notes";
 
 // Started out as a mock grid but gonna try this approach
 // fully and see how much can be done before getting canvas involved
@@ -38,7 +38,7 @@ export function generate_mock_grid() {
 
     for (let j = 0; j < 4; j++) {
       const note = document.createElement("td");
-      note.textContent = getRandomNote();
+      note.textContent = NOTE_NAMES[Math.floor(Math.random() * NOTE_NAMES.length)];
       table_tr.append(note);
     }
 

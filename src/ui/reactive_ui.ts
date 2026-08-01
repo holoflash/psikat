@@ -16,14 +16,14 @@ export function reactive_ui() {
       : "ENABLE AUDIO";
   });
 
-  AppState.octave.effect(() => {
+  AppState.transposition.octave.effect(() => {
     if (!app_octave_state_display) return;
-    app_octave_state_display.textContent = `OCTAVE ${AppState.octave.value / 12}`;
+    app_octave_state_display.textContent = `OCTAVE ${AppState.transposition.octave.value}`;
   });
 
-  AppState.semitone.effect(() => {
+  AppState.transposition.semitone.effect(() => {
     if (!app_semitone_state_display) return;
-    app_semitone_state_display.textContent = `SEMITONE ${AppState.semitone.value}`;
+    app_semitone_state_display.textContent = `SEMITONE ${AppState.transposition.semitone.value}`;
   });
 
   AppState.playing.effect(() => {
@@ -31,10 +31,8 @@ export function reactive_ui() {
     app_playing_state_display.textContent = AppState.playing.value ? "PLAYING" : "STOPPED";
   });
 
-  AppState.arranger.effect(() => {
+  AppState.view.effect(() => {
     if (!app_arranger_state_display) return;
-    app_arranger_state_display.textContent = AppState.arranger.value
-      ? "ARRANGER"
-      : "PATTERN EDITOR";
+    app_arranger_state_display.textContent = AppState.view.value;
   });
 }
