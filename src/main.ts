@@ -1,7 +1,6 @@
 import { init_audio } from "./audio/audio";
 import { command_palette } from "./ui/command_palette/dialog";
 import { generate_mock_grid } from "./ui/grid/generate_mock_grid";
-import { print_mock } from "./ui/grid/model";
 import { reactive_ui } from "./ui/reactive_ui";
 import { keyboard_event_to_command } from "./commands/keyboard_event_to_command";
 
@@ -16,4 +15,3 @@ document.getElementById("worklet-init")?.addEventListener("click", () => {
 generate_mock_grid();
 reactive_ui();
 command_palette();
-print_mock();

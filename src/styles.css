@@ -90,15 +90,19 @@ header {
 /* PATTERN GRID */
 /*#######################################*/
 /* The grid will be later rendered in a canvas so this table code is really just placeholder */
+#main-grid {
+  background-color: #0c0a14;
+}
 table {
   border-collapse: collapse;
   font-size: 1.5rem;
   text-align: center;
+  background-color: var(--BG_2);
 }
 
 thead,
 tfoot {
-  background-color: var(--BG_1);
+  background-color: var(--BG_2);
 }
 
 th,
