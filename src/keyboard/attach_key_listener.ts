@@ -31,10 +31,10 @@ export function attach_key_listener() {
         prevent_default(event);
         toggle_playing();
       }
-      // should to precompute this instead
-      MUSICAL_KEYBOARD.map((button, i) => {
-        if (key === button) enter_note_value(i);
-      });
+      // This is better than before but there may still be a way to do this better
+      if (MUSICAL_KEYBOARD.includes(key)) {
+        enter_note_value(MUSICAL_KEYBOARD.indexOf(key));
+      }
     }
     return;
   });
