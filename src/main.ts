@@ -3,16 +3,17 @@ import { command_palette } from "./ui/command_palette/dialog";
 import { generate_mock_grid } from "./ui/grid/generate_mock_grid";
 import { print_mock } from "./ui/grid/model";
 import { reactive_ui } from "./ui/reactive_ui";
-import { attach_key_listener } from "./keyboard/attach_key_listener";
+import { keyboard_event_to_command } from "./commands/keyboard_event_to_command";
 
-generate_mock_grid();
-attach_key_listener();
-reactive_ui();
-command_palette();
-
-// Can this be moved somewhere else?
+// Listeners go here
+document.addEventListener("keydown", keyboard_event_to_command);
 document.getElementById("worklet-init")?.addEventListener("click", () => {
   void init_audio();
 });
 
+// Later on, all of these should be a single function call: initialize_UI() or something.
+// Besides, I want to handwrite as much as possible in HTML
+generate_mock_grid();
+reactive_ui();
+command_palette();
 print_mock();
