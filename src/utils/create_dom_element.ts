@@ -1,0 +1,12 @@
+// Daamn this is cleeean :D
+export function create_dom_element<T extends keyof HTMLElementTagNameMap>(
+  tag_name: T,
+  params?: Partial<HTMLElementTagNameMap[T]>,
+): HTMLElement {
+  const element = document.createElement(tag_name);
+  if (params) {
+    return Object.assign(element, { ...params });
+  } else {
+    return element;
+  }
+}
