@@ -112,6 +112,10 @@ tr:first-child {
   color: var(--ACCENT);
   background-color: var(--BG_2);
 }
+.active {
+  background-color: var(--ACCENT);
+  color: var(--TEXT);
+}
 
 /*#######################################*/
 

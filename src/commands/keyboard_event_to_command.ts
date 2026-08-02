@@ -20,7 +20,10 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
     if (key === "P" && cmd_shift) toggle_command_palette();
     return;
   }
-
+  if (key === "ARROWUP") AppState.cursor_position.y.value--;
+  if (key === "ARROWDOWN") AppState.cursor_position.y.value++;
+  if (key === "ARROWRIGHT") AppState.cursor_position.x.value++;
+  if (key === "ARROWLEFT") AppState.cursor_position.x.value--;
   // Command+Shift | Ctrl+Shift commands
   if (cmd_shift) {
     event.preventDefault();
