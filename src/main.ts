@@ -1,6 +1,6 @@
 import { init_audio } from "./audio/audio";
 import { command_palette } from "./ui/command_palette/dialog";
-import { generate_mock_grid } from "./ui/grid/generate_mock_grid";
+import { generate_grid } from "./ui/grid/generate_grid";
 import { reactive_ui } from "./ui/reactive_ui";
 import { keyboard_event_to_command } from "./commands/keyboard_event_to_command";
 
@@ -12,6 +12,6 @@ document.getElementById("worklet-init")?.addEventListener("click", () => {
 
 // Later on, all of these should be a single function call: initialize_UI() or something.
 // Besides, I want to handwrite as much as possible in HTML
-generate_mock_grid();
+generate_grid();
 reactive_ui();
 command_palette();
