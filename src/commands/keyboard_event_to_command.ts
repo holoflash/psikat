@@ -20,10 +20,6 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
     if (key === "P" && cmd_shift) toggle_command_palette();
     return;
   }
-  if (key === "ARROWUP") AppState.cursor_position.y.value--;
-  if (key === "ARROWDOWN") AppState.cursor_position.y.value++;
-  if (key === "ARROWRIGHT") AppState.cursor_position.x.value++;
-  if (key === "ARROWLEFT") AppState.cursor_position.x.value--;
   // Command+Shift | Ctrl+Shift commands
   if (cmd_shift) {
     event.preventDefault();
@@ -42,6 +38,48 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
     // Musical Keyboard commands
     if (MUSICAL_KEYBOARD.includes(key)) {
       enter_note_value(MUSICAL_KEYBOARD.indexOf(key));
+    }
+    // oxlint-disable-next-line --- just sketching...
+    const table = document.getElementById("pattern") as HTMLTableElement;
+
+    // Some real bs down here but it's working (for now)
+    function toggle_cell() {
+      table.querySelectorAll(".active").forEach((element) => {
+        element.className = "";
+      });
+      table.rows[AppState.cursor_position.y.value].cells[
+        AppState.cursor_position.x.value
+      ].className = "active";
+    }
+    if (key === "ARROWUP") {
+      AppState.cursor_position.y.value--;
+      if (AppState.cursor_position.y.value < 1) {
+        AppState.cursor_position.y.value = 4;
+      }
+      toggle_cell();
+    }
+    if (key === "ARROWDOWN") {
+      // read from pattern data later
+      if (AppState.cursor_position.y.value === 4) {
+        AppState.cursor_position.y.value = 0;
+      }
+      AppState.cursor_position.y.value++;
+      toggle_cell();
+    }
+    if (key === "ARROWRIGHT") {
+      // read from pattern data later
+      AppState.cursor_position.x.value++;
+      if (AppState.cursor_position.x.value === 5) {
+        AppState.cursor_position.x.value = 0;
+      }
+      toggle_cell();
+    }
+    if (key === "ARROWLEFT") {
+      if (AppState.cursor_position.x.value < 1) {
+        AppState.cursor_position.x.value = 5;
+      }
+      AppState.cursor_position.x.value--; // read from pattern data later
+      toggle_cell();
     }
   }
   return;

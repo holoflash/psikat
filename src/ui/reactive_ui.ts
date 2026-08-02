@@ -8,6 +8,8 @@ export function reactive_ui() {
   const app_playing_state_display = document.getElementById("playing-state");
   const app_arranger_state_display = document.getElementById("arranger-state");
   const app_enable_audio_button = document.getElementById("worklet-init");
+  // oxlint-disable-next-line --- figure this out later
+  const table = document.getElementById("pattern") as HTMLTableElement;
 
   AppState.audio_initialized.effect(() => {
     if (!app_enable_audio_button) return;
@@ -34,5 +36,24 @@ export function reactive_ui() {
   AppState.view.effect(() => {
     if (!app_arranger_state_display) return;
     app_arranger_state_display.textContent = AppState.view.value;
+  });
+
+  // Have to change the type to do this in one sweep. Would love a real enum right now!
+  AppState.cursor_position.x.effect(() => {
+    if (!table) return;
+    if (table.rows[AppState.cursor_position.y.value].cells[AppState.cursor_position.x.value]) {
+      table.rows[AppState.cursor_position.y.value].cells[
+        AppState.cursor_position.x.value
+      ].className = "active";
+    }
+  });
+  // Starting to look like JAVA here. Gonna need a widescreen if I continue like this
+  AppState.cursor_position.y.effect(() => {
+    if (!table) return;
+    if (table.rows[AppState.cursor_position.y.value].cells[AppState.cursor_position.x.value]) {
+      table.rows[AppState.cursor_position.y.value].cells[
+        AppState.cursor_position.x.value
+      ].className = "active";
+    }
   });
 }

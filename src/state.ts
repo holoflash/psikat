@@ -23,6 +23,6 @@ const DEFAULT_STATE: AppState = {
   command_palette_open: signal(false),
   pitch: signal(0),
   audio_initialized: signal(false),
-  cursor_position: { x: signal(0), y: signal(0) },
+  cursor_position: { x: signal(0), y: signal(1) },
 };
 export const AppState: AppState = DEFAULT_STATE;

@@ -1,5 +1,4 @@
 import { NOTE_NAMES } from "../../data/notes";
-import { AppState } from "../../state";
 import { create_dom_element } from "../../utils/create_dom_element";
 
 type Pattern = {
@@ -72,20 +71,8 @@ export function generate_grid(pattern = TEST_PATTERN) {
     }
   }
   document.getElementById("main-grid")!.appendChild(table);
-  AppState.cursor_position.x.effect(() => {
-    move_cursor(table);
-  });
-
-  AppState.cursor_position.y.effect(() => {
-    move_cursor(table);
-  });
 }
 
-function move_cursor(table: HTMLTableElement) {
-  const cells = table.rows[AppState.cursor_position.y.value].cells;
-  cells[AppState.cursor_position.x.value].className =
-    cells[AppState.cursor_position.x.value].className === "" ? "active" : "";
-}
 // The fun (and pain) of developing without AI!
 // I got to discover on my own that there are HTMLTableElement methods,
 // that let you create tables without having to manually add each required element!!!
