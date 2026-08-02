@@ -1,7 +1,8 @@
-import { AppState } from "../state";
+import { AppState } from "../state/app_state";
 
-// The whiles are to cap how much the keyboard can be transposed
+// The "whiles" are to cap how much the keyboard can be transposed
 // There's out of bounds handling for pitch generation elsewhere
+
 // So the safety is just to prevent UI from overflowing with large numbers
 export function transpose(amount: "OCTAVE_UP" | "OCTAVE_DOWN" | "SEMITONE_UP" | "SEMITONE_DOWN") {
   if (amount === "OCTAVE_UP") {

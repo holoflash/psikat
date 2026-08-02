@@ -1,7 +1,6 @@
 import { play_note } from "../audio/audio";
 import { NOTE_FREQUENCIES } from "../data/notes";
-
-import { AppState } from "../state";
+import { AppState } from "../state/app_state";
 
 // Some magic numbers in this file.
 // Can for sure be avoided but ok for now

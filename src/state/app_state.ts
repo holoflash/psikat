@@ -1,4 +1,4 @@
-import { Signal, signal } from "./utils/signal";
+import { signal, type Signal } from "../utils/signal";
 
 type AppState = {
   view: Signal<"PATTERN_EDITOR" | "ARRANGER" | "OTHER">;
@@ -7,13 +7,13 @@ type AppState = {
     octave: Signal<number>;
     semitone: Signal<number>;
   };
-  cursor_position: { x: Signal<number>; y: Signal<number> };
+
   command_palette_open: Signal<boolean>;
   pitch: Signal<number>; // just put this here for now
   audio_initialized: Signal<boolean>;
 };
 
-const DEFAULT_STATE: AppState = {
+const INIT_APP_STATE: AppState = {
   view: signal("PATTERN_EDITOR"),
   playing: signal(false),
   transposition: {
@@ -23,6 +23,5 @@ const DEFAULT_STATE: AppState = {
   command_palette_open: signal(false),
   pitch: signal(0),
   audio_initialized: signal(false),
-  cursor_position: { x: signal(0), y: signal(1) },
 };
-export const AppState: AppState = DEFAULT_STATE;
+export const AppState: AppState = INIT_APP_STATE;

@@ -1,4 +1,4 @@
-import { AppState } from "../../state";
+import { AppState } from "../../state/app_state";
 
 const dialog = document.createElement("dialog");
 export function command_palette() {

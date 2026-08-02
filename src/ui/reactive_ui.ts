@@ -1,6 +1,7 @@
-import { AppState } from "../state";
-
+import { CursorState } from "../state/cursor";
+import { AppState } from "../state/app_state";
 // All of this can be moved out into "components" later on
+
 // Just threw everything in here for now
 export function reactive_ui() {
   const app_octave_state_display = document.getElementById("octave-state");
@@ -39,21 +40,19 @@ export function reactive_ui() {
   });
 
   // Have to change the type to do this in one sweep. Would love a real enum right now!
-  AppState.cursor_position.x.effect(() => {
+  CursorState.position_x.effect(() => {
     if (!table) return;
-    if (table.rows[AppState.cursor_position.y.value].cells[AppState.cursor_position.x.value]) {
-      table.rows[AppState.cursor_position.y.value].cells[
-        AppState.cursor_position.x.value
-      ].className = "active";
+    if (table.rows[CursorState.position_y.value].cells[CursorState.position_x.value]) {
+      table.rows[CursorState.position_y.value].cells[CursorState.position_x.value].className =
+        "active";
     }
   });
   // Starting to look like JAVA here. Gonna need a widescreen if I continue like this
-  AppState.cursor_position.y.effect(() => {
+  CursorState.position_y.effect(() => {
     if (!table) return;
-    if (table.rows[AppState.cursor_position.y.value].cells[AppState.cursor_position.x.value]) {
-      table.rows[AppState.cursor_position.y.value].cells[
-        AppState.cursor_position.x.value
-      ].className = "active";
+    if (table.rows[CursorState.position_y.value].cells[CursorState.position_x.value]) {
+      table.rows[CursorState.position_y.value].cells[CursorState.position_x.value].className =
+        "active";
     }
   });
 }

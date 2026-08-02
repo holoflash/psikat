@@ -4,7 +4,8 @@ import { toggle_command_palette } from "./toggle_command_palette";
 import { toggle_playing } from "./toggle_playing";
 import { transpose } from "./transpose";
 import { MUSICAL_KEYBOARD } from "../data/musical_keyboard";
-import { AppState } from "../state";
+import { AppState } from "../state/app_state";
+import { CursorState } from "../state/cursor";
 
 export function keyboard_event_to_command(event: KeyboardEvent) {
   const key = event.key.toUpperCase();
@@ -47,38 +48,37 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
       table.querySelectorAll(".active").forEach((element) => {
         element.className = "";
       });
-      table.rows[AppState.cursor_position.y.value].cells[
-        AppState.cursor_position.x.value
-      ].className = "active";
+      table.rows[CursorState.position_y.value].cells[CursorState.position_x.value].className =
+        "active";
     }
     if (key === "ARROWUP") {
-      AppState.cursor_position.y.value--;
-      if (AppState.cursor_position.y.value < 1) {
-        AppState.cursor_position.y.value = 4;
+      CursorState.position_y.value--;
+      if (CursorState.position_y.value < 1) {
+        CursorState.position_y.value = 4;
       }
       toggle_cell();
     }
     if (key === "ARROWDOWN") {
       // read from pattern data later
-      if (AppState.cursor_position.y.value === 4) {
-        AppState.cursor_position.y.value = 0;
+      if (CursorState.position_y.value === 4) {
+        CursorState.position_y.value = 0;
       }
-      AppState.cursor_position.y.value++;
+      CursorState.position_y.value++;
       toggle_cell();
     }
     if (key === "ARROWRIGHT") {
       // read from pattern data later
-      AppState.cursor_position.x.value++;
-      if (AppState.cursor_position.x.value === 5) {
-        AppState.cursor_position.x.value = 0;
+      CursorState.position_x.value++;
+      if (CursorState.position_x.value === 5) {
+        CursorState.position_x.value = 0;
       }
       toggle_cell();
     }
     if (key === "ARROWLEFT") {
-      if (AppState.cursor_position.x.value < 1) {
-        AppState.cursor_position.x.value = 5;
+      if (CursorState.position_x.value < 1) {
+        CursorState.position_x.value = 5;
       }
-      AppState.cursor_position.x.value--; // read from pattern data later
+      CursorState.position_x.value--; // read from pattern data later
       toggle_cell();
     }
   }

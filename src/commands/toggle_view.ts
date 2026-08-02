@@ -1,4 +1,4 @@
-import { AppState } from "../state";
+import { AppState } from "../state/app_state";
 
 export function toggle_view() {
   if (AppState.view.value === "PATTERN_EDITOR") {
