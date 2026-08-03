@@ -26,7 +26,7 @@ function prep_data(pattern: PatternState) {
   // BODY
   // this can probably be done simpler with reduce or something,
   // but I'll come back to it
-  pattern.data.value.forEach((row) => {
+  pattern.data.forEach((row) => {
     const sub_array: string[] = [];
     row.forEach((value) => {
       if (value > NOTE_NAMES.length) {
@@ -42,9 +42,12 @@ function prep_data(pattern: PatternState) {
   return table_array;
 }
 
-export function generate_grid() {
+export function render_grid() {
   const data = prep_data(PatternState);
+  // This also clear the active cursor state!
+  document.getElementById("pattern")?.remove();
   const table = create_dom_element("table", { id: "pattern" });
+
   for (var i = 0; i < data.length; i++) {
     var tr = table.insertRow();
     for (var j = 0; j < data[i].length; j++) {

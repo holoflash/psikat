@@ -81,6 +81,7 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
       CursorState.position_x.value--; // read from pattern data later
       toggle_cell();
     }
+    toggle_cell();
   }
   return;
 }
