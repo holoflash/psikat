@@ -143,36 +143,44 @@ tr:first-child {
 }
 
 /* PATTERN GRID */
-.pattern-body {
+
+.arrangement {
   display: flex;
+}
+
+#pattern {
+  display: flex;
+  flex-direction: column;
   color: white;
-  margin: 1rem;
-  font-size: 1.5rem;
-}
-
-.pattern-col > * {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border: solid white 0.1px;
-  background-color: var(--BG_5);
 }
 
-.pattern-cell {
+#pattern-body {
+  display: flex;
   background-color: var(--BG_2);
-  padding: 0.2rem 0.5rem;
+  color: var(--ACCENT);
 }
 
-.pattern-header,
-.pattern-beat-header {
-  background-color: var(--BG_6);
-  font-size: 1rem;
-  color: grey;
+#pattern-header {
+  display: flex;
 }
 
-.pattern-beat-col > * {
-  background-color: var(--BG_3);
+#pattern-note-header,
+#pattern-fx-header {
+  height: 2rem;
+  width: 3rem;
+}
+
+#arrangement-beat-cell,
+#pattern-note-cell,
+#pattern-fx-cell,
+#pattern-note-header-cell,
+#pattern-fx-header-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  height: 2rem;
+  width: 4rem;
   border: solid white 0.1px;
-  color: grey;
 }
