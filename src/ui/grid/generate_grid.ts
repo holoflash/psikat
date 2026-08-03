@@ -1,33 +1,15 @@
 import { NOTE_NAMES } from "../../data/notes";
+import { PatternState } from "../../state/pattern_state";
 import { create_dom_element } from "../../utils/create_dom_element";
 
-type Pattern = {
-  name: string;
-  voices: number;
-  automation: number;
-  data: number[][];
-};
-
-const TEST_PATTERN: Pattern = {
-  name: "Pattern 1",
-  voices: 4,
-  automation: 1,
-  data: [
-    [1, 5, -1, -1, 999],
-    [2, 6, -1, -1, 999],
-    [3, 7, -1, -1, 999],
-    [4, 8, -1, -1, 999],
-  ],
-};
-
-// STEP 1. Convert THAT ^ to this v
+// Convert "Pattern" into this structure
 // ["NOTE", "NOTE", "NOTE", "NOTE", "FX" ],
 // ["···",  "···",  "···",  "···",  "···"],
 // ["···",  "···",  "···",  "···",  "···"],
 // ["···",  "···",  "···",  "···",  "···"],
 // ["···",  "···",  "···",  "···",  "···"],
 // ["···",  "···",  "···",  "···",  "···"],
-export function prep_data(pattern: Pattern) {
+function prep_data(pattern: PatternState) {
   const table_array = [];
   // HEADER
   const header_array = [];
@@ -44,7 +26,7 @@ export function prep_data(pattern: Pattern) {
   // BODY
   // this can probably be done simpler with reduce or something,
   // but I'll come back to it
-  pattern.data.forEach((row) => {
+  pattern.data.value.forEach((row) => {
     const sub_array: string[] = [];
     row.forEach((value) => {
       if (value > NOTE_NAMES.length) {
@@ -60,8 +42,8 @@ export function prep_data(pattern: Pattern) {
   return table_array;
 }
 
-export function generate_grid(pattern = TEST_PATTERN) {
-  const data = prep_data(pattern);
+export function generate_grid() {
+  const data = prep_data(PatternState);
   const table = create_dom_element("table", { id: "pattern" });
   for (var i = 0; i < data.length; i++) {
     var tr = table.insertRow();
@@ -72,6 +54,11 @@ export function generate_grid(pattern = TEST_PATTERN) {
   }
   document.getElementById("main-grid")!.appendChild(table);
 }
+// Sooomething in this direction later
+// Need to sync the grid in both directions UI <--> MEMORY;
+// PatternState.data.effect(() => {
+//   generate_grid();
+// });
 
 // The fun (and pain) of developing without AI!
 // I got to discover on my own that there are HTMLTableElement methods,
