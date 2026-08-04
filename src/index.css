@@ -1,4 +1,5 @@
 @import "./components/pattern/pattern.css";
+@import "./components/pattern-cell/pattern-cell.css";
 
 :root {
   --BG_1: #0c0a14;

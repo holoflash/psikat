@@ -27,9 +27,14 @@ class PatternComponent extends HTMLElement {
     const voiceCount = parseInt(this.getAttribute("voices") ?? "0");
     this.replaceChildren();
     for (let j = 0; j < voiceCount; j++) {
-      const wrapper = create_dom_element("div");
+      const wrapper = create_dom_element("div", { id: "pattern-row" });
+      const header = create_dom_element("div", { id: "pattern-header", textContent: "NOTE" });
+      wrapper.append(header);
       for (let i = 0; i < stepsCount; i++) {
-        wrapper.append(create_dom_element("div", { textContent: "C-4" }));
+        const cell = document.createElement("x-pattern-cell");
+        // @ts-ignore -- have to figure out how to type custom components
+        cell.cell_value = i + 1;
+        wrapper.append(cell);
       }
       this.append(wrapper);
     }

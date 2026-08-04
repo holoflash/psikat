@@ -1,5 +1,20 @@
 x-pattern {
   display: flex;
-  padding: 1rem;
   text-align: center;
+}
+
+#pattern-header {
+  height: 3rem;
+  width: 4rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: solid white 1px;
+  background-color: var(--BG_4);
+  margin: 0;
+}
+
+#pattern-row {
+  display: flex;
+  flex-direction: column;
 }
