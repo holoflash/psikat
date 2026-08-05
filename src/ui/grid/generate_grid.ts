@@ -14,7 +14,7 @@ function prep_data(pattern: PatternState) {
   // HEADER
   const header_array = [];
 
-  for (let i = 0; i < pattern.voices + pattern.automation; i++) {
+  for (let i = 0; i < pattern.voices + pattern.fx; i++) {
     if (i < pattern.voices) {
       header_array.push("NOTE");
     } else {
