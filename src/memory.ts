@@ -28,3 +28,8 @@ console.log(data_view.getInt16(BPM));
 
 console.log(data_bytes[BPM]);
 console.log(data_bytes[TRACK_COUNT]);
+
+// This will be great for Cloning patterns for example!
+data_bytes.copyWithin(5, 0, 4);
+
+// Ok I just realized that prettu much all array methods I'm just to work on an Uint8Array too!
