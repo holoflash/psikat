@@ -1,5 +1,5 @@
 import { AppState } from "../state/app_state";
-import { draw_waveform } from "../ui/oscilloscope/draw_waveform";
+import { draw_waveform } from "../components/oscilloscope/draw_waveform";
 
 let audio_context: AudioContext | null = null;
 let square_node: AudioWorkletNode | null = null;

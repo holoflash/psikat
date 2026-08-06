@@ -1,44 +1,70 @@
-type PatternCell = {
+export type PatternCell = {
   value: number;
-  subdivision: number;
-  type: "NOTE" | "COMMAND" | "FX";
+  zoom: number;
+  selected: boolean;
+  type: "NOTE" | "COMMAND" | "FX" | "EMPTY";
 };
 
-type Pattern = {
-  name: string;
-  voices: 1 | 2 | 3 | 4 | 5 | 6 | 8;
-  steps: 8;
+export type Pattern = {
+  id: string;
+  voices: number;
   fx: number;
-  data: PatternCell[][];
+  data: PatternCell[];
 };
 
-type Track = {
+export type Track = {
+  id: string;
   voices: number;
   isMaster?: boolean;
   patterns: Pattern[];
 };
 
-type ArrangementState = {
+export type ArrangementState = {
   tracks: Track[];
   bpm: number;
 };
 
+export type PatternPool = Pattern[];
+
+const INIT_PATTERN_POOL_STATE: PatternPool = [
+  {
+    id: "pattern_1",
+    voices: 4,
+    fx: 1,
+    data: [
+      { value: 1, zoom: 16, type: "EMPTY", selected: false },
+      { value: 1, zoom: 16, type: "EMPTY", selected: false },
+      { value: 1, zoom: 16, type: "EMPTY", selected: false },
+      { value: 1, zoom: 16, type: "EMPTY", selected: false },
+      { value: 1, zoom: 16, type: "EMPTY", selected: false },
+      { value: 1, zoom: 16, type: "EMPTY", selected: false },
+      { value: 1, zoom: 16, type: "EMPTY", selected: false },
+      { value: 1, zoom: 16, type: "EMPTY", selected: false },
+    ],
+  },
+];
+
 const DEFAULT_ARRANGEMENT_STATE: ArrangementState = {
   tracks: [
     {
+      id: "Bass",
       voices: 4,
-      patterns: [
-        {
-          name: "pattern_1",
-          voices: 4,
-          steps: 8,
-          fx: 1,
-          data: [[{ value: 1, subdivision: 16, type: "NOTE" }]],
-        },
-      ],
+      patterns: [INIT_PATTERN_POOL_STATE[0]],
+    },
+    {
+      id: "Drums",
+      voices: 4,
+      patterns: [INIT_PATTERN_POOL_STATE[0]],
     },
   ],
   bpm: 120,
 };
 
-void DEFAULT_ARRANGEMENT_STATE;
+export function getArrangementLength(arrangement: ArrangementState) {
+  let arrangementLength = 0;
+
+  arrangement.tracks[0].patterns.forEach((pattern) => (arrangementLength += pattern.data.length));
+  return arrangementLength;
+}
+
+export const ArrangementState: ArrangementState = DEFAULT_ARRANGEMENT_STATE;

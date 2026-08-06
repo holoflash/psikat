@@ -1,6 +1,3 @@
-@import "./components/pattern/pattern.css";
-@import "./components/pattern-cell/pattern-cell.css";
-
 :root {
   --BG_1: #0c0a14;
   --BG_2: #12101c;
@@ -87,4 +84,27 @@ header {
   h1 {
     font-size: 1.5rem;
   }
+}
+
+#instrument-panel {
+  background-color: var(--BG_2);
+  padding: var(--PADDING_MD);
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  canvas {
+    border-radius: 2rem;
+    outline: inset var(--ACCENT) 2px;
+  }
+}
+
+#command-palette {
+  left: 50%;
+  top: 25%;
+  transform: translate(-50%, -50%);
+  background-color: var(--BG_6);
+  color: var(--TEXT);
+  height: 30rem;
+  width: 50rem;
 }

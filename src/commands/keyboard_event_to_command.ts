@@ -40,23 +40,11 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
     if (MUSICAL_KEYBOARD.includes(key)) {
       enter_note_value(MUSICAL_KEYBOARD.indexOf(key));
     }
-    // oxlint-disable-next-line --- just sketching...
-    const table = document.getElementById("pattern") as HTMLTableElement;
-
-    // Some real bs down here but it's working (for now)
-    function toggle_cell() {
-      table.querySelectorAll(".active").forEach((element) => {
-        element.className = "";
-      });
-      table.rows[CursorState.position_y.value].cells[CursorState.position_x.value].className =
-        "active";
-    }
     if (key === "ARROWUP") {
       CursorState.position_y.value--;
       if (CursorState.position_y.value < 1) {
         CursorState.position_y.value = 4;
       }
-      toggle_cell();
     }
     if (key === "ARROWDOWN") {
       // read from pattern data later
@@ -64,7 +52,6 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
         CursorState.position_y.value = 0;
       }
       CursorState.position_y.value++;
-      toggle_cell();
     }
     if (key === "ARROWRIGHT") {
       // read from pattern data later
@@ -72,16 +59,13 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
       if (CursorState.position_x.value === 5) {
         CursorState.position_x.value = 0;
       }
-      toggle_cell();
     }
     if (key === "ARROWLEFT") {
       if (CursorState.position_x.value < 1) {
         CursorState.position_x.value = 5;
       }
       CursorState.position_x.value--; // read from pattern data later
-      toggle_cell();
     }
-    toggle_cell();
   }
   return;
 }

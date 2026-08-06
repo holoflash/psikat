@@ -1,8 +1,6 @@
 import { play_note } from "../audio/audio";
 import { NOTE_FREQUENCIES } from "../data/notes";
 import { AppState } from "../state/app_state";
-import { CursorState } from "../state/cursor";
-import { PatternState } from "../state/pattern_state";
 
 // Some magic numbers in this file.
 // Can for sure be avoided but ok for now
@@ -26,10 +24,5 @@ function select_pitch(note_index: number) {
 // This is gonna be "Preview" later on.
 // The same play_note method should be called both by the user - during input; and by the program during playback.
 export function enter_note_value(note: number) {
-  // This just shows how stupid the pattern model is right now.
-  // Shouldn't have to keep track of how much the index needs to be offset for things to work
-  PatternState.data[CursorState.position_y.value - 1][CursorState.position_x.value] =
-    select_pitch(note);
-
   play_note(NOTE_FREQUENCIES[select_pitch(note)]);
 }
