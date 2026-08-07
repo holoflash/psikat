@@ -3,7 +3,7 @@ import { init_audio } from "./audio/audio";
 import { reactive_ui } from "./components/reactive_ui";
 import { command_palette } from "./components/command_palette/dialog";
 import { render_arrangement } from "./components/arrangement";
-import { ArrangementState } from "./state/arrangement_state";
+import { s_arrangement } from "./state";
 
 // Listeners go here
 document.addEventListener("keydown", keyboard_event_to_command);
@@ -15,4 +15,4 @@ document.getElementById("worklet-init")?.addEventListener("click", () => {
 // Besides, I want to handwrite as much as possible in HTML
 reactive_ui();
 command_palette();
-render_arrangement(ArrangementState);
+render_arrangement(s_arrangement);

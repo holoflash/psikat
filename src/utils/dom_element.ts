@@ -1,4 +1,4 @@
-export function create_dom_element<T extends keyof HTMLElementTagNameMap>(
+export function dom_element<T extends keyof HTMLElementTagNameMap>(
   tag_name: T,
   params?: Partial<HTMLElementTagNameMap[T]>,
 ) {

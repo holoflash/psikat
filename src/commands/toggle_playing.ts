@@ -1,5 +1,5 @@
-import { AppState } from "../state/app_state";
+import { s_playing } from "../state";
 
 export function toggle_playing() {
-  AppState.playing.value = !AppState.playing.value;
+  s_playing.value = !s_playing.value;
 }

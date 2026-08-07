@@ -4,8 +4,7 @@ import { toggle_command_palette } from "./toggle_command_palette";
 import { toggle_playing } from "./toggle_playing";
 import { transpose } from "./transpose";
 import { MUSICAL_KEYBOARD } from "../data/musical_keyboard";
-import { AppState } from "../state/app_state";
-import { CursorState } from "../state/cursor";
+import { s_command_palette_open } from "../state";
 
 export function keyboard_event_to_command(event: KeyboardEvent) {
   const key = event.key.toUpperCase();
@@ -17,7 +16,7 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
 
   // We'll need to handle key events while the command palette is open differently
   // This blocks all other registered commands except the exit command
-  if (AppState.command_palette_open.value) {
+  if (s_command_palette_open.value) {
     if (key === "P" && cmd_shift) toggle_command_palette();
     return;
   }
@@ -41,30 +40,12 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
       enter_note_value(MUSICAL_KEYBOARD.indexOf(key));
     }
     if (key === "ARROWUP") {
-      CursorState.position_y.value--;
-      if (CursorState.position_y.value < 1) {
-        CursorState.position_y.value = 4;
-      }
     }
     if (key === "ARROWDOWN") {
-      // read from pattern data later
-      if (CursorState.position_y.value === 4) {
-        CursorState.position_y.value = 0;
-      }
-      CursorState.position_y.value++;
     }
     if (key === "ARROWRIGHT") {
-      // read from pattern data later
-      CursorState.position_x.value++;
-      if (CursorState.position_x.value === 5) {
-        CursorState.position_x.value = 0;
-      }
     }
     if (key === "ARROWLEFT") {
-      if (CursorState.position_x.value < 1) {
-        CursorState.position_x.value = 5;
-      }
-      CursorState.position_x.value--; // read from pattern data later
     }
   }
   return;

@@ -1,6 +1,4 @@
-import { CursorState } from "../state/cursor";
-import { AppState } from "../state/app_state";
-// All of this can be moved out into "components" later on
+import { s_audio_initialized, s_playing, s_view, s_transposition } from "../state";
 
 // Just threw everything in here for now
 export function reactive_ui() {
@@ -9,50 +7,31 @@ export function reactive_ui() {
   const app_playing_state_display = document.getElementById("playing-state");
   const app_arranger_state_display = document.getElementById("arranger-state");
   const app_enable_audio_button = document.getElementById("worklet-init");
-  // oxlint-disable-next-line --- figure this out later
-  const table = document.getElementById("pattern") as HTMLTableElement;
 
-  AppState.audio_initialized.effect(() => {
+  s_audio_initialized.effect(() => {
     if (!app_enable_audio_button) return;
-    app_enable_audio_button.textContent = AppState.audio_initialized.value
+    app_enable_audio_button.textContent = s_audio_initialized.value
       ? "AUDIO ENGAGED"
       : "ENABLE AUDIO";
   });
 
-  AppState.transposition.octave.effect(() => {
+  s_transposition.octave.effect(() => {
     if (!app_octave_state_display) return;
-    app_octave_state_display.textContent = `OCTAVE ${AppState.transposition.octave.value}`;
+    app_octave_state_display.textContent = `OCTAVE ${s_transposition.octave.value}`;
   });
 
-  AppState.transposition.semitone.effect(() => {
+  s_transposition.semitone.effect(() => {
     if (!app_semitone_state_display) return;
-    app_semitone_state_display.textContent = `SEMITONE ${AppState.transposition.semitone.value}`;
+    app_semitone_state_display.textContent = `SEMITONE ${s_transposition.semitone.value}`;
   });
 
-  AppState.playing.effect(() => {
+  s_playing.effect(() => {
     if (!app_playing_state_display) return;
-    app_playing_state_display.textContent = AppState.playing.value ? "PLAYING" : "STOPPED";
+    app_playing_state_display.textContent = s_playing.value ? "PLAYING" : "STOPPED";
   });
 
-  AppState.view.effect(() => {
+  s_view.effect(() => {
     if (!app_arranger_state_display) return;
-    app_arranger_state_display.textContent = AppState.view.value;
-  });
-
-  // Have to change the type to do this in one sweep. Would love a real enum right now!
-  CursorState.position_x.effect(() => {
-    if (!table) return;
-    if (table.rows[CursorState.position_y.value].cells[CursorState.position_x.value]) {
-      table.rows[CursorState.position_y.value].cells[CursorState.position_x.value].className =
-        "active";
-    }
-  });
-  // Starting to look like JAVA here. Gonna need a widescreen if I continue like this
-  CursorState.position_y.effect(() => {
-    if (!table) return;
-    if (table.rows[CursorState.position_y.value].cells[CursorState.position_x.value]) {
-      table.rows[CursorState.position_y.value].cells[CursorState.position_x.value].className =
-        "active";
-    }
+    app_arranger_state_display.textContent = s_view.value;
   });
 }

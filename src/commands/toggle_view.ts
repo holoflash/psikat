@@ -1,11 +1,11 @@
-import { AppState } from "../state/app_state";
+import { s_view } from "../state";
 
 export function toggle_view() {
-  if (AppState.view.value === "PATTERN_EDITOR") {
-    AppState.view.value = "ARRANGER";
-  } else if (AppState.view.value === "ARRANGER") {
-    AppState.view.value = "OTHER";
-  } else if (AppState.view.value === "OTHER") {
-    AppState.view.value = "PATTERN_EDITOR";
+  if (s_view.value === "PATTERN_EDITOR") {
+    s_view.value = "ARRANGER";
+  } else if (s_view.value === "ARRANGER") {
+    s_view.value = "OTHER";
+  } else if (s_view.value === "OTHER") {
+    s_view.value = "PATTERN_EDITOR";
   }
 }
