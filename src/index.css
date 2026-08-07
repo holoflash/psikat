@@ -4,7 +4,7 @@
   --BG_3: #1a1726;
   --BG_4: #1e1a2e;
   --BG_5: #242034;
-  --BG_6: #282437;
+  --BG_6: #312c42;
   --ACCENT: #d2be8c;
   --TEXT: #f8f5ec;
   --TEXT_DIM: #9b9b9b;
@@ -97,6 +97,8 @@ header {
     border-radius: 2rem;
     outline: inset var(--ACCENT) 2px;
   }
+  /* for now */
+  display: none;
 }
 
 #command-palette {
@@ -107,4 +109,33 @@ header {
   color: var(--TEXT);
   height: 30rem;
   width: 50rem;
+}
+
+#arrangement {
+  display: flex;
+  flex-direction: column;
+  font-size: 1.5rem;
+  height: fit-content;
+  padding: 1rem;
+}
+
+.pattern-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.pattern-cell {
+  display: grid;
+  place-items: center;
+  padding: 0.1rem 0.5rem;
+  background-color: var(--BG_1);
+  &:first-child {
+    border-top: solid var(--TEXT_DIM) 1px;
+  }
+  &:nth-child(4n + 1) {
+    background-color: var(--BG_6);
+  }
+  &:nth-child(4n + 3) {
+    background-color: var(--BG_3);
+  }
 }

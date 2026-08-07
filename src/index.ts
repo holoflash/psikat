@@ -7,6 +7,7 @@ import { s_arrangement } from "./state";
 
 // Listeners go here
 document.addEventListener("keydown", keyboard_event_to_command);
+
 document.getElementById("worklet-init")?.addEventListener("click", () => {
   void init_audio();
 });

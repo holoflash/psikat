@@ -4,12 +4,13 @@ import { toggle_command_palette } from "./toggle_command_palette";
 import { toggle_playing } from "./toggle_playing";
 import { transpose } from "./transpose";
 import { MUSICAL_KEYBOARD } from "../data/musical_keyboard";
-import { s_command_palette_open } from "../state";
+import { s_command_palette_open, s_current_zoom, ZOOM_LEVELS } from "../state";
 
 export function keyboard_event_to_command(event: KeyboardEvent) {
   const key = event.key.toUpperCase();
   const cmd_shift = event.metaKey && event.shiftKey;
-  if (key === "TAB" || key == "ENTER" || cmd_shift) {
+  const cmd_alt_shift = event.metaKey && event.altKey && event.shiftKey;
+  if (key === "TAB" || key == "ENTER" || cmd_shift || cmd_alt_shift) {
     event.preventDefault();
     event.stopPropagation();
   }
@@ -20,7 +21,16 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
     if (key === "P" && cmd_shift) toggle_command_palette();
     return;
   }
-  // Command+Shift | Ctrl+Shift commands
+  if (cmd_alt_shift) {
+    if (key === "ARROWRIGHT") {
+      s_current_zoom.value = (s_current_zoom.value + 1) % ZOOM_LEVELS.length;
+      return;
+    }
+    if (key === "ARROWLEFT") {
+      s_current_zoom.value = (s_current_zoom.value - 1 + ZOOM_LEVELS.length) % ZOOM_LEVELS.length;
+      return;
+    }
+  }
   if (cmd_shift) {
     event.preventDefault();
     event.stopPropagation();

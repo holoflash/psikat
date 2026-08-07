@@ -1,28 +1,22 @@
+import { NOTE_NAMES } from "../data/notes";
+import { s_pattern_pool } from "../state";
 import type { ArrangementState } from "../state/model";
 import { dom_element } from "../utils/dom_element";
 
 // Simplest full grid rendering thus far
 // However.. I wonder if I can express all of this in a shallow array instead of a deeply nested object
 export function render_arrangement(arrangement: ArrangementState) {
-  const container = document.getElementById("arrangement");
-  //-------------- BEAT COUNT ROW--------------------------------------------------
-  const beatRow = dom_element("div");
-  const beatCount = arrangement.tracks[0].patterns[0].data.length;
-  for (let i = 0; i < beatCount; i++) {
-    beatRow.append(dom_element("div", { textContent: (i + 1).toString() }));
-  }
-  container?.append(beatRow);
-  //--------------------------------------------------------------------------------
-
-  arrangement.tracks.forEach((track) => {
-    const trackContainer = dom_element("div");
-    trackContainer.append(dom_element("div", { textContent: track.id }));
-
-    track.patterns.forEach((pattern) => {
-      pattern.data.forEach((cell) => {
-        trackContainer.append(dom_element("div", { textContent: cell.value.toString() }));
+  const e_container = document.getElementById("arrangement");
+  arrangement.value.forEach((pattern_reference) => {
+    const e_pattern_container = dom_element("div", { className: "pattern-container" });
+    s_pattern_pool.value[pattern_reference].forEach((cell) => {
+      const e_cell = dom_element("div", {
+        className: "pattern-cell",
+        textContent: NOTE_NAMES[cell.value],
       });
+
+      e_pattern_container.append(e_cell);
     });
-    container?.append(trackContainer);
+    e_container?.append(e_pattern_container);
   });
 }

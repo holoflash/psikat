@@ -1,4 +1,11 @@
-import { s_audio_initialized, s_playing, s_view, s_transposition } from "../state";
+import {
+  s_audio_initialized,
+  s_playing,
+  s_view,
+  s_transposition,
+  s_current_zoom,
+  ZOOM_LEVELS,
+} from "../state";
 
 // Just threw everything in here for now
 export function reactive_ui() {
@@ -6,6 +13,7 @@ export function reactive_ui() {
   const app_semitone_state_display = document.getElementById("semitone-state");
   const app_playing_state_display = document.getElementById("playing-state");
   const app_arranger_state_display = document.getElementById("arranger-state");
+  const app_zooom_state_display = document.getElementById("zoom-state");
   const app_enable_audio_button = document.getElementById("worklet-init");
 
   s_audio_initialized.effect(() => {
@@ -33,5 +41,10 @@ export function reactive_ui() {
   s_view.effect(() => {
     if (!app_arranger_state_display) return;
     app_arranger_state_display.textContent = s_view.value;
+  });
+
+  s_current_zoom.effect(() => {
+    if (!app_zooom_state_display) return;
+    app_zooom_state_display.textContent = ZOOM_LEVELS[s_current_zoom.value].toString();
   });
 }

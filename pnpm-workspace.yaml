@@ -1,8 +1,6 @@
-catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@0.2.6
-  vite-plus: 0.2.6
 overrides:
-  vite: "catalog:"
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.8
+  vitest: 4.1.10
 peerDependencyRules:
   allowAny:
     - vite
