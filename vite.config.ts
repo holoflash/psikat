@@ -7,7 +7,7 @@ export default defineConfig({
   fmt: {},
   lint: {
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
-    plugins: ["eslint", "import", "oxc", "typescript", "unicorn"],
+    plugins: ["eslint", "import", "oxc", "typescript", "unicorn", "vitest"],
     categories: { correctness: "error", perf: "error", suspicious: "error" },
     rules: { "vite-plus/prefer-vite-plus-imports": "error", "no-underscore-dangle": "off" },
     options: { typeAware: true, typeCheck: true },

@@ -1,7 +1,7 @@
 import { NOTE_NAMES } from "../data/notes";
 import { s_pattern_pool } from "../state";
 import type { ArrangementState } from "../state/model";
-import { dom_element } from "../utils/dom_element";
+import { dom_element } from "../utils/dom/dom_element";
 
 // Simplest full grid rendering thus far
 // However.. I wonder if I can express all of this in a shallow array instead of a deeply nested object

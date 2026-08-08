@@ -1,4 +1,4 @@
-import type { Signal } from "../utils/signal";
+import type { Signal } from "../utils/dom/signal";
 
 export type CursorState = {
   arranger_pattern: Signal<number>;

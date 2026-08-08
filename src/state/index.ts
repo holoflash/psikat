@@ -1,4 +1,4 @@
-import { signal, type Signal } from "../utils/signal";
+import { signal, type Signal } from "../utils/dom/signal";
 import type { Pattern, TranspositionState, CursorState, ArrangementState } from "./model";
 
 //##########################################################
