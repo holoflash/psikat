@@ -141,6 +141,9 @@ function is_even(value: number) {
 // C4
 
 // Ok, all good. Now I need to write a function that figures all of the above out ^
+// Things are going to get hectic when we end up with a pattern that has a big variety of zoom levels within.
+// Next time I'll try to construct such a pattern along with what it should look like when moving to a certain zoom level
+// That will serve as input and output for a test and we can take it from there
 
 /**
  * Determines if a cell can be edited in the current zoom level
