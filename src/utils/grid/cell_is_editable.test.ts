@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vite-plus/test";
 import { cell_is_editable } from "./cell_is_editable";
 
+// placeholder
+// this doesn't really test anything valuable right now
 describe("cell_is_editable", () => {
   test("Same resolution", () => {
     expect(cell_is_editable(16, 16)).toBe(true);

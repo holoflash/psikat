@@ -1,3 +1,5 @@
+// This can be used for determining the new cursor position when changing resolutions
+
 /**
  * Resolves the new position of a cell when changing zoom levels.
  */
