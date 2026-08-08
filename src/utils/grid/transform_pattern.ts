@@ -143,35 +143,40 @@ import type { Pattern } from "../../state/model";
 // Next time I'll try to construct such a pattern along with what it should look like when moving to a certain zoom level
 // That will serve as input and output for a test and we can take it from there
 
+//   Pattern.foreach(cell-i =>
+//  Zoomfactor = newZoom/ cell.zoom
+//  For(zoomFactor)
+//    All zf values exlc first are null
+//    Add 1 cell at desired zoom
+//    With value of first checked cell
+// Else
+//   Cell-i += zoomFactor
+//   Go to next unchecked cell
 export function transform_pattern(pattern: Pattern, new_zoom: number): Pattern {
   let new_pattern: Pattern = [];
-
   for (let i = 0; i < pattern.length; i++) {
-    // lookahead
-    if (pattern[i].zoom !== new_zoom && pattern[i].value !== 0) {
-      const zoom_factor = new_zoom / pattern[i].zoom;
-      for (let z = 0; z < zoom_factor; z++) {
-        // It's gonna be something like this .....
-        if (i % zoom_factor === 0) {
-          console.log("lookahead");
-          console.log(pattern[i]);
-        }
-      }
+    const cells_to_check = pattern[i].zoom / new_zoom;
+    // process the pattern in batches
+    const can_add = can_compress(pattern.slice(i, cells_to_check + i));
+    if (can_add) {
+      new_pattern.push({ value: pattern[i].value, zoom: new_zoom });
+      i += cells_to_check - 1;
+    } else {
+      new_pattern.push(pattern[i]);
     }
   }
-
-  // for (let i = 0; i < pattern.length; i++) {
-  //   const cell_zoom = pattern[i].zoom;
-  //   const zoom_factor = new_zoom / cell_zoom; // 8/4 = 2
-  //   const mark_to_preserve = i % zoom_factor === 0;
-  //   if (mark_to_preserve && pattern[i].value !== 0) {
-  //     new_pattern.push(pattern[i]);
-  //   } else {
-  //     new_pattern.push({ value: pattern[i].value, zoom: new_zoom });
-  //   }
-  //   // to determine how many cells after can be safely deleted
-  //   // ^every other cell starting from the first one must be empty for a clean resolution
-  //   // if not empty, these cells should be marked for preservation
-  // }
   return new_pattern;
+}
+// This feels like a LeetCode challenge. If I only had spent more time there
+// But hey, made the one test pass :D
+function can_compress(cells_to_check: Pattern) {
+  let ok = true;
+  for (let i = 1; i < cells_to_check.length; i++) {
+    if (cells_to_check[i].value === 0) {
+      ok = true;
+    } else {
+      ok = false;
+    }
+  }
+  return ok;
 }

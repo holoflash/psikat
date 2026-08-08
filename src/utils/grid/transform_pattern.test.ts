@@ -1,9 +1,27 @@
 import { describe, expect, test } from "vite-plus/test";
 import { transform_pattern } from "./transform_pattern";
-import { simple_4, simple_8 } from "../mocks";
+import type { Pattern } from "../../state/model";
 
 describe("transform pattern", () => {
-  test("Same resolution", () => {
-    expect(transform_pattern(simple_8, 4)).toEqual(simple_4);
+  test("Even: high to low", () => {
+    const before: Pattern = [
+      { value: 1, zoom: 8 },
+      { value: 1, zoom: 8 },
+      { value: 1, zoom: 8 },
+      { value: 0, zoom: 8 },
+      { value: 1, zoom: 8 },
+      { value: 0, zoom: 8 },
+      { value: 1, zoom: 8 },
+      { value: 0, zoom: 8 },
+    ];
+
+    const after: Pattern = [
+      { value: 1, zoom: 8 },
+      { value: 1, zoom: 8 },
+      { value: 1, zoom: 4 },
+      { value: 1, zoom: 4 },
+      { value: 1, zoom: 4 },
+    ];
+    expect(transform_pattern(before, 4)).toEqual(after);
   });
 });

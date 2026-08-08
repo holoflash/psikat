@@ -30,18 +30,13 @@ import type { Pattern } from "../state/model";
 export const simple_8: Pattern = [
   { value: 1, zoom: 8 },
   { value: 1, zoom: 8 },
-  { value: 1, zoom: 8 },
-  { value: 0, zoom: 8 },
-  { value: 1, zoom: 8 },
-  { value: 0, zoom: 8 },
-  { value: 1, zoom: 8 },
-  { value: 0, zoom: 8 },
-];
 
-export const simple_4: Pattern = [
   { value: 1, zoom: 8 },
+  { value: 0, zoom: 8 },
+
   { value: 1, zoom: 8 },
-  { value: 1, zoom: 4 },
-  { value: 1, zoom: 4 },
-  { value: 1, zoom: 4 },
+  { value: 0, zoom: 8 },
+
+  { value: 1, zoom: 8 },
+  { value: 0, zoom: 8 },
 ];
