@@ -1,5 +1,11 @@
 import { signal, type Signal } from "../utils/dom/signal";
-import type { Pattern, TranspositionState, CursorState, ArrangementState } from "./model";
+import type {
+  Pattern,
+  TranspositionState,
+  CursorState,
+  ArrangementState,
+  ZoomLevel,
+} from "./model";
 
 //##########################################################
 //   Just for fun — prefixing all state variables with s_
@@ -11,7 +17,7 @@ export const s_playing: Signal<boolean> = signal(false);
 export const s_command_palette_open: Signal<boolean> = signal(false);
 export const s_audio_initialized: Signal<boolean> = signal(false);
 export const s_current_zoom: Signal<number> = signal(4);
-export const ZOOM_LEVELS = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128];
+export const ZOOM_LEVELS: ZoomLevel[] = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128];
 
 export const s_transposition: TranspositionState = {
   octave: signal(4),

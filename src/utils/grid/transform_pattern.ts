@@ -1,7 +1,7 @@
 // OK gonna try to work this out...
 // Here's a very basic pattern.
 
-import type { Pattern } from "../../state/model";
+import type { Pattern, ZoomLevel } from "../../state/model";
 
 // ZOOM = 4
 //   { value: 1, zoom: 4 },
@@ -152,12 +152,12 @@ import type { Pattern } from "../../state/model";
 // Else
 //   Cell-i += zoomFactor
 //   Go to next unchecked cell
-export function transform_pattern(pattern: Pattern, new_zoom: number): Pattern {
+export function transform_pattern(pattern: Pattern, new_zoom: ZoomLevel): Pattern {
   let new_pattern: Pattern = [];
   for (let i = 0; i < pattern.length; i++) {
     const cells_to_check = pattern[i].zoom / new_zoom;
     // process the pattern in batches
-    const can_add = can_compress(pattern.slice(i, cells_to_check + i));
+    const can_add = can_compress(pattern.slice(i + 1, cells_to_check + i));
     if (can_add) {
       new_pattern.push({ value: pattern[i].value, zoom: new_zoom });
       i += cells_to_check - 1;
@@ -167,11 +167,12 @@ export function transform_pattern(pattern: Pattern, new_zoom: number): Pattern {
   }
   return new_pattern;
 }
-// This feels like a LeetCode challenge. If I only had spent more time there
-// But hey, made the one test pass :D
+
 function can_compress(cells_to_check: Pattern) {
   let ok = true;
-  for (let i = 1; i < cells_to_check.length; i++) {
+
+  // We're not checking the first cell because it doesn't matter
+  for (let i = 0; i < cells_to_check.length; i++) {
     if (cells_to_check[i].value === 0) {
       ok = true;
     } else {
