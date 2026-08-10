@@ -4,8 +4,6 @@ import { reactive_ui } from "./components/reactive_ui";
 import { command_palette } from "./components/command_palette/dialog";
 import { render_arrangement } from "./components/arrangement";
 import { s_arrangement } from "./state";
-import { transform_pattern } from "./utils/grid/transform_pattern";
-import { simple_8 } from "./utils/mocks";
 
 // Listeners go here
 document.addEventListener("keydown", keyboard_event_to_command);
@@ -19,5 +17,3 @@ document.getElementById("worklet-init")?.addEventListener("click", () => {
 reactive_ui();
 command_palette();
 render_arrangement(s_arrangement);
-
-console.log(transform_pattern(simple_8, 4));
