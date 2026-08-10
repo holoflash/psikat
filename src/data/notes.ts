@@ -12,8 +12,9 @@ export const NOTE_FREQUENCIES: number[] = [
   5274.04, 5587.65, 5919.91, 6271.93, 6644.88, 7040.0, 7458.62, 7902.13, 8372.02, 8869.84, 9397.27,
   9956.06, 10548.08, 11175.3, 11839.82, 12543.85,
 ];
+
 // I considered an object for both of these but since they're the same length and I'm just accessing the values by index (0-127)
-// this feels like the best approach
+// this feels like the best approach for now.
 export const NOTE_NAMES: string[] = [
   "C--",
   "C#-",

@@ -4,6 +4,7 @@
 import { s_transposition } from "../state";
 
 // So the safety is just to prevent UI from overflowing with large numbers
+// TODO: get rid of the magic numbers 10, 11 and -11
 export function transpose(amount: "OCTAVE_UP" | "OCTAVE_DOWN" | "SEMITONE_UP" | "SEMITONE_DOWN") {
   if (amount === "OCTAVE_UP") {
     while (s_transposition.octave.value < 10) {

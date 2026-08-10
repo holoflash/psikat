@@ -1,5 +1,6 @@
 import type { Pattern, ZoomLevel } from "../../state/model";
 
+// TODO: Use ZOOM_LCD and tick values instead
 export function scale_up_pattern(pattern: Pattern, new_zoom: ZoomLevel): Pattern {
   let new_pattern: Pattern = [];
 

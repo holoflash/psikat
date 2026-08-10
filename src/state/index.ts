@@ -8,6 +8,14 @@ import type {
 } from "./model";
 
 //##########################################################
+//                    CONSTANTS
+//##########################################################
+export const ZOOM_LEVELS: ZoomLevel[] = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128];
+export const ZOOM_LCD = 384; // Lowest zoom level common denominator
+export const OCTAVE = 12;
+export const MAX_NOTE_RANGE = 127; // TODO: should get this from the NOTES array instead
+
+//##########################################################
 //   Just for fun — prefixing all state variables with s_
 //##########################################################
 
@@ -16,8 +24,7 @@ export const s_view: Signal<"PATTERN_EDITOR" | "ARRANGER" | "OTHER"> = signal("P
 export const s_playing: Signal<boolean> = signal(false);
 export const s_command_palette_open: Signal<boolean> = signal(false);
 export const s_audio_initialized: Signal<boolean> = signal(false);
-export const s_current_zoom: Signal<number> = signal(4);
-export const ZOOM_LEVELS: ZoomLevel[] = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128];
+export const s_current_zoom: Signal<ZoomLevel> = signal(4);
 
 export const s_transposition: TranspositionState = {
   octave: signal(4),

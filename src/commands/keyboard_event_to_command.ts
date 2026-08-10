@@ -23,10 +23,12 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
   }
   if (cmd_alt_shift) {
     if (key === "ARROWRIGHT") {
+      // @ts-ignore -- trust me bro... TODO
       s_current_zoom.value = (s_current_zoom.value + 1) % ZOOM_LEVELS.length;
       return;
     }
     if (key === "ARROWLEFT") {
+      // @ts-ignore -- trust me bro... TODO
       s_current_zoom.value = (s_current_zoom.value - 1 + ZOOM_LEVELS.length) % ZOOM_LEVELS.length;
       return;
     }

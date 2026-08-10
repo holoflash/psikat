@@ -1,19 +1,16 @@
 import { play_note } from "../audio/audio";
 import { NOTE_FREQUENCIES } from "../data/notes";
-import { s_transposition } from "../state";
+import { MAX_NOTE_RANGE, OCTAVE, s_transposition } from "../state";
 
-// Some magic numbers in this file.
-// Can for sure be avoided but ok for now
-// 127 is the length of our notes array
 function select_pitch(note_index: number) {
   const octave_to_semitones =
     s_transposition.octave.value !== 0
-      ? s_transposition.octave.value * 12
+      ? s_transposition.octave.value * OCTAVE
       : s_transposition.octave.value;
   const desired_note = note_index + octave_to_semitones + s_transposition.semitone.value;
 
-  if (desired_note >= 127) {
-    return 127;
+  if (desired_note >= MAX_NOTE_RANGE) {
+    return MAX_NOTE_RANGE;
   } else if (desired_note <= 0) {
     return 0;
   } else {
