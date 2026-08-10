@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vite-plus/test";
 import type { Pattern } from "../../state/model";
-import { scale_up_pattern } from "./scale_up_pattern";
+
 import { is_pattern_correct } from "./is_pattern_correct";
+import { scale_up_pattern } from "./rescale_pattern";
 
 // It is pretty evident that I should add a "count" field to the Pattern type to avoid storing a bunch of empty data
 // But it can be done later on.

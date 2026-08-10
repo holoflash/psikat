@@ -10,6 +10,7 @@ import type {
 //##########################################################
 //                    CONSTANTS
 //##########################################################
+// TODO: consider making ZOOM_LEVELS an object
 export const ZOOM_LEVELS: ZoomLevel[] = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128];
 export const ZOOM_LCD = 384; // Lowest zoom level common denominator
 export const OCTAVE = 12;
@@ -68,10 +69,31 @@ export const s_pattern_pool: Signal<Pattern[]> = signal([
     { value: 2, zoom: 16 },
     { value: 1, zoom: 16 },
   ],
+  [
+    { value: 1, zoom: 32 },
+    { value: 1, zoom: 32 },
+    { value: 1, zoom: 32 },
+    { value: 1, zoom: 32 },
+    { value: 0, zoom: 32 },
+    { value: 1, zoom: 32 },
+    { value: 1, zoom: 32 },
+    { value: 0, zoom: 32 },
+
+    { value: 1, zoom: 24 },
+    { value: 1, zoom: 24 },
+    { value: 1, zoom: 24 },
+    { value: 1, zoom: 24 },
+    { value: 1, zoom: 24 },
+    { value: 1, zoom: 24 },
+
+    { value: 1, zoom: 4 },
+
+    { value: 1, zoom: 4 },
+  ],
 ]);
 
 /**  Array of pattern pool entries by index */
-export const s_arrangement: ArrangementState = signal([1]);
+export const s_arrangement: ArrangementState = signal([2]);
 
 export const s_cursor: CursorState = {
   arranger_pattern: signal(0),

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import type { Pattern } from "../../state/model";
 import { is_pattern_correct } from "./is_pattern_correct";
-import { scale_down_pattern } from "./scale_down_pattern";
+import { scale_down_pattern } from "./rescale_pattern";
 
 const simple_scale_down: Pattern = [
   { value: 1, zoom: 96 },
