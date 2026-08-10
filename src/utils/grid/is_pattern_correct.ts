@@ -7,5 +7,6 @@ export function is_pattern_correct(pattern: Pattern): boolean | number {
   for (let c = 0; c < pattern.length; c++) {
     total_count += ZOOM_LCD / pattern[c].zoom;
   }
+
   return total_count === ZOOM_LCD;
 }

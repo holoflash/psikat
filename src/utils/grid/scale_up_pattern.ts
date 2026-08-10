@@ -1,6 +1,7 @@
 import type { Pattern, ZoomLevel } from "../../state/model";
 
 // TODO: Use ZOOM_LCD and tick values instead
+// TODO: Merge with scale_down into one unified rescale_pattern function?
 export function scale_up_pattern(pattern: Pattern, new_zoom: ZoomLevel): Pattern {
   let new_pattern: Pattern = [];
 
