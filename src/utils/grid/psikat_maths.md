@@ -68,7 +68,8 @@ Using a base 2 logarithm we can find how many increments of 2^n we are away from
 log2(16) = 2 * 2 * 2 * 2 = 2^4 = 4
 
 For x=80
-log2(80) = 6
+[log2(80)] = 6
+
 Sooo, to GET to the bracket that **80** sits in, we doubled **6** times from it's base!
 Now, we just need to un-double 6 times and we should find the base!
 But, if we undouble 6 times:
@@ -110,4 +111,7 @@ y = x / z
 z = 2 ^ ( [log2(x)] -2 )
 
 next_number = x + (x / y);
+
+TODO: Need to think again!
+This doesn't work across boundaries!!
 previous_number = x - (x / y);
