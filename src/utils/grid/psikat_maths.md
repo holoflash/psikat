@@ -112,6 +112,10 @@ z = 2 ^ ( [log2(x)] -2 )
 
 next_number = x + (x / y);
 
-TODO: Need to think again!
-This doesn't work across boundaries!!
+To go down, z needs to be calculated differently
+
+y = x / z
+z = 2 ^ ( [log2(x-1)] -2 )
+Need to check the **base** of the row BEFORE the current, therefore x-1 inside the log.
+
 previous_number = x - (x / y);
