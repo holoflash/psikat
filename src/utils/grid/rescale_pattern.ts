@@ -61,3 +61,12 @@ export function scale_up_pattern(pattern: Pattern, new_zoom: ZoomLevel): Pattern
 
   return new_pattern;
 }
+
+// function rescale_pattern(pattern: Pattern, current_zoom: ZoomLevel, direction: "UP" | "DOWN") {
+//   if (direction === "UP") {
+//     let new_upscaled_pattern = [];
+//     pattern.forEach((cell) => {
+
+//     });
+//   }
+// }

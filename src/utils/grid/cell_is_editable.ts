@@ -1,3 +1,5 @@
+import type { ZoomLevel } from "../../state/model";
+
 function is_even(value: number) {
   return value % 2 === 0;
 }
@@ -5,7 +7,11 @@ function is_even(value: number) {
 /**
  * Determines if a cell can be edited in the current zoom level
  */
-export function cell_is_editable(curr_zoom: number, new_zoom: number, _curr_pos?: number): boolean {
+export function cell_is_editable(
+  curr_zoom: ZoomLevel,
+  new_zoom: ZoomLevel,
+  _curr_pos?: number,
+): boolean {
   if (curr_zoom === new_zoom) {
     return true;
   }
