@@ -50,3 +50,19 @@ If we were to allow rescale at <= 0.5, we'd lose data on subsequent rescales
 
 The easiest solution is to simply not allow any rescales.
 But we still need to rescale the grid AND mark where the unresolvable cells are
+
+## The better way
+
+4 5 6 7 8 10 12 14 16 20 24 28 32 40 48 56 64 80 96 112 128
+
+LCM=13440
+How many /112s is 5/14s?
+X=14
+Y=5
+Z=112
+( ( LCM / x ) * y ) / (LCM / z )
+5/14 = 40/112
+Doesn't always work though. Same thing but: 5/12s result in non integer value.
+Should instead convert to raw LCM values internally:
+5/14 = 5* (13440/14) = 4800
+Like that, there's zero ambiguity
