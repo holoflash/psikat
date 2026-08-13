@@ -6,9 +6,7 @@ import { next_zoom, previous_zoom } from "./traverse_zoom_levels";
 // | 16  | 20  | 24  | 28  |
 // | 32  | 40  | 48  | 56  |
 // | 64  | 80  | 96  | 112 |
-// | 128 | 160 | 192 | 224 |
-// | 256 | 320 | 384 | 448 |
-// | 512 | 640 | 768 | 896 |
+// | 128 |     |     |     |
 
 describe("next_zoom", () => {
   test("Moves within row", () => {
@@ -18,19 +16,16 @@ describe("next_zoom", () => {
     expect(next_zoom(10)).toEqual(12);
   });
   test("Moves within row", () => {
-    expect(next_zoom(192)).toEqual(224);
+    expect(next_zoom(96)).toEqual(112);
   });
   test("Moves across boundaries", () => {
     expect(next_zoom(112)).toEqual(128);
-  });
-  test("Moves across boundaries", () => {
-    expect(next_zoom(448)).toEqual(512);
   });
 });
 
 describe("previous_zoom", () => {
   test("Moves within row", () => {
-    expect(previous_zoom(320)).toEqual(256);
+    expect(previous_zoom(28)).toEqual(24);
   });
   test("Moves within row", () => {
     expect(previous_zoom(20)).toEqual(16);
@@ -40,8 +35,5 @@ describe("previous_zoom", () => {
   });
   test("Moves across boundaries", () => {
     expect(previous_zoom(128)).toEqual(112);
-  });
-  test("Moves across boundaries", () => {
-    expect(previous_zoom(512)).toEqual(448);
   });
 });

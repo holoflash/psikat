@@ -12,9 +12,7 @@ but I'm not searching for it online because I'm enjoying creating my own intuiti
 | 16  | 20  | 24  | 28  | 2^2 |
 | 32  | 40  | 48  | 56  | 2^3 |
 | 64  | 80  | 96  | 112 | 2^4 |
-| 128 | 160 | 192 | 224 | 2^5 |
-| 256 | 320 | 384 | 448 | 2^6 |
-| 512 | 640 | 768 | 896 | 2^7 |
+| 128 |     |     |     | 2^5 |
 
 > The right-most column indicates the distance between the numbers on that row
 
