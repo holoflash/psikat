@@ -66,3 +66,27 @@ Doesn't always work though. Same thing but: 5/12s result in non integer value.
 Should instead convert to raw LCM values internally:
 5/14 = 5* (13440/14) = 4800
 Like that, there's zero ambiguity
+
+| Plain | String | Weight |
+| ----- | ------ | ------ |
+| 4     | 1/4    | 3360   |
+| 5     | 1/4Q   | 2688   |
+| 6     | 1/4T   | 2240   |
+| 7     | 1/4S   | 1920   |
+| 8     | 1/8    | 1680   |
+| 10    | 1/8Q   | 1344   |
+| 12    | 1/8T   | 1120   |
+| 14    | 1/8S   | 960    |
+| 16    | 1/16   | 840    |
+| 20    | 1/16Q  | 672    |
+| 24    | 1/16T  | 560    |
+| 28    | 1/16S  | 480    |
+| 32    | 1/32   | 420    |
+| 40    | 1/32Q  | 336    |
+| 48    | 1/32T  | 280    |
+| 56    | 1/32S  | 240    |
+| 64    | 1/64   | 210    |
+| 80    | 1/64Q  | 168    |
+| 96    | 1/64T  | 140    |
+| 112   | 1/64S  | 120    |
+| 128   | 1/128  | 105    |
