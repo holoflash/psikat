@@ -21,3 +21,7 @@ export const SUBDIVISIONS = {
   112: 120,
   128: 105,
 } as const;
+
+export const SUBDIVISIONS_PLAIN = [
+  4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128,
+];
