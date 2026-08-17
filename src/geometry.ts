@@ -5,7 +5,7 @@ const HALF_SIZE = 350;
 const FULL_SIZE = 700;
 
 function polar_to_cartesian(d: number, deg: number) {
-  const rad = (deg * Math.PI) / 180;
+  const rad = ((deg - 135) * Math.PI) / 180;
   return [d + d * Math.cos(rad), d + d * Math.sin(rad)];
 }
 
@@ -19,7 +19,7 @@ export function geometry() {
   canvas.width = FULL_SIZE;
   canvas.style.width = "700px";
   canvas.style.height = "700px";
-  ctx.strokeStyle = get_css_var("--TEXT_DIM");
+  ctx.strokeStyle = get_css_var("--TEXT");
 
   // Clearing out the labels before re-rendering
   const prev = document.querySelectorAll("#chart-label");
@@ -31,7 +31,6 @@ export function geometry() {
 
   const zoom = ZOOM_LEVELS[s_current_zoom.value];
   const chunk = 360 / zoom;
-
   for (let i = 0; i < zoom; i++) {
     const [x, y] = polar_to_cartesian(HALF_SIZE, chunk * i);
     const [z, p] = polar_to_cartesian(HALF_SIZE, chunk * (i - 1));
