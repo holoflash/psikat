@@ -12,7 +12,7 @@ import type {
 //##########################################################
 // TODO: consider making ZOOM_LEVELS an object
 export const ZOOM_LEVELS: ZoomLevel[] = [
-  4, 5, 6, 7, 8, 10, 12, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128,
+  4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128,
 ];
 
 export const ZOOM_LCD = 384; // Lowest zoom level common denominator

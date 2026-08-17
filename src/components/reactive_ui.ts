@@ -1,3 +1,4 @@
+import { geometry } from "../geometry";
 import {
   s_audio_initialized,
   s_playing,
@@ -46,5 +47,6 @@ export function reactive_ui() {
   s_current_zoom.effect(() => {
     if (!app_zooom_state_display) return;
     app_zooom_state_display.textContent = ZOOM_LEVELS[s_current_zoom.value].toString();
+    geometry();
   });
 }

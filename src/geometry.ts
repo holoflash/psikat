@@ -1,31 +1,49 @@
-import { SUBDIVISIONS_PLAIN } from "./data/subdivisions";
+import { s_current_zoom, ZOOM_LEVELS } from "./state";
 
-const one = 13440;
-// @ts-ignore
-// oxlint-disable
-// playing around
-const canvas = <HTMLCanvasElement>document.getElementById("geometry");
-const ctx = canvas.getContext("2d")!;
-canvas.height = one;
-canvas.width = one;
-canvas.style.width = "1000px";
-canvas.style.height = "1000px";
-ctx.fillStyle = "#000000";
-ctx.fillRect(0, 0, one, one);
+const polarToCartesian = (r: number, degrees: number) => {
+  const radians = (degrees * Math.PI) / 180.0;
+  return [r + r * Math.cos(radians), r + r * Math.sin(radians)];
+};
+const one_half = 350;
+const one = 700;
+
 export function geometry() {
-  ctx.lineWidth = 5;
+  // @ts-ignore
+  // oxlint-disable
+  // playing around
+  const canvas = <HTMLCanvasElement>document.getElementById("geometry");
+  const ctx = canvas.getContext("2d")!;
+  canvas.height = one;
+  canvas.width = one;
+  canvas.style.width = "700px";
+  canvas.style.height = "700px";
+  ctx.fillStyle = "rgb(0, 0, 0, 0)";
 
-  ctx.moveTo(one / 2, one / 2);
+  ctx.fillRect(0, 0, one, one);
   ctx.beginPath();
-  SUBDIVISIONS_PLAIN.forEach((s) => {
-    for (let i = 0; i < s; i++) {
-      ctx.arc(one / 2, one / 2, one / 2, i, 3.14 * 2 - (one / s + i));
-      ctx.strokeStyle = "#fff";
-    }
-  });
+  const zoom = ZOOM_LEVELS[s_current_zoom.value];
 
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#fff";
+  const chunk = 360 / zoom;
+  const prev = document.querySelectorAll("#chart-label");
+  if (prev) {
+    prev.forEach((el) => {
+      el.remove();
+    });
+  }
+
+  for (let i = 1; i <= zoom + 1; i++) {
+    const [x, y] = polarToCartesian(one_half, chunk * i);
+    ctx.lineTo(x, y);
+
+    if (i < zoom + 1) {
+      const label = document.createElement("p");
+      label.textContent = `${i}/${zoom}`;
+      label.id = "chart-label";
+      label.style.transform = `translate(${x}px, ${y}px)`;
+      document.body.append(label);
+    }
+  }
   ctx.stroke();
 }
-// dunno what this is going to be yet.
-// Gonna see if my subdivisions math can yield some cool geometrical patterns
-// Just gotta wrap my head around this line moving first

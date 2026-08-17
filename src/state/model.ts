@@ -26,6 +26,7 @@ export type ZoomLevel =
   | 8
   | 10
   | 12
+  | 14
   | 16
   | 20
   | 24
