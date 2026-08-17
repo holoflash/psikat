@@ -135,10 +135,8 @@ header {
 
 #chart-label {
   position: absolute;
-  top: 5.5rem;
-  font-size: 2rem;
-  font-weight: 800;
-  text-shadow: 0px 2px 0px black;
-  left: 380px;
+  top: 6.5rem;
+  font-size: 1rem;
+  left: 31rem;
   transform: translate(350px, 0px);
 }
