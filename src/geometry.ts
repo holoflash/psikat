@@ -31,12 +31,13 @@ export function geometry() {
 
   const zoom = ZOOM_LEVELS[s_current_zoom.value];
   const chunk = 360 / zoom;
-  for (let i = 0; i < zoom; i++) {
+  for (let i = 0; i < zoom + 1; i++) {
     const [x, y] = polar_to_cartesian(HALF_SIZE, chunk * i);
     const [z, p] = polar_to_cartesian(HALF_SIZE, chunk * (i - 1));
 
-    ctx.lineTo(z, p);
     ctx.lineTo(x, y);
+    ctx.moveTo(HALF_SIZE, HALF_SIZE);
+    ctx.lineTo(z, p);
 
     const label = document.createElement("p");
     label.textContent = `${i + 1}/${zoom}`;

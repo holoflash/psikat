@@ -52,6 +52,7 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
       enter_note_value(MUSICAL_KEYBOARD.indexOf(key));
     }
     if (key === "ARROWUP") {
+      animate();
     }
     if (key === "ARROWDOWN") {
     }
@@ -61,4 +62,16 @@ export function keyboard_event_to_command(event: KeyboardEvent) {
     }
   }
   return;
+}
+
+function animate() {
+  let repeat = 0;
+  const intervalId = setInterval(() => {
+    // @ts-ignore just playing
+    s_current_zoom.value = (s_current_zoom.value + 1) % ZOOM_LEVELS.length;
+    repeat++;
+    if (repeat === 100) {
+      clearInterval(intervalId);
+    }
+  }, 40);
 }
