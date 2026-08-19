@@ -23,6 +23,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  image-rendering: pixelated;
 }
 
 html {
@@ -61,6 +62,7 @@ main {
   flex-direction: row;
   width: 100%;
   height: 100%;
+  gap: 4rem;
 }
 
 header {
@@ -132,13 +134,19 @@ header {
 }
 
 .chart-label {
-  position: absolute;
-  top: 6.5rem;
-  font-size: 1rem;
-  left: 31rem;
-  transform: translate(350px, 0px);
+  border: solid 1px var(--TEXT);
+  padding: 0.1rem;
+  text-align: center;
+  width: 30px;
 }
 
-.cell {
-  border: solid 1px var(--TEXT);
+.cell-container {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 4rem;
+  font-size: 1rem;
+  left: 10.6rem;
+  justify-content: center;
+  align-items: center;
 }
