@@ -60,6 +60,7 @@ body {
 main {
   display: flex;
   flex-direction: row;
+  justify-content: space-between;
   width: 100%;
   height: 100%;
   gap: 4rem;
@@ -90,7 +91,7 @@ header {
     outline: inset var(--ACCENT) 2px;
   }
   /* for now */
-  display: none;
+  display: flex;
 }
 
 #command-palette {
@@ -104,49 +105,29 @@ header {
 }
 
 #arrangement {
-  /* for now */
-  display: none;
+  display: flex;
   flex-direction: column;
-  font-size: 1.5rem;
+  font-size: 1rem;
   height: fit-content;
   padding: 1rem;
+  overflow: scroll;
 }
 
 .pattern-container {
-  display: none;
-  flex-direction: column;
+  display: flex;
+  flex-direction: row;
 }
 
-.pattern-cell {
+.pattern-row {
+  outline: solid var(--TEXT) 1px;
+}
+
+.pattern-value,
+.pattern-pitch,
+.pattern-velocity {
   display: grid;
   place-items: center;
   padding: 0.1rem 0.5rem;
+  outline: solid var(--TEXT) 1px;
   background-color: var(--BG_1);
-  &:first-child {
-    border-top: solid var(--TEXT_DIM) 1px;
-  }
-  &:nth-child(4n + 1) {
-    background-color: var(--BG_6);
-  }
-  &:nth-child(4n + 3) {
-    background-color: var(--BG_3);
-  }
-}
-
-.chart-label {
-  border: solid 1px var(--TEXT);
-  padding: 0.1rem;
-  text-align: center;
-  width: 30px;
-}
-
-.cell-container {
-  display: flex;
-  flex-direction: column;
-  position: absolute;
-  top: 4rem;
-  font-size: 1rem;
-  left: 10.6rem;
-  justify-content: center;
-  align-items: center;
 }

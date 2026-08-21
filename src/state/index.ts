@@ -1,11 +1,5 @@
 import { signal, type Signal } from "../utils/dom/signal";
-import type {
-  Pattern,
-  TranspositionState,
-  CursorState,
-  ArrangementState,
-  ZoomLevel,
-} from "./model";
+import type { TranspositionState, ZoomLevel } from "./model";
 
 //##########################################################
 //                    CONSTANTS
@@ -15,6 +9,9 @@ export const ZOOM_LEVELS: ZoomLevel[] = [
   4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128,
 ];
 
+/**
+ * @deprecated new one is 13340
+ */
 export const ZOOM_LCD = 384; // Lowest zoom level common denominator
 export const OCTAVE = 12;
 export const MAX_NOTE_RANGE = 127; // TODO: should get this from the NOTES array instead
@@ -33,72 +30,4 @@ export const s_current_zoom: Signal<ZoomLevel> = signal(4);
 export const s_transposition: TranspositionState = {
   octave: signal(4),
   semitone: signal(0),
-};
-
-export const s_pattern_pool: Signal<Pattern[]> = signal([
-  [
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 1, zoom: 16 },
-  ],
-  [
-    { value: 4, zoom: 16 },
-    { value: 12, zoom: 16 },
-    { value: 100, zoom: 16 },
-    { value: 20, zoom: 16 },
-    { value: 3, zoom: 16 },
-    { value: 4, zoom: 16 },
-    { value: 2, zoom: 16 },
-    { value: 1, zoom: 16 },
-    { value: 4, zoom: 16 },
-    { value: 12, zoom: 16 },
-    { value: 100, zoom: 16 },
-    { value: 20, zoom: 16 },
-    { value: 3, zoom: 16 },
-    { value: 4, zoom: 16 },
-    { value: 2, zoom: 16 },
-    { value: 1, zoom: 16 },
-  ],
-  [
-    { value: 1, zoom: 32 },
-    { value: 1, zoom: 32 },
-    { value: 1, zoom: 32 },
-    { value: 1, zoom: 32 },
-    { value: 0, zoom: 32 },
-    { value: 1, zoom: 32 },
-    { value: 1, zoom: 32 },
-    { value: 0, zoom: 32 },
-
-    { value: 1, zoom: 24 },
-    { value: 1, zoom: 24 },
-    { value: 1, zoom: 24 },
-    { value: 1, zoom: 24 },
-    { value: 1, zoom: 24 },
-    { value: 1, zoom: 24 },
-
-    { value: 1, zoom: 4 },
-
-    { value: 1, zoom: 4 },
-  ],
-]);
-
-/**  Array of pattern pool entries by index */
-export const s_arrangement: ArrangementState = signal([2]);
-
-export const s_cursor: CursorState = {
-  arranger_pattern: signal(0),
-  pattern_cell: signal(0),
 };

@@ -1,4 +1,3 @@
-import { geometry_circular } from "../geometry";
 import {
   s_audio_initialized,
   s_playing,
@@ -26,7 +25,7 @@ export function reactive_ui() {
 
   s_transposition.octave.effect(() => {
     if (!app_octave_state_display) return;
-    app_octave_state_display.textContent = `OCTAVE ${s_transposition.octave.value}`;
+    document.getElementById("octave-state")!.textContent = `OCTAVE ${s_transposition.octave.value}`;
   });
 
   s_transposition.semitone.effect(() => {
@@ -47,7 +46,5 @@ export function reactive_ui() {
   s_current_zoom.effect(() => {
     if (!app_zooom_state_display) return;
     app_zooom_state_display.textContent = ZOOM_LEVELS[s_current_zoom.value].toString();
-
-    geometry_circular();
   });
 }
