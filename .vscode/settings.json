@@ -16,5 +16,8 @@
   },
   "[javascript]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[c]": {
+    "editor.defaultFormatter": "ms-vscode.cpptools"
   }
 }
