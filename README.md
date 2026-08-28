@@ -1,6 +1,6 @@
 # psikat
 
-A browser based tracker-like sequencer DAW.
+A tracker-like sequencer DAW for MacOS
 Developed without **any** AI assistance for recreational and learning purposes.
 
 ## Why no AI?
