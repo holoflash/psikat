@@ -17,6 +17,7 @@ typedef struct
     double phase;
     double frequency;
     double sample_count;
+    double bpm;
     Note *melody;
     size_t current_note_index;
     size_t total_notes;
@@ -38,15 +39,18 @@ OSStatus render_audio(
 
     for (UInt32 frame = 0; frame < inNumberFrames; ++frame)
     {
+        // "sequencer"
         Note current_note = player->melody[player->current_note_index];
+        double note_duration_in_samples = (60 / player->bpm) * (4.0 / current_note.duration) * player->sample_rate;
 
-        if (player->sample_count >= current_note.duration)
+        if (player->sample_count >= note_duration_in_samples)
         {
             player->sample_count = 0;
             player->current_note_index = (player->current_note_index + 1) % player->total_notes;
             player->frequency = player->melody[player->current_note_index].frequency;
         }
 
+        // "Wave generator"
         double phase_increment = player->inverse_sample_rate * player->frequency;
         phase += phase_increment;
 
@@ -55,9 +59,21 @@ OSStatus render_audio(
             phase -= 2.0 * M_PI;
         }
 
-        float sample = sin(phase);
-        dataL[frame] = sample;
-        dataR[frame] = sample;
+        /* Sine wave:   dataL[frame] = sin(phase)
+                dataR[frame] = sin(phase)
+                                       */
+
+        // Square wave: flip halway through the wave cycle
+        if (phase >= M_PI)
+        {
+            dataL[frame] = -1;
+            dataR[frame] = -1;
+        }
+        else
+        {
+            dataL[frame] = 1;
+            dataR[frame] = 1;
+        }
 
         player->sample_count++;
     }
@@ -164,24 +180,24 @@ void init_audio_unit(Player *player)
     }
 }
 
-#define SIXTEENTH_NOTE 5512.5
-#define SAMPLE_RATE 44100.0
-#define BPM 120.0
-
 int main(void)
 {
-    Note melody[6] = {
-        {220.0, SIXTEENTH_NOTE},
-        {440.0, SIXTEENTH_NOTE},
-        {880.0, SIXTEENTH_NOTE},
-        {1760.0, SIXTEENTH_NOTE},
-        {880.0, SIXTEENTH_NOTE},
-        {440.0, SIXTEENTH_NOTE},
+    Note melody[] = {
+        {110.0, 16},
+        {220.0, 16},
+        {440.0, 16},
+        {880.0, 16},
+        {1040.0, 24},
+        {880.0, 24},
+        {440.0, 24},
+        {220.0, 32},
+        {128.33, 32},
     };
 
     Player player = {0};
-    player.sample_rate = SAMPLE_RATE;
-    player.inverse_sample_rate = (2.0 * M_PI) / SAMPLE_RATE;
+    player.sample_rate = 44100.0;
+    player.bpm = 120.0;
+    player.inverse_sample_rate = (2.0 * M_PI) / player.sample_rate;
     player.melody = melody;
     player.frequency = melody[0].frequency;
     player.total_notes = sizeof(melody) / sizeof(melody[0]);
