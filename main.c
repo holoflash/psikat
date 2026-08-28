@@ -5,8 +5,8 @@
 
 typedef struct
 {
-    double frequency;
-    double duration;
+    double phase_increment;
+    double duration_in_samples;
 } Note;
 
 typedef struct
@@ -15,7 +15,6 @@ typedef struct
     double sample_rate;
     double inverse_sample_rate;
     double phase;
-    double frequency;
     double sample_count;
     double bpm;
     Note *melody;
@@ -37,23 +36,17 @@ OSStatus render_audio(
     float *dataL = (float *)ioData->mBuffers[0].mData;
     float *dataR = (float *)ioData->mBuffers[1].mData;
 
+    // "sequencer"
     for (UInt32 frame = 0; frame < inNumberFrames; ++frame)
     {
-        // "sequencer"
-        Note current_note = player->melody[player->current_note_index];
-        double note_duration_in_samples = (60 / player->bpm) * (4.0 / current_note.duration) * player->sample_rate;
-
-        if (player->sample_count >= note_duration_in_samples)
+        if (player->sample_count >= player->melody[player->current_note_index].duration_in_samples)
         {
             player->sample_count = 0;
             player->current_note_index = (player->current_note_index + 1) % player->total_notes;
-            player->frequency = player->melody[player->current_note_index].frequency;
         }
 
         // "Wave generator"
-        double phase_increment = player->inverse_sample_rate * player->frequency;
-        phase += phase_increment;
-
+        phase += player->melody[player->current_note_index].phase_increment;
         if (phase >= 2.0 * M_PI)
         {
             phase -= 2.0 * M_PI;
@@ -74,12 +67,10 @@ OSStatus render_audio(
             dataL[frame] = 1;
             dataR[frame] = 1;
         }
-
         player->sample_count++;
     }
 
     player->phase = phase;
-
     return noErr;
 }
 
@@ -180,26 +171,35 @@ void init_audio_unit(Player *player)
     }
 }
 
+static double BPM = 120.0;
+static double SAMPLE_RATE = 44100.0;
+
+double division_to_samples(int division)
+{
+    return (60 / BPM) * SAMPLE_RATE * (4.0 / division);
+}
+
+double freq_to_phase_increment(double frequency)
+{
+    return (2.0 * M_PI) / 44100.0 * frequency;
+}
+
 int main(void)
 {
     Note melody[] = {
-        {110.0, 16},
-        {220.0, 16},
-        {440.0, 16},
-        {880.0, 16},
-        {1040.0, 24},
-        {880.0, 24},
-        {440.0, 24},
-        {220.0, 32},
-        {128.33, 32},
+        {freq_to_phase_increment(110.0), division_to_samples(16)},
+        {freq_to_phase_increment(220.0), division_to_samples(16)},
+        {freq_to_phase_increment(440.0), division_to_samples(16)},
+        {freq_to_phase_increment(880.0), division_to_samples(16)},
+        {freq_to_phase_increment(440.0), division_to_samples(16)},
+        {freq_to_phase_increment(220.0), division_to_samples(16)},
     };
 
     Player player = {0};
-    player.sample_rate = 44100.0;
-    player.bpm = 120.0;
-    player.inverse_sample_rate = (2.0 * M_PI) / player.sample_rate;
+    player.sample_rate = SAMPLE_RATE;
+    player.bpm = BPM;
+    player.inverse_sample_rate = (2.0 * M_PI) / SAMPLE_RATE;
     player.melody = melody;
-    player.frequency = melody[0].frequency;
     player.total_notes = sizeof(melody) / sizeof(melody[0]);
 
     init_audio_unit(&player);
