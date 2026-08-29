@@ -3,22 +3,25 @@
 
 #include <AudioToolbox/AudioToolbox.h>
 
+#define SINE 0
+#define SQUARE 1
+
 typedef struct
 {
     double phase_increment;
     double duration_in_samples;
+    int instrument;
 } Note;
 
 typedef struct
 {
     AudioUnit output_unit;
     double sample_rate;
-    double inverse_sample_rate;
     double phase;
     double sample_count;
     double bpm;
     Note *melody;
-    size_t current_note_index;
+    size_t curr_note_index;
     size_t total_notes;
 } Player;
 
@@ -39,33 +42,39 @@ OSStatus render_audio(
     // "sequencer"
     for (UInt32 frame = 0; frame < inNumberFrames; ++frame)
     {
-        if (player->sample_count >= player->melody[player->current_note_index].duration_in_samples)
+        if (player->sample_count >= player->melody[player->curr_note_index].duration_in_samples)
         {
             player->sample_count = 0;
-            player->current_note_index = (player->current_note_index + 1) % player->total_notes;
+            player->curr_note_index = (player->curr_note_index + 1) % player->total_notes;
         }
 
         // "Wave generator"
-        phase += player->melody[player->current_note_index].phase_increment;
+        phase += player->melody[player->curr_note_index].phase_increment;
         if (phase >= 2.0 * M_PI)
         {
             phase -= 2.0 * M_PI;
         }
 
-        /* Sine wave:   dataL[frame] = sin(phase)
-                dataR[frame] = sin(phase)
-                                       */
+        if (SINE == player->melody[player->curr_note_index].instrument)
+        {
 
-        // Square wave: flip halway through the wave cycle
-        if (phase >= M_PI)
-        {
-            dataL[frame] = -1;
-            dataR[frame] = -1;
+            dataL[frame] = sin(phase);
+            dataR[frame] = sin(phase);
         }
-        else
+        if (SQUARE == player->melody[player->curr_note_index].instrument)
         {
-            dataL[frame] = 1;
-            dataR[frame] = 1;
+
+            // Square wave: flip halway through the wave cycle
+            if (phase >= M_PI)
+            {
+                dataL[frame] = -1;
+                dataR[frame] = -1;
+            }
+            else
+            {
+                dataL[frame] = 1;
+                dataR[frame] = 1;
+            }
         }
         player->sample_count++;
     }
@@ -187,18 +196,17 @@ double freq_to_phase_increment(double frequency)
 int main(void)
 {
     Note melody[] = {
-        {freq_to_phase_increment(110.0), division_to_samples(16)},
-        {freq_to_phase_increment(220.0), division_to_samples(16)},
-        {freq_to_phase_increment(440.0), division_to_samples(16)},
-        {freq_to_phase_increment(880.0), division_to_samples(16)},
-        {freq_to_phase_increment(440.0), division_to_samples(16)},
-        {freq_to_phase_increment(220.0), division_to_samples(16)},
+        {freq_to_phase_increment(110.0), division_to_samples(16), SQUARE},
+        {freq_to_phase_increment(220.0), division_to_samples(16), SQUARE},
+        {freq_to_phase_increment(440.0), division_to_samples(16), SQUARE},
+        {freq_to_phase_increment(880.0), division_to_samples(16), SINE},
+        {freq_to_phase_increment(440.0), division_to_samples(16), SINE},
+        {freq_to_phase_increment(220.0), division_to_samples(16), SINE},
     };
 
     Player player = {0};
     player.sample_rate = SAMPLE_RATE;
     player.bpm = BPM;
-    player.inverse_sample_rate = (2.0 * M_PI) / SAMPLE_RATE;
     player.melody = melody;
     player.total_notes = sizeof(melody) / sizeof(melody[0]);
 
