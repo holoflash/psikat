@@ -1,0 +1,7 @@
+---
+BasedOnStyle: Microsoft
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveBitFields: true
+AlignConsecutiveDeclarations: true
+AlignAfterOpenBracket: true
+---
