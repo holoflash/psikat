@@ -1,28 +1,7 @@
-import { get_css_var } from "../../utils/dom/get_css_var";
-
-const canvas = document.createElement("canvas");
-const instrument_panel = document.getElementById("instrument-panel")!;
-instrument_panel.append(canvas);
-
-// MDN tips for canvas optimization
-const dpr = window.devicePixelRatio;
-const rect = canvas.getBoundingClientRect();
-canvas.width = rect.width * dpr;
-canvas.height = rect.height * dpr;
-
-const canvas_context = canvas.getContext("2d", { alpha: false })!;
-canvas_context.scale(dpr, dpr);
-canvas_context.fillStyle = get_css_var("--TEXT");
-canvas_context.fillRect(0, 0, canvas.width, canvas.height);
-
+```ts
 export function draw_waveform(node: AudioWorkletNode, context: AudioContext) {
-  let analyzer: AnalyserNode | null = null;
   let bufferLength = 0;
   let dataArray: Uint8Array<ArrayBuffer>;
-
-  analyzer = context.createAnalyser();
-  node.connect(analyzer);
-
   analyzer.fftSize = 2048;
   bufferLength = analyzer.frequencyBinCount;
   dataArray = new Uint8Array(bufferLength);
@@ -54,8 +33,6 @@ export function draw_waveform(node: AudioWorkletNode, context: AudioContext) {
 
     canvas_context.lineTo(canvas.width, canvas.height / 2);
     canvas_context.stroke();
-
-    requestAnimationFrame(draw);
   }
-  draw();
 }
+```

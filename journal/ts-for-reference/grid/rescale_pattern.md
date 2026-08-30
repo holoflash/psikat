@@ -1,6 +1,5 @@
-import { ZOOM_LCD } from "../../state";
-import type { Pattern, ZoomLevel } from "../../state/model";
-
+Not sure if I'll need this or not yet. Keeping for reference.
+```ts
 // TODO: make this scale down smart and resolve to intermediate zoom values if possible
 export function scale_down_pattern(pattern: Pattern, new_zoom: ZoomLevel): Pattern {
   let new_pattern: Pattern = [];
@@ -70,3 +69,4 @@ export function scale_up_pattern(pattern: Pattern, new_zoom: ZoomLevel): Pattern
 //     });
 //   }
 // }
+```

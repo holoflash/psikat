@@ -1,7 +1,5 @@
-// This can be used for determining the new cursor position when changing resolutions
-
-import type { ZoomLevel } from "../../state/model";
-
+Not sure if I'll need this or not yet. Keeping for reference.
+```ts
 /**
  * Resolves the new position of a cell when changing zoom levels.
  */
@@ -17,3 +15,4 @@ export function get_pos_in_new_res(
     return Math.trunc(curr_pos * zoom_ratio);
   }
 }
+```

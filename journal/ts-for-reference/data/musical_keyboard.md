@@ -1,4 +1,5 @@
-export const MUSICAL_KEYBOARD = [
+```ts
+const MUSICAL_KEYBOARD = [
   // Bottom row
   "Z",
   "X",
@@ -29,3 +30,4 @@ export const MUSICAL_KEYBOARD = [
   "O",
   "P",
 ];
+```

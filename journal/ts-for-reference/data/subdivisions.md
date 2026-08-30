@@ -1,4 +1,8 @@
-export const SUBDIVISIONS = {
+Mapping subdivisions to number ticks.
+In the new C version, this would be number of samples on the right side instead:
+
+```ts
+const SUBDIVISIONS = {
   4: 3360,
   5: 2688,
   6: 2240,
@@ -21,3 +25,4 @@ export const SUBDIVISIONS = {
   112: 120,
   128: 105,
 } as const;
+```

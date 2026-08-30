@@ -2,6 +2,6 @@
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "file",
   "[c]": {
-    "editor.defaultFormatter": "ms-vscode.cpptools"
+    "editor.defaultFormatter": "xaver.clang-format"
   }
 }

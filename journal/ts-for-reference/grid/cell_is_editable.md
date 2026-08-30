@@ -1,5 +1,5 @@
-import type { ZoomLevel } from "../../state/model";
-
+Not sure if I'll need this or not yet. Keeping for reference.
+```ts
 function is_even(value: number) {
   return value % 2 === 0;
 }
@@ -28,3 +28,4 @@ export function cell_is_editable(
   // - then assign an "editable" flag to each cell in a pattern
   return false;
 }
+```

@@ -1,23 +1,22 @@
-CC        := gcc
-CFLAGS    := -std=c99 -Wall -Wextra -pedantic -O3
-LDFLAGS   := -framework AudioToolbox -framework CoreAudio
+CC      := gcc
+CFLAGS  := -std=c99 -Wall -Wextra -pedantic -O3
+LDFLAGS := -framework AudioToolbox -framework CoreAudio
 
-BUILD_DIR := build
-TARGET    := $(BUILD_DIR)/psikat
-SRC       := main.c
+TARGET  := build/psikat
+SRC     := $(wildcard src/*.c)
 
 .PHONY: all run clean
 
 all: $(TARGET)
 
-$(TARGET): $(SRC) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+$(TARGET): $(SRC) | build
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+build:
+	mkdir -p build
 
 run: all
-	@$(TARGET)
+	@./$(TARGET)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf build
