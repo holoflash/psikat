@@ -1,4 +1,7 @@
 {
+  "files.associations": {
+    "Info.plist": "xml"
+  },
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "file",
   "[c]": {

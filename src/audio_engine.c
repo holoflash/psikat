@@ -1,23 +1,17 @@
+#include "audio_engine.h"
 #include "notes.h"
 #include <AudioToolbox/AudioToolbox.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-/* MACROS AND CONSTANTS */
+/* MACROS */
 #define UNUSED __attribute__((unused))
 #define SINE 0
 #define SQUARE 1
 #define SAMPLE_RATE 44100.0
-static double BPM = 120.0;
-
-/* HELPERS */
-double division_to_samples(double division)
-{
-    return (60.0 / BPM) * SAMPLE_RATE * (4.0 / division);
-}
-
-double freq_to_phase_increment(double frequency)
-{
-    return (2.0 * M_PI) / SAMPLE_RATE * frequency;
-}
+#define BPM 120.0
+#define MAX_LENGTH (256 * 256)
 
 /* STRUCTS */
 typedef struct
@@ -27,22 +21,33 @@ typedef struct
     int    instrument;
 } Note;
 
-typedef struct
+struct Player
 {
     AudioUnit output_unit;
     double    sample_rate;
     double    phase;
     double    sample_count;
     double    bpm;
-    Note     *melody;
+    Note      melody[MAX_LENGTH];
     size_t    curr_note_index;
     size_t    total_notes;
-} Player;
+};
+
+/* HELPERS */
+static double division_to_samples(double division)
+{
+    return (60.0 / BPM) * SAMPLE_RATE * (4.0 / division);
+}
+
+static double freq_to_phase_increment(double frequency)
+{
+    return (2.0 * M_PI) / SAMPLE_RATE * frequency;
+}
 
 /* SYNTH ENGINE */
-OSStatus render_audio(void *inRefCon, AudioUnitRenderActionFlags __attribute__((unused)) * ioActionFlags,
-                      const AudioTimeStamp __attribute__((unused)) * inTimeStamp,
-                      UInt32 __attribute__((unused)) inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData)
+static OSStatus render_audio_callback(void *inRefCon, AudioUnitRenderActionFlags UNUSED *ioActionFlags,
+                                      const AudioTimeStamp UNUSED *inTimeStamp, UInt32 UNUSED inBusNumber,
+                                      UInt32 inNumberFrames, AudioBufferList *ioData)
 {
     Player *player = (Player *)inRefCon;
     double  phase  = player->phase;
@@ -94,40 +99,37 @@ OSStatus render_audio(void *inRefCon, AudioUnitRenderActionFlags __attribute__((
 }
 
 /* AUDIO UNIT */
-void start_audio_unit(Player *player)
+void audio_unit_start(Player *player)
 {
     if (noErr != AudioOutputUnitStart(player->output_unit))
     {
         fprintf(stderr, "Couldn't start AudioUnit\n");
-        exit(1);
     }
 }
 
-void stop_audio_unit(Player *player)
+void audio_unit_stop(Player *player)
 {
     if (noErr != AudioOutputUnitStop(player->output_unit))
     {
         fprintf(stderr, "Couldn't stop AudioUnit\n");
-        exit(1);
     }
 }
-void destroy_audio_unit(Player *player)
+
+void audio_unit_destroy(Player *player)
 {
     if (noErr != AudioUnitUninitialize(player->output_unit))
     {
         fprintf(stderr, "Couldn't uninitialize AudioUnit\n");
-        exit(1);
     }
     if (noErr != AudioComponentInstanceDispose(player->output_unit))
     {
         fprintf(stderr, "Couldn't dispose AudioUnit\n");
-        exit(1);
     }
 }
 
 // based on Matthijs Hollemans Learning Core Audio example
 // https://gist.github.com/hollance/91d9da0d07a869ef9f56466aa46a6466
-void init_audio_unit(Player *player)
+static void init_audio_unit(Player *player)
 {
     AudioStreamBasicDescription streamFormat = {0};
     streamFormat.mSampleRate                 = player->sample_rate;
@@ -158,7 +160,7 @@ void init_audio_unit(Player *player)
         exit(1);
     }
 
-    AURenderCallbackStruct input = {.inputProc = render_audio, .inputProcRefCon = player};
+    AURenderCallbackStruct input = {.inputProc = render_audio_callback, .inputProcRefCon = player};
 
     if (noErr != AudioUnitSetProperty(player->output_unit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input,
                                       0, &input, sizeof(input)))
@@ -181,29 +183,22 @@ void init_audio_unit(Player *player)
     }
 }
 
-/* MAIN */
-int main(void)
-{
-    printf("%f", N_FREQUENCY[60]);
-    Note melody[] = {
-        {freq_to_phase_increment(N_FREQUENCY[60]), division_to_samples(16.0), SQUARE},
-        {freq_to_phase_increment(N_FREQUENCY[62]), division_to_samples(16.0), SQUARE},
-        {freq_to_phase_increment(N_FREQUENCY[63]), division_to_samples(16.0), SQUARE},
-        {freq_to_phase_increment(N_FREQUENCY[65]), division_to_samples(16.0), SINE},
-        {freq_to_phase_increment(N_FREQUENCY[67]), division_to_samples(16.0), SINE},
-        {freq_to_phase_increment(N_FREQUENCY[68]), division_to_samples(16.0), SQUARE},
-    };
+static Player player;
 
-    Player player      = {0};
-    player.sample_rate = SAMPLE_RATE;
-    player.bpm         = BPM;
-    player.melody      = melody;
-    player.total_notes = sizeof(melody) / sizeof(melody[0]);
+Player *launch(void)
+{
+    player = (Player){.sample_rate = SAMPLE_RATE,
+                      .bpm         = BPM,
+                      .total_notes = player.total_notes = sizeof(player.melody) / sizeof(player.melody[0]),
+                      .melody                           = {
+                          {freq_to_phase_increment(N_FREQUENCY[60]), division_to_samples(16.0), SQUARE},
+                          {freq_to_phase_increment(N_FREQUENCY[62]), division_to_samples(16.0), SQUARE},
+                          {freq_to_phase_increment(N_FREQUENCY[63]), division_to_samples(16.0), SQUARE},
+                          {freq_to_phase_increment(N_FREQUENCY[65]), division_to_samples(16.0), SINE},
+                          {freq_to_phase_increment(N_FREQUENCY[67]), division_to_samples(16.0), SINE},
+                          {freq_to_phase_increment(N_FREQUENCY[68]), division_to_samples(16.0), SQUARE},
+                      }};
 
     init_audio_unit(&player);
-    start_audio_unit(&player);
-
-    getchar();
-    stop_audio_unit(&player);
-    destroy_audio_unit(&player);
+    return &player;
 }
