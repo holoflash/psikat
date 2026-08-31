@@ -1,13 +1,13 @@
 ---
-BasedOnStyle: Microsoft
+BasedOnStyle: LLVM
 AlignConsecutiveAssignments: Consecutive
 AlignConsecutiveBitFields: true
 AlignConsecutiveDeclarations: true
 AlignConsecutiveMacros: Consecutive
 AlignAfterOpenBracket: true
 AlignArrayOfStructures: Left
-AlignEscapedNewlines: Left
-AlignOperands: AlignAfterOperator
+IndentWidth: 4
+ColumnLimit: 118
 AlignTrailingComments:
   Kind: Always
 BinPackArguments: false

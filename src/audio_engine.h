@@ -8,8 +8,7 @@
 
 typedef struct Player Player;
 
-struct Player
-{
+struct Player {
     AudioUnit    output_unit;
     Arrangement *arrangement;
     double       phase;

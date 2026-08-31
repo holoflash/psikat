@@ -8,15 +8,13 @@
 #define SINE        0
 #define SQUARE      1
 
-typedef struct
-{
+typedef struct {
     double phase_increment;
     double duration_in_samples;
     int    instrument;
 } Note;
 
-typedef struct
-{
+typedef struct {
     double bpm;
     Note   pattern[MAX_NOTES];
     int    note_count;
