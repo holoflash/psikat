@@ -1,9 +1,11 @@
-#ifndef AUDIO_UNIT_H
-#define AUDIO_UNIT_H
+#ifndef AUDIO_ENGINE_H
+#define AUDIO_ENGINE_H
+
+#include "arrangement.h"
 
 typedef struct Player Player;
 
-Player *launch(void);
+Player *audio_init(Arrangement *arrangement);
 void    audio_unit_start(Player *player);
 void    audio_unit_stop(Player *player);
 void    audio_unit_destroy(Player *player);

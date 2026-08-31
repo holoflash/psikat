@@ -1,10 +1,13 @@
+#include "arrangement.h"
 #include "audio_engine.h"
 #include "interface.h"
 #include <curses.h>
 
 int main(void)
 {
-    Player *player = launch();
+    Arrangement *arrangement = default_arrangement();
+    Player      *player      = audio_init(arrangement);
+
     init_interface();
     printw("Hello there!\n");
 

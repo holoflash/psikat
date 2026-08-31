@@ -1,71 +1,39 @@
 #include "audio_engine.h"
-#include "notes.h"
 #include <AudioToolbox/AudioToolbox.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-/* MACROS */
-#define UNUSED      __attribute__((unused))
-#define SINE        0
-#define SQUARE      1
-#define SAMPLE_RATE 44100.0
-#define BPM         120.0
-#define MAX_LENGTH  (256 * 256)
-
-/* STRUCTS */
-typedef struct
-{
-    double phase_increment;
-    double duration_in_samples;
-    int    instrument;
-} Note;
+#define UNUSED __attribute__((unused))
 
 struct Player
 {
-    AudioUnit output_unit;
-    double    sample_rate;
-    double    phase;
-    double    sample_count;
-    double    bpm;
-    Note      melody[MAX_LENGTH];
-    size_t    curr_note_index;
-    size_t    total_notes;
+    AudioUnit    output_unit;
+    Arrangement *arrangement;
+    double       phase;
+    double       sample_count;
+    int          curr_note_index;
 };
 
-/* HELPERS */
-static double division_to_samples(double division)
+static OSStatus render_audio_unit_callback(void                              *inRefCon,
+                                           AudioUnitRenderActionFlags UNUSED *ioActionFlags,
+                                           const AudioTimeStamp UNUSED       *inTimeStamp,
+                                           UInt32 UNUSED                      inBusNumber,
+                                           UInt32                             inNumberFrames,
+                                           AudioBufferList                   *ioData)
 {
-    return (60.0 / BPM) * SAMPLE_RATE * (4.0 / division);
-}
-
-static double freq_to_phase_increment(double frequency)
-{
-    return (2.0 * M_PI) / SAMPLE_RATE * frequency;
-}
-
-/* SYNTH ENGINE */
-static OSStatus render_audio_callback(void                              *inRefCon,
-                                      AudioUnitRenderActionFlags UNUSED *ioActionFlags,
-                                      const AudioTimeStamp UNUSED       *inTimeStamp,
-                                      UInt32 UNUSED                      inBusNumber,
-                                      UInt32                             inNumberFrames,
-                                      AudioBufferList                   *ioData)
-{
-    Player *player = (Player *)inRefCon;
-    double  phase  = player->phase;
-    float  *dataL  = (float *)ioData->mBuffers[0].mData;
-    float  *dataR  = (float *)ioData->mBuffers[1].mData;
+    Player      *player      = (Player *)inRefCon;
+    Arrangement *arrangement = player->arrangement;
+    double       phase       = player->phase;
+    float       *dataL       = (float *)ioData->mBuffers[0].mData;
+    float       *dataR       = (float *)ioData->mBuffers[1].mData;
 
     // "sequencer"
     for (UInt32 frame = 0; frame < inNumberFrames; ++frame)
     {
-        Note curr_note = player->melody[player->curr_note_index];
+        Note curr_note = arrangement->pattern[player->curr_note_index];
 
         if (player->sample_count >= curr_note.duration_in_samples)
         {
             player->sample_count    = 0;
-            player->curr_note_index = (player->curr_note_index + 1) % player->total_notes;
+            player->curr_note_index = (player->curr_note_index + 1) % arrangement->note_count;
         }
 
         // "Wave generator"
@@ -132,10 +100,10 @@ void audio_unit_destroy(Player *player)
 
 // based on Matthijs Hollemans Learning Core Audio example
 // https://gist.github.com/hollance/91d9da0d07a869ef9f56466aa46a6466
-static void init_audio_unit(Player *player)
+static void init_audio_unit_unit(Player *player)
 {
     AudioStreamBasicDescription streamFormat = {0};
-    streamFormat.mSampleRate                 = player->sample_rate;
+    streamFormat.mSampleRate                 = SAMPLE_RATE;
     streamFormat.mFormatID                   = kAudioFormatLinearPCM;
     streamFormat.mFormatFlags                = kAudioFormatFlagsNativeFloatPacked | kAudioFormatFlagIsNonInterleaved;
     streamFormat.mChannelsPerFrame           = 2;
@@ -163,7 +131,7 @@ static void init_audio_unit(Player *player)
         exit(1);
     }
 
-    AURenderCallbackStruct input = {.inputProc = render_audio_callback, .inputProcRefCon = player};
+    AURenderCallbackStruct input = {.inputProc = render_audio_unit_callback, .inputProcRefCon = player};
 
     if (noErr !=
         AudioUnitSetProperty(
@@ -193,22 +161,12 @@ static void init_audio_unit(Player *player)
 
 static Player player;
 
-Player *launch(void)
+Player *audio_init(Arrangement *arrangement)
 {
     player = (Player){
-        .sample_rate = SAMPLE_RATE,
-        .bpm         = BPM,
-        .total_notes = 6,
-        .melody      = {
-                        {freq_to_phase_increment(N_FREQUENCY[60]), division_to_samples(16.0), SQUARE},
-                        {freq_to_phase_increment(N_FREQUENCY[62]), division_to_samples(16.0), SQUARE},
-                        {freq_to_phase_increment(N_FREQUENCY[63]), division_to_samples(16.0), SQUARE},
-                        {freq_to_phase_increment(N_FREQUENCY[65]), division_to_samples(16.0), SINE},
-                        {freq_to_phase_increment(N_FREQUENCY[67]), division_to_samples(16.0), SINE},
-                        {freq_to_phase_increment(N_FREQUENCY[68]), division_to_samples(16.0), SQUARE},
-                        }
+        .arrangement = arrangement,
     };
 
-    init_audio_unit(&player);
+    init_audio_unit_unit(&player);
     return &player;
 }
