@@ -4,20 +4,30 @@
 double division_to_samples(double bpm, double division) { return (60.0 / bpm) * SAMPLE_RATE * (4.0 / division); }
 double freq_to_phase_increment(double frequency) { return (2.0 * M_PI) / SAMPLE_RATE * frequency; }
 
-static Arrangement arrangement;
+static Arrangement a;
 
 Arrangement *default_arrangement(void) {
-    arrangement = (Arrangement){
-        .pattern_len = 6,
+    a = (Arrangement){
+        .pattern_len = 16,
         .pattern     = {
-                        {freq_to_phase_increment(N_FREQUENCY[60]), division_to_samples(DEFAULT_BPM, 16.0), SQUARE},
-                        {freq_to_phase_increment(N_FREQUENCY[62]), division_to_samples(DEFAULT_BPM, 16.0), SQUARE},
-                        {freq_to_phase_increment(N_FREQUENCY[63]), division_to_samples(DEFAULT_BPM, 16.0), SQUARE},
-                        {freq_to_phase_increment(N_FREQUENCY[65]), division_to_samples(120.0, 16.0), SINE},
-                        {freq_to_phase_increment(N_FREQUENCY[67]), division_to_samples(130.0, 16.0), SINE},
-                        {freq_to_phase_increment(N_FREQUENCY[68]), division_to_samples(140.0, 16.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[57]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[60]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[64]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[68]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[69]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[72]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[76]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[80]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[81]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[80]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[76]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[72]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[69]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[68]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[64]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[60]), division_to_samples(DEFAULT_BPM, 55.0), SQUARE},
                         }
     };
 
-    return &arrangement;
+    return &a;
 }

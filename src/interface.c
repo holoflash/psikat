@@ -5,6 +5,7 @@ void init_interface(void) {
     initscr();
     raw();
     keypad(stdscr, TRUE);
+    nodelay(stdscr, TRUE);
     noecho();
     clear();
 }

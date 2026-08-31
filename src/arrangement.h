@@ -5,7 +5,7 @@
 
 #define MAX_NOTES   (256 * 256)
 #define SAMPLE_RATE 44100.0
-#define DEFAULT_BPM 80.0
+#define DEFAULT_BPM 140.0
 #define SINE        0
 #define SQUARE      1
 

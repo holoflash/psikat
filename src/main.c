@@ -1,59 +1,47 @@
-#include <curses.h>
-
 #include "arrangement.h"
 #include "audio_engine.h"
 #include "interface.h"
+#include <curses.h>
 
 // TODO: how come do my keys correspond to these codes?
-#define P_ENTER_KEY 10
-#define P_SPACE_KEY 32
+#define ENTER    10
+#define SPACEBAR 32
 
 int main(void) {
-    // TODO: this should probably live somewhere else
-    bool stopped     = true;
-    bool paused      = false;
-    bool app_running = true;
-
-    Arrangement *arrangement = default_arrangement();
-    Player      *player      = audio_init(arrangement);
+    Player *p = audio_init(default_arrangement());
     init_interface();
 
-    while (app_running) {
+    int key_pressed;
+
+    while ((key_pressed = getch()) != 'q') {
         clear();
-
-        printw(stopped  ? "Hit ENTER or SPACE to play\n"
-               : paused ? "Hit SPACE to resume; ENTER to stop\n"
-                        : "Hit SPACE to pause; ENTER to stop\n");
-
-        if (!stopped && !paused) {
-            attron(A_BOLD);
-            printw("\nPLAYING\n");
-            attroff(A_BOLD);
+        if (key_pressed == ENTER) {
+            p->playback_stopped ? audio_unit_start(p) : audio_unit_stop(p);
+            p->playback_stopped = !p->playback_stopped;
+            p->playback_paused  = false;
+        } else if (key_pressed == SPACEBAR) {
+            (p->playback_stopped || p->playback_paused) ? audio_unit_start(p) : audio_unit_pause(p);
+            p->playback_paused  = p->playback_stopped ? false : !p->playback_paused;
+            p->playback_stopped = false;
         }
 
-        mvaddstr(LINES - 1, 0, "Press any other key to quit");
+        if (p->playback_stopped) {
+            printw("Hit ENTER or SPACE to play\n\n");
+            printw("       - STOPPED\n\n");
+
+        } else if (p->playback_paused) {
+            printw("Hit SPACE to resume; ENTER to stop\n\n");
+            printw("       || PAUSED\n\n");
+        } else {
+            printw("Hit SPACE to pause; ENTER to stop\n\n");
+            printw("       > PLAYING\n\n");
+        }
+
+        mvaddstr(LINES - 1, 0, "Press Q to quit");
         refresh();
-
-        switch (getch()) {
-        case P_ENTER_KEY:
-            stopped ? audio_unit_start(player) : audio_unit_stop(player);
-            stopped = !stopped;
-            paused  = false;
-            break;
-
-        case P_SPACE_KEY:
-            (stopped || paused) ? audio_unit_start(player) : audio_unit_pause(player);
-            paused  = stopped ? false : !paused;
-            stopped = false;
-            break;
-
-        default:
-            app_running = false;
-            break;
-        }
     }
 
-    audio_unit_destroy(player);
+    audio_unit_destroy(p);
     endwin();
     return 0;
 }
