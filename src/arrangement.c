@@ -1,5 +1,5 @@
 #include "arrangement.h"
-#include "notes.h"
+
 #include <math.h>
 
 double division_to_samples(double bpm, double division)

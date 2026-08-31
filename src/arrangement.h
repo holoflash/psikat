@@ -1,6 +1,8 @@
 #ifndef ARRANGEMENT_H
 #define ARRANGEMENT_H
 
+#include "notes.h"
+
 #define MAX_NOTES   (256 * 256)
 #define SAMPLE_RATE 44100.0
 #define SINE        0

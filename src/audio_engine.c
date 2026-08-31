@@ -1,16 +1,4 @@
 #include "audio_engine.h"
-#include <AudioToolbox/AudioToolbox.h>
-
-#define UNUSED __attribute__((unused))
-
-struct Player
-{
-    AudioUnit    output_unit;
-    Arrangement *arrangement;
-    double       phase;
-    double       sample_count;
-    int          curr_note_index;
-};
 
 static OSStatus render_audio_unit_callback(void                              *inRefCon,
                                            AudioUnitRenderActionFlags UNUSED *ioActionFlags,
@@ -72,6 +60,8 @@ static OSStatus render_audio_unit_callback(void                              *in
 /* AUDIO UNIT */
 void audio_unit_start(Player *player)
 {
+    player->curr_note_index = 0;
+    player->sample_count    = 0;
     if (noErr != AudioOutputUnitStart(player->output_unit))
     {
         fprintf(stderr, "Couldn't start AudioUnit\n");
