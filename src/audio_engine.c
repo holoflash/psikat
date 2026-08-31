@@ -6,12 +6,12 @@
 #include <stdlib.h>
 
 /* MACROS */
-#define UNUSED __attribute__((unused))
-#define SINE 0
-#define SQUARE 1
+#define UNUSED      __attribute__((unused))
+#define SINE        0
+#define SQUARE      1
 #define SAMPLE_RATE 44100.0
-#define BPM 120.0
-#define MAX_LENGTH (256 * 256)
+#define BPM         120.0
+#define MAX_LENGTH  (256 * 256)
 
 /* STRUCTS */
 typedef struct
@@ -45,9 +45,12 @@ static double freq_to_phase_increment(double frequency)
 }
 
 /* SYNTH ENGINE */
-static OSStatus render_audio_callback(void *inRefCon, AudioUnitRenderActionFlags UNUSED *ioActionFlags,
-                                      const AudioTimeStamp UNUSED *inTimeStamp, UInt32 UNUSED inBusNumber,
-                                      UInt32 inNumberFrames, AudioBufferList *ioData)
+static OSStatus render_audio_callback(void                              *inRefCon,
+                                      AudioUnitRenderActionFlags UNUSED *ioActionFlags,
+                                      const AudioTimeStamp UNUSED       *inTimeStamp,
+                                      UInt32 UNUSED                      inBusNumber,
+                                      UInt32                             inNumberFrames,
+                                      AudioBufferList                   *ioData)
 {
     Player *player = (Player *)inRefCon;
     double  phase  = player->phase;
@@ -162,15 +165,20 @@ static void init_audio_unit(Player *player)
 
     AURenderCallbackStruct input = {.inputProc = render_audio_callback, .inputProcRefCon = player};
 
-    if (noErr != AudioUnitSetProperty(player->output_unit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input,
-                                      0, &input, sizeof(input)))
+    if (noErr !=
+        AudioUnitSetProperty(
+            player->output_unit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &input, sizeof(input)))
     {
         fprintf(stderr, "Couldn't set render callback\n");
         exit(1);
     }
 
-    if (noErr != AudioUnitSetProperty(player->output_unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0,
-                                      &streamFormat, sizeof(streamFormat)))
+    if (noErr != AudioUnitSetProperty(player->output_unit,
+                                      kAudioUnitProperty_StreamFormat,
+                                      kAudioUnitScope_Input,
+                                      0,
+                                      &streamFormat,
+                                      sizeof(streamFormat)))
     {
         fprintf(stderr, "Couldn't set stream format\n");
         exit(1);
@@ -187,17 +195,19 @@ static Player player;
 
 Player *launch(void)
 {
-    player = (Player){.sample_rate = SAMPLE_RATE,
-                      .bpm         = BPM,
-                      .total_notes = player.total_notes = sizeof(player.melody) / sizeof(player.melody[0]),
-                      .melody                           = {
-                          {freq_to_phase_increment(N_FREQUENCY[60]), division_to_samples(16.0), SQUARE},
-                          {freq_to_phase_increment(N_FREQUENCY[62]), division_to_samples(16.0), SQUARE},
-                          {freq_to_phase_increment(N_FREQUENCY[63]), division_to_samples(16.0), SQUARE},
-                          {freq_to_phase_increment(N_FREQUENCY[65]), division_to_samples(16.0), SINE},
-                          {freq_to_phase_increment(N_FREQUENCY[67]), division_to_samples(16.0), SINE},
-                          {freq_to_phase_increment(N_FREQUENCY[68]), division_to_samples(16.0), SQUARE},
-                      }};
+    player = (Player){
+        .sample_rate = SAMPLE_RATE,
+        .bpm         = BPM,
+        .total_notes = 6,
+        .melody      = {
+                        {freq_to_phase_increment(N_FREQUENCY[60]), division_to_samples(16.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[62]), division_to_samples(16.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[63]), division_to_samples(16.0), SQUARE},
+                        {freq_to_phase_increment(N_FREQUENCY[65]), division_to_samples(16.0), SINE},
+                        {freq_to_phase_increment(N_FREQUENCY[67]), division_to_samples(16.0), SINE},
+                        {freq_to_phase_increment(N_FREQUENCY[68]), division_to_samples(16.0), SQUARE},
+                        }
+    };
 
     init_audio_unit(&player);
     return &player;

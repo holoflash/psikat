@@ -1,41 +1,27 @@
-CC          := clang
-SWIFTC      := swiftc
-CFLAGS      := -std=c99 -Wall -Wextra -pedantic -O3 -Iinclude
-LDFLAGS     := -framework AudioToolbox -framework CoreAudio -framework SwiftUI -framework AppKit
-APP_NAME    := psikat
-BUILD_DIR   := build
-OBJ_DIR     := $(BUILD_DIR)/obj
-BUNDLE_DIR  := $(BUILD_DIR)/$(APP_NAME).app
-CONTENTS_DIR:= $(BUNDLE_DIR)/Contents
-MACOS_DIR   := $(CONTENTS_DIR)/MacOS
-TARGET      := $(MACOS_DIR)/$(APP_NAME)
-C_SRC       := $(wildcard src/*.c)
-C_OBJS      := $(patsubst src/%.c, $(OBJ_DIR)/%.o, $(C_SRC))
-SWIFT_SRC   := Swift/App.swift
+CC      := clang
+CFLAGS  := -std=c99 -Wall -Wextra -pedantic -O3 -Isrc
+LDFLAGS := -lncurses -framework AudioToolbox -framework CoreAudio
+BUILD   := build
+OBJ     := $(BUILD)/obj
+TARGET  := $(BUILD)/psikat
+SRC     := $(wildcard src/*.c)
+OBJS    := $(patsubst src/%.c, $(OBJ)/%.o, $(SRC))
 
 .PHONY: all run clean
 
 all: $(TARGET)
 
-$(OBJ_DIR)/%.o: src/%.c | $(OBJ_DIR)
+$(OBJ)/%.o: src/%.c | $(OBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(TARGET): $(C_OBJS) $(SWIFT_SRC) Info.plist | $(MACOS_DIR)
-	$(SWIFTC) -parse-as-library -I . \
-		$(C_OBJS) \
-		$(SWIFT_SRC) \
-		$(LDFLAGS) \
-		-o $@
-	cp Info.plist $(CONTENTS_DIR)/Info.plist
+$(TARGET): $(OBJS) | $(BUILD)
+	$(CC) $(OBJS) $(LDFLAGS) -o $@
 
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
-
-$(MACOS_DIR):
-	mkdir -p $(MACOS_DIR)
+$(OBJ):
+	mkdir -p $(OBJ)
 
 run: all
-	open $(BUNDLE_DIR)
+	./$(TARGET)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD)
