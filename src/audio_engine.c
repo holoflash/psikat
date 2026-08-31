@@ -17,7 +17,7 @@ static OSStatus render_audio_unit_callback(void                              *in
 
         if (player->sample_count >= curr_note.duration_in_samples) {
             player->sample_count    = 0;
-            player->curr_note_index = (player->curr_note_index + 1) % player->arrangement->note_count;
+            player->curr_note_index = (player->curr_note_index + 1) % player->arrangement->pattern_len;
         }
 
         // "Wave generator"
@@ -49,15 +49,21 @@ static OSStatus render_audio_unit_callback(void                              *in
 
 /* AUDIO UNIT */
 void audio_unit_start(Player *player) {
-    player->curr_note_index = 0;
-    player->sample_count    = 0;
-
     if (noErr != AudioOutputUnitStart(player->output_unit)) {
         fprintf(stderr, "Couldn't start AudioUnit\n");
     }
 }
 
+void audio_unit_pause(Player *player) {
+    player->sample_count = 0;
+    if (noErr != AudioOutputUnitStop(player->output_unit)) {
+        fprintf(stderr, "Couldn't stop AudioUnit\n");
+    }
+}
+
 void audio_unit_stop(Player *player) {
+    player->curr_note_index = 0;
+    player->sample_count    = 0;
     if (noErr != AudioOutputUnitStop(player->output_unit)) {
         fprintf(stderr, "Couldn't stop AudioUnit\n");
     }

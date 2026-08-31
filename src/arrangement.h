@@ -5,6 +5,7 @@
 
 #define MAX_NOTES   (256 * 256)
 #define SAMPLE_RATE 44100.0
+#define DEFAULT_BPM 80.0
 #define SINE        0
 #define SQUARE      1
 
@@ -15,9 +16,8 @@ typedef struct {
 } Note;
 
 typedef struct {
-    double bpm;
-    Note   pattern[MAX_NOTES];
-    int    note_count;
+    Note pattern[MAX_NOTES];
+    int  pattern_len;
 } Arrangement;
 
 double       division_to_samples(double bpm, double division);

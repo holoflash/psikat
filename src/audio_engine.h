@@ -19,6 +19,7 @@ struct Player {
 Player *audio_init(Arrangement *arrangement);
 void    audio_unit_start(Player *player);
 void    audio_unit_stop(Player *player);
+void    audio_unit_pause(Player *player);
 void    audio_unit_destroy(Player *player);
 
 #endif

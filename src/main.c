@@ -5,8 +5,8 @@
 #include "interface.h"
 
 // TODO: how come do my keys correspond to these codes?
-#define ENTER_KEY 10
-#define SPACE_KEY 32
+#define P_ENTER_KEY 10
+#define P_SPACE_KEY 32
 
 int main(void) {
     // TODO: this should probably live somewhere else
@@ -19,25 +19,40 @@ int main(void) {
     init_interface();
 
     while (app_running) {
-        stopped ? printw("Hit ENTER to play\n") : printw("Hit ENTER to stop\n");
-        mvaddstr(LINES - 1, 0, "Press any key to quit");
+        clear();
+
+        printw(stopped  ? "Hit ENTER or SPACE to play\n"
+               : paused ? "Hit SPACE to resume; ENTER to stop\n"
+                        : "Hit SPACE to pause; ENTER to stop\n");
+
+        if (!stopped && !paused) {
+            attron(A_BOLD);
+            printw("\nPLAYING\n");
+            attroff(A_BOLD);
+        }
+
+        mvaddstr(LINES - 1, 0, "Press any other key to quit");
+        refresh();
 
         switch (getch()) {
-        case ENTER_KEY:
+        case P_ENTER_KEY:
             stopped ? audio_unit_start(player) : audio_unit_stop(player);
             stopped = !stopped;
+            paused  = false;
             break;
-        case SPACE_KEY:
-            paused = !paused;
+
+        case P_SPACE_KEY:
+            (stopped || paused) ? audio_unit_start(player) : audio_unit_pause(player);
+            paused  = stopped ? false : !paused;
+            stopped = false;
             break;
+
         default:
             app_running = false;
             break;
         }
-        clear();
     }
 
-    audio_unit_stop(player);
     audio_unit_destroy(player);
     endwin();
     return 0;

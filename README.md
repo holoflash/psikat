@@ -1,7 +1,7 @@
 # psikat
 
-A tracker-like sequencer DAW for MacOS
-Developed without **any** AI assistance for recreational and learning purposes.
+A tracker-like sequencer DAW for the terminal.
+Developed without **any** AI assistance - for recreational and learning purposes.
 
 ## Why no AI?
 
