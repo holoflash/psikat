@@ -1,5 +1,5 @@
 #include "interface.h"
-#include <curses.h>
+#include <ncurses.h>
 
 void init_interface(void) {
     initscr();
@@ -8,4 +8,6 @@ void init_interface(void) {
     nodelay(stdscr, TRUE);
     noecho();
     clear();
+    start_color();
+    assume_default_colors(COLOR_BLACK, COLOR_MAGENTA);
 }

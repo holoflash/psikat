@@ -1,7 +1,7 @@
 #include "arrangement.h"
 #include "audio_engine.h"
 #include "interface.h"
-#include <curses.h>
+#include <ncurses.h>
 
 // TODO: how come do my keys correspond to these codes?
 #define ENTER    10
