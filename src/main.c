@@ -1,141 +1,144 @@
+#include "audio_engine.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <stdlib.h>
 
-#define COLOR_BG 50, 10, 60, 255
+#define COLOR_WHITE  255, 255, 255, 255
+#define COLOR_BLACK  0, 0, 0, 255
+#define COLOR_BG     18, 12, 26, 255
+#define COLOR_CURSOR 255, 195, 75, 200
 
-// Adapteded from SDL2 docs https://www.libsdl.org/release/SDL-1.2.15/docs/html/guideinputkeyboard.html
-void PrintModifiers(SDL_Keymod mod) {
-    if (mod == SDL_KMOD_NONE) {
-        return;
-    }
-
-    printf("Modifiers: ");
-    if (mod & SDL_KMOD_NUM)
-        printf("NUMLOCK ");
-    if (mod & SDL_KMOD_CAPS)
-        printf("CAPSLOCK ");
-    if (mod & SDL_KMOD_LCTRL)
-        printf("LCTRL ");
-    if (mod & SDL_KMOD_RCTRL)
-        printf("RCTRL ");
-    if (mod & SDL_KMOD_RSHIFT)
-        printf("RSHIFT ");
-    if (mod & SDL_KMOD_LSHIFT)
-        printf("LSHIFT ");
-    if (mod & SDL_KMOD_RALT)
-        printf("RALT ");
-    if (mod & SDL_KMOD_LALT)
-        printf("LALT ");
-    if (mod & SDL_KMOD_CTRL)
-        printf("CTRL ");
-    if (mod & SDL_KMOD_SHIFT)
-        printf("SHIFT ");
-    if (mod & SDL_KMOD_ALT)
-        printf("ALT ");
-    printf("\n");
-}
-
-void PrintKeyInfo(SDL_KeyboardEvent *key) {
-    if (key->type == SDL_EVENT_KEY_UP)
-        printf("Release:- ");
-    else
-        printf("Press:- ");
-
-    printf("Scancode: 0x%02X", key->scancode);
-    printf(", Name: %s", SDL_GetKeyName(key->key));
-    if (key->type == SDL_EVENT_KEY_DOWN) {
-        printf(", Unicode: ");
-        if (key->key < 0x80 && key->key > 0) {
-            printf("%c (0x%04X)", (char)key->key, key->key);
-        } else {
-            printf("? (0x%04X)", key->key);
-        }
-    }
-    printf("\n");
-    PrintModifiers(key->mod);
-}
+static inline int wrap_index(int index, int max) { return ((index % max) + max) % max; }
 
 int main(void) {
+    Player *p = audio_init(default_arrangement());
+
+    int grid_cell_size = 64;
+    int grid_cols      = 1; // TODO: Number of tracks...in the future
+    int grid_rows      = p->arrangement->pattern_len;
+
+    float grid_pixel_w = (float)(grid_cols * grid_cell_size);
+    float grid_pixel_h = (float)(grid_rows * grid_cell_size);
+
+    int cursor_x = 0;
+    int cursor_y = 0;
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        fprintf(stderr, "Couldn't initialize SDL\n");
-        exit(1);
+        fprintf(0, "Error initializing SDL: %s", SDL_GetError());
+        return EXIT_FAILURE;
     }
 
-    SDL_Window *window = SDL_CreateWindow("psikat", 800, 600, SDL_WINDOW_RESIZABLE);
-    if (!window) {
-        fprintf(stderr, "Couldn't create window\n");
-        SDL_Quit();
-        exit(1);
+    if (!TTF_Init()) {
+        SDL_LogError(0, "Error initializing TTF: %s", SDL_GetError());
+        return EXIT_FAILURE;
     }
 
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
-    if (!renderer) {
-        fprintf(stderr, "Couldn't create renderer\n");
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        exit(1);
+    SDL_Window   *window;
+    SDL_Renderer *renderer;
+    if (!SDL_CreateWindowAndRenderer("psikat", 1280, 800, SDL_WINDOW_HIGH_PIXEL_DENSITY, &window, &renderer)) {
+        SDL_LogError(0, "Create window and renderer: %s", SDL_GetError());
+        return EXIT_FAILURE;
     }
 
-    bool      running = true;
-    SDL_Event event;
+    TTF_Font *font = TTF_OpenFont("fonts/jbmono.ttf", 64);
+    if (!font) {
+        SDL_LogError(0, "Failed to load font: %s", SDL_GetError());
+        return EXIT_FAILURE;
+    }
 
-    SDL_Log("SDL3 window initialized and program running");
+    // There must be a way to skip this extra step
+    SDL_Surface *surf = TTF_RenderText_Blended(font, "C4", 0, (SDL_Color){COLOR_WHITE});
+    SDL_Texture *text = SDL_CreateTextureFromSurface(renderer, surf);
+    SDL_SetTextureScaleMode(text, SDL_SCALEMODE_NEAREST);
+    // we don't need the surface anymore
+    SDL_DestroySurface(surf);
 
-    while (running) {
+    bool quit = false;
+
+    while (!quit) {
+        SDL_Event event;
+        if (!p->playback_stopped && !p->playback_paused) {
+            cursor_y = p->curr_note_index;
+        }
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
-            case SDL_EVENT_QUIT:
-                running = false;
-                break;
             case SDL_EVENT_KEY_DOWN:
-            case SDL_EVENT_KEY_UP:
-                // instead of printing the key, we'll read it and handle it
-                PrintKeyInfo(&event.key);
+                switch (event.key.key) {
+                case SDLK_RETURN:
+                    p->playback_stopped ? audio_unit_start(p) : audio_unit_stop(p);
+                    p->playback_stopped = !p->playback_stopped;
+                    p->playback_paused  = false;
+                    break;
+                case SDLK_SPACE:
+                    (p->playback_stopped || p->playback_paused) ? audio_unit_start(p) : audio_unit_pause(p);
+                    p->playback_paused  = p->playback_stopped ? false : !p->playback_paused;
+                    p->playback_stopped = false;
+                    break;
+                case SDLK_UP:
+                    cursor_y = wrap_index(cursor_y - 1, grid_rows);
+                    break;
+                case SDLK_DOWN:
+                    cursor_y = wrap_index(cursor_y + 1, grid_rows);
+                    break;
+                case SDLK_LEFT:
+                    cursor_x = wrap_index(cursor_x - 1, grid_cols);
+                    break;
+                case SDLK_RIGHT:
+                    cursor_x = wrap_index(cursor_x + 1, grid_cols);
+                    break;
+                }
+                break;
+            case SDL_EVENT_QUIT:
+                quit = true;
                 break;
             }
         }
 
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, COLOR_BG);
         SDL_RenderClear(renderer);
+
+        // Text drawing!
+        SDL_FRect text_box = {
+            .x = 0.0,
+            .y = 0.0,
+            .w = (float)grid_cell_size,
+            .h = (float)grid_cell_size,
+        };
+
+        SDL_RenderTexture(renderer, text, NULL, &text_box);
+
+        SDL_SetRenderDrawColor(renderer, COLOR_CURSOR);
+
+        SDL_FRect cursor_rect = {.x = (float)(cursor_x * grid_cell_size),
+                                 .y = (float)(cursor_y * grid_cell_size),
+                                 .w = (float)grid_cell_size,
+                                 .h = (float)grid_cell_size};
+
+        SDL_RenderFillRect(renderer, &cursor_rect);
+
+        SDL_SetRenderDrawColor(renderer, COLOR_WHITE);
+        for (int c = 0; c <= grid_cols; c++) {
+            float x = (float)(c * grid_cell_size);
+            SDL_RenderLine(renderer, x, 0.0f, x, grid_pixel_h);
+        }
+
+        for (int r = 0; r <= grid_rows; r++) {
+            float y = (float)(r * grid_cell_size);
+            SDL_RenderLine(renderer, 0.0f, y, grid_pixel_w, y);
+        }
+
         SDL_RenderPresent(renderer);
     }
+
+    audio_unit_destroy(p);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    SDL_DestroyTexture(text);
+    TTF_CloseFont(font);
+    TTF_Quit();
     SDL_Quit();
 
-    return 0;
+    return EXIT_SUCCESS;
 }
-
-// NCURSES MAIN FOR REFERENCE
-//     Player *p = audio_init(default_arrangement());
-//     init_interface();
-
-//     int key_pressed;
-
-//     while ((key_pressed = getch()) != 'q') {
-//         clear();
-//         if (key_pressed == ENTER) {
-//             p->playback_stopped ? audio_unit_start(p) : audio_unit_stop(p);
-//             p->playback_stopped = !p->playback_stopped;
-//             p->playback_paused  = false;
-//         } else if (key_pressed == SPACEBAR) {
-//             (p->playback_stopped || p->playback_paused) ? audio_unit_start(p) : audio_unit_pause(p);
-//             p->playback_paused  = p->playback_stopped ? false : !p->playback_paused;
-//             p->playback_stopped = false;
-//         }
-
-//         if (p->playback_stopped) {
-//             printw("Hit ENTER or SPACE to play\n\n");
-//             printw("       - STOPPED\n\n");
-
-//         } else if (p->playback_paused) {
-//             printw("Hit SPACE to resume; ENTER to stop\n\n");
-//             printw("       || PAUSED\n\n");
-//         } else {
-//             printw("Hit SPACE to pause; ENTER to stop\n\n");
-//             printw("       > PLAYING\n\n");
-//         }
-
-//         mvaddstr(LINES - 1, 0, "Press Q to quit");
-//         refresh();
