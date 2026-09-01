@@ -1,6 +1,7 @@
 CC      := clang
-CFLAGS  := -std=c99 -Wall -Wextra -pedantic -O3 -Isrc
-LDFLAGS := -lncurses -framework AudioToolbox -framework CoreAudio
+SDL3    := /opt/homebrew/opt/sdl3
+CFLAGS  := -std=c99 -Wall -Wextra -pedantic -O3 -Isrc -I$(SDL3)/include
+LDFLAGS := -L$(SDL3)/lib -lSDL3 -framework AudioToolbox -framework CoreAudio
 BUILD   := build
 TARGET  := $(BUILD)/psikat
 SRC     := $(wildcard src/*.c)
