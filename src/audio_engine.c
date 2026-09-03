@@ -110,15 +110,12 @@ void audio_unit_start(Player *p) {
 }
 
 void audio_unit_pause(Player *p) {
-    p->sample_count = 0;
     if (noErr != AudioOutputUnitStop(p->output_unit)) {
         fprintf(stderr, "Couldn't stop AudioUnit\n");
     }
 }
 
 void audio_unit_stop(Player *p) {
-    p->curr_note_index = 0;
-    p->sample_count    = 0;
     if (noErr != AudioOutputUnitStop(p->output_unit)) {
         fprintf(stderr, "Couldn't stop AudioUnit\n");
     }
@@ -136,9 +133,8 @@ void audio_unit_destroy(Player *p) {
 static Player p;
 
 Player *audio_init(Arrangement *arrangement) {
-    p.arrangement      = arrangement;
-    p.playback_paused  = false;
-    p.playback_stopped = true;
+    p.arrangement    = arrangement;
+    p.playback_state = STOPPED;
 
     init_audio_unit_unit(&p);
     return &p;

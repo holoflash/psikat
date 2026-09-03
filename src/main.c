@@ -58,7 +58,7 @@ int main(void) {
 
     while (!quit) {
         SDL_Event event;
-        if (!p->playback_stopped && !p->playback_paused) {
+        if (p->playback_state == PLAYING) {
             cursor_y = p->curr_note_index;
         }
         while (SDL_PollEvent(&event)) {
@@ -66,14 +66,27 @@ int main(void) {
             case SDL_EVENT_KEY_DOWN:
                 switch (event.key.key) {
                 case SDLK_RETURN:
-                    p->playback_stopped ? audio_unit_start(p) : audio_unit_stop(p);
-                    p->playback_stopped = !p->playback_stopped;
-                    p->playback_paused  = false;
+                    p->curr_note_index = 0;
+                    p->sample_count    = 0;
+                    cursor_y           = 0;
+
+                    if (p->playback_state == STOPPED || p->playback_state == PAUSED) {
+                        p->playback_state = PLAYING;
+                        audio_unit_start(p);
+                    } else {
+                        p->playback_state = STOPPED;
+                        audio_unit_stop(p);
+                    }
                     break;
                 case SDLK_SPACE:
-                    (p->playback_stopped || p->playback_paused) ? audio_unit_start(p) : audio_unit_pause(p);
-                    p->playback_paused  = p->playback_stopped ? false : !p->playback_paused;
-                    p->playback_stopped = false;
+                    p->sample_count = 0;
+                    if (p->playback_state == PLAYING) {
+                        p->playback_state = PAUSED;
+                        audio_unit_stop(p);
+                    } else {
+                        p->playback_state = PLAYING;
+                        audio_unit_start(p);
+                    }
                     break;
                 case SDLK_UP:
                     cursor_y = wrap_index(cursor_y - 1, grid_rows);

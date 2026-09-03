@@ -7,15 +7,15 @@
 #define UNUSED __attribute__((unused))
 
 typedef struct Player Player;
+typedef enum { STOPPED, PLAYING, PAUSED } PlaybackState;
 
 struct Player {
-    AudioUnit    output_unit;
-    Arrangement *arrangement;
-    double       phase;
-    double       sample_count;
-    int          curr_note_index;
-    bool         playback_stopped;
-    bool         playback_paused;
+    AudioUnit     output_unit;
+    Arrangement  *arrangement;
+    double        phase;
+    double        sample_count;
+    int           curr_note_index;
+    PlaybackState playback_state;
 };
 
 Player *audio_init(Arrangement *a);
