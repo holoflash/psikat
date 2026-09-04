@@ -7,19 +7,19 @@
 
 typedef enum { SINE, SQUARE } Waveform;
 
-typedef struct {
+typedef struct Note {
     int      midi_value;
     double   subdivision;
     Waveform waveform;
 } Note;
 
-typedef struct {
+typedef struct Composition {
     Note   pattern[16];
     int    pattern_len;
     double bpm;
 } Composition;
 
-typedef struct {
+typedef struct AudioDevice {
     SDL_AudioSpec audio_spec;
     int           sample_frames;
 } AudioDevice;
@@ -36,7 +36,7 @@ typedef struct Player {
     AudioDevice   audio_device;
 } Player;
 
-typedef struct {
+typedef struct App {
     Graphics         graphics;
     Player           player;
     SDL_AudioStream *stream;
@@ -102,7 +102,6 @@ static void audio_callback(void *userdata, SDL_AudioStream *stream, int addition
 }
 
 bool app_init(App *app) {
-    SDL_SetAppMetadata("psikat", "0.1", "com.holoflash.psikat");
     app->player.composition = (Composition){
         .pattern_len = 16,
         .bpm         = 120,
@@ -132,14 +131,15 @@ bool app_init(App *app) {
     app->player.phase           = 0.0;
     app->player.sample_count    = 0.0;
 
-    if (!graphics_init(&app->graphics)) {
-        return false;
-    }
-    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "128", SDL_HINT_NORMAL);
-
     app->player.audio_device.audio_spec.channels = 2;
     app->player.audio_device.audio_spec.format   = SDL_AUDIO_F32LE;
     app->player.audio_device.audio_spec.freq     = 48000;
+
+    if (!graphics_init(&app->graphics)) {
+        return false;
+    }
+
+    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "128", SDL_HINT_NORMAL);
 
     app->stream = SDL_OpenAudioDeviceStream(
         SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &app->player.audio_device.audio_spec, audio_callback, &app->player);
@@ -147,12 +147,6 @@ bool app_init(App *app) {
     SDL_GetAudioDeviceFormat(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
                              &app->player.audio_device.audio_spec,
                              &app->player.audio_device.sample_frames);
-
-    printf("Running with audio device format: %s, channels: %d, freq: %d, sample_frames: %d\n",
-           SDL_GetAudioFormatName(app->player.audio_device.audio_spec.format),
-           app->player.audio_device.audio_spec.channels,
-           app->player.audio_device.audio_spec.freq,
-           app->player.audio_device.sample_frames);
 
     if (!app->stream) {
         fprintf(stderr, "Error initializing SDL Audio Stream: %s\n", SDL_GetError());

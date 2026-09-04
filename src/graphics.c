@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 bool graphics_init(Graphics *graphics) {
+    SDL_SetAppMetadata("psikat", "v0.0.1", "com.holoflash.psikat");
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
         return false;
@@ -14,7 +15,7 @@ bool graphics_init(Graphics *graphics) {
     }
 
     if (!SDL_CreateWindowAndRenderer(
-            "app", 1280, 800, SDL_WINDOW_HIGH_PIXEL_DENSITY, &graphics->window, &graphics->renderer)) {
+            "psikat", 1280, 800, SDL_WINDOW_HIGH_PIXEL_DENSITY, &graphics->window, &graphics->renderer)) {
         fprintf(stderr, "Create window and renderer: %s\n", SDL_GetError());
         return false;
     }
