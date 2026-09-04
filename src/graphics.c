@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 bool graphics_init(Graphics *graphics) {
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
         return false;
     }
@@ -14,7 +14,7 @@ bool graphics_init(Graphics *graphics) {
     }
 
     if (!SDL_CreateWindowAndRenderer(
-            "psikat", 1280, 800, SDL_WINDOW_HIGH_PIXEL_DENSITY, &graphics->window, &graphics->renderer)) {
+            "app", 1280, 800, SDL_WINDOW_HIGH_PIXEL_DENSITY, &graphics->window, &graphics->renderer)) {
         fprintf(stderr, "Create window and renderer: %s\n", SDL_GetError());
         return false;
     }

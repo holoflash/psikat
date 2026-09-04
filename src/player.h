@@ -1,21 +1,26 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#define SAMPLE_RATE 44100.0 // Shouldn't hard-code this
-#define DEFAULT_BPM 140.0   // Or this
+#include <SDL3/SDL_audio.h>
 
 typedef enum { SINE, SQUARE } Waveform;
 
 typedef struct {
-    double   phase_increment;
-    double   duration_in_samples;
+    int      midi_value;
+    double   subdivision;
     Waveform waveform;
 } Note;
 
 typedef struct {
-    Note pattern[16];
-    int  pattern_len;
+    Note   pattern[16];
+    int    pattern_len;
+    double bpm;
 } Composition;
+
+typedef struct {
+    SDL_AudioSpec audio_spec;
+    int           sample_frames;
+} AudioDevice;
 
 typedef enum { STOPPED, PLAYING, PAUSED } PlaybackState;
 
@@ -26,6 +31,7 @@ typedef struct Player {
     double        phase;
     double        sample_count;
     double        volume;
+    AudioDevice   audio_device;
 } Player;
 
 #endif

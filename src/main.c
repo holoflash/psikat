@@ -1,22 +1,151 @@
-#include "psikat.h"
+#include "colors.h"
+#include "graphics.h"
+#include "notes.h"
+#include "player.h"
 #include <SDL3/SDL_main.h>
+#include <math.h>
 #include <stdlib.h>
 
-#define COLOR_WHITE  255, 255, 255, 255
-#define COLOR_BLACK  0, 0, 0, 255
-#define COLOR_BG     18, 12, 26, 255
-#define COLOR_CURSOR 255, 195, 75, 200
+typedef struct {
+    Graphics         graphics;
+    Player           player;
+    SDL_AudioStream *stream;
+} App;
+
+#define TWO_PI 6.283185307
 
 static inline int wrap_index(int index, int max) { return ((index % max) + max) % max; }
 
+static void audio_callback(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount) {
+    (void)total_amount;
+    Player *player = (Player *)userdata;
+    additional_amount /= sizeof(float) * 2;
+    float sample_rate = (float)player->audio_device.audio_spec.freq;
+
+    while (additional_amount > 0) {
+        float     samples[128];
+        const int total = additional_amount < 64 ? additional_amount : 64;
+        double    phase = player->phase;
+
+        // "sequencer"
+        for (int frame = 0; frame < total; ++frame) {
+            Note curr_note = player->composition.pattern[player->curr_note_index];
+
+            double duration_in_samples =
+                (60.0 / player->composition.bpm) * sample_rate * (4.0 / curr_note.subdivision);
+
+            if (player->sample_count >= duration_in_samples) {
+                player->sample_count    = 0;
+                player->curr_note_index = (player->curr_note_index + 1) % player->composition.pattern_len;
+            }
+
+            // "Wave generator"
+            double phase_increment = (TWO_PI) / sample_rate * N_FREQUENCY[curr_note.midi_value];
+
+            phase += phase_increment;
+
+            if (phase >= TWO_PI) {
+                phase -= TWO_PI;
+            }
+
+            if (SINE == curr_note.waveform) {
+                samples[frame * 2]     = sin(phase);
+                samples[frame * 2 + 1] = sin(phase);
+            }
+            if (SQUARE == curr_note.waveform) {
+                // Square wave: flip halway through the wave cycle
+                if (phase >= M_PI) {
+                    samples[frame * 2]     = -1.0;
+                    samples[frame * 2 + 1] = -1.0;
+                } else {
+                    samples[frame * 2]     = 1.0;
+                    samples[frame * 2 + 1] = 1.0;
+                }
+            }
+            player->sample_count++;
+        }
+
+        SDL_PutAudioStreamData(stream, samples, total * sizeof(float) * 2);
+        player->phase = phase;
+        additional_amount -= total;
+    }
+}
+
+bool app_init(App *app) {
+    SDL_SetAppMetadata("psikat", "0.1", "com.holoflash.psikat");
+    app->player.composition = (Composition){
+        .pattern_len = 16,
+        .bpm         = 120,
+        .pattern =
+            {
+                      {57, 16.0, SQUARE},
+                      {60, 16.0, SQUARE},
+                      {64, 16.0, SQUARE},
+                      {68, 16.0, SQUARE},
+                      {69, 16.0, SQUARE},
+                      {72, 16.0, SQUARE},
+                      {76, 16.0, SQUARE},
+                      {80, 16.0, SQUARE},
+                      {81, 16.0, SQUARE},
+                      {80, 16.0, SQUARE},
+                      {76, 16.0, SQUARE},
+                      {72, 16.0, SQUARE},
+                      {69, 16.0, SQUARE},
+                      {68, 16.0, SQUARE},
+                      {64, 16.0, SQUARE},
+                      {60, 16.0, SQUARE},
+                      },
+    };
+
+    app->player.playback_state  = STOPPED;
+    app->player.curr_note_index = 0;
+    app->player.phase           = 0.0;
+    app->player.sample_count    = 0.0;
+
+    if (!graphics_init(&app->graphics)) {
+        return false;
+    }
+    SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "128", SDL_HINT_NORMAL);
+
+    app->player.audio_device.audio_spec.channels = 2;
+    app->player.audio_device.audio_spec.format   = SDL_AUDIO_F32LE;
+    app->player.audio_device.audio_spec.freq     = 48000;
+
+    app->stream = SDL_OpenAudioDeviceStream(
+        SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &app->player.audio_device.audio_spec, audio_callback, &app->player);
+
+    SDL_GetAudioDeviceFormat(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+                             &app->player.audio_device.audio_spec,
+                             &app->player.audio_device.sample_frames);
+
+    printf("Running with audio device format: %s, channels: %d, freq: %d, sample_frames: %d\n",
+           SDL_GetAudioFormatName(app->player.audio_device.audio_spec.format),
+           app->player.audio_device.audio_spec.channels,
+           app->player.audio_device.audio_spec.freq,
+           app->player.audio_device.sample_frames);
+
+    if (!app->stream) {
+        fprintf(stderr, "Error initializing SDL Audio Stream: %s\n", SDL_GetError());
+        graphics_destroy(&app->graphics);
+        return false;
+    }
+
+    return true;
+}
+
+void app_destroy(App *app) {
+    SDL_DestroyAudioStream(app->stream);
+    graphics_destroy(&app->graphics);
+}
+
 int main(void) {
-    static Psikat psikat;
-    if (!psikat_init(&psikat)) {
+    static App app;
+    if (!app_init(&app)) {
         return EXIT_FAILURE;
     }
 
-    Player       *player   = &psikat.player;
-    SDL_Renderer *renderer = psikat.graphics.renderer;
+    Player       *player   = &app.player;
+    SDL_Renderer *renderer = app.graphics.renderer;
 
     int grid_cell_size = 64;
     int grid_cols      = 1; // TODO: Number of tracks...in the future
@@ -29,7 +158,7 @@ int main(void) {
     int cursor_y = 0;
 
     // There must be a way to skip this extra step
-    // SDL_Surface *surf = TTF_RenderText_Blended(psikat.graphics.font, "C4", 0, (SDL_Color){COLOR_WHITE});
+    // SDL_Surface *surf = TTF_RenderText_Blended(app.graphics.font, "C4", 0, (SDL_Color){COLOR_WHITE});
     // SDL_Texture *text = SDL_CreateTextureFromSurface(renderer, surf);
     // SDL_SetTextureScaleMode(text, SDL_SCALEMODE_NEAREST);
     // // we don't need the surface anymore
@@ -53,20 +182,21 @@ int main(void) {
 
                     if (player->playback_state == STOPPED || player->playback_state == PAUSED) {
                         player->playback_state = PLAYING;
-                        audio_start(&psikat.output_unit);
+                        SDL_ResumeAudioStreamDevice(app.stream);
+
                     } else {
                         player->playback_state = STOPPED;
-                        audio_stop(&psikat.output_unit);
+                        SDL_PauseAudioStreamDevice(app.stream);
                     }
                     break;
                 case SDLK_SPACE:
                     player->sample_count = 0;
                     if (player->playback_state == PLAYING) {
                         player->playback_state = PAUSED;
-                        audio_stop(&psikat.output_unit);
+                        SDL_PauseAudioStreamDevice(app.stream);
                     } else {
                         player->playback_state = PLAYING;
-                        audio_start(&psikat.output_unit);
+                        SDL_ResumeAudioStreamDevice(app.stream);
                     }
                     break;
                 case SDLK_UP:
@@ -127,8 +257,7 @@ int main(void) {
     }
 
     // SDL_DestroyTexture(text);
-
-    psikat_destroy(&psikat);
+    app_destroy(&app);
 
     return EXIT_SUCCESS;
 }
