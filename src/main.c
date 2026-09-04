@@ -1,7 +1,5 @@
-#include "audio_engine.h"
-#include <SDL3/SDL.h>
+#include "psikat.h"
 #include <SDL3/SDL_main.h>
-#include <SDL3_ttf/SDL_ttf.h>
 #include <stdlib.h>
 
 #define COLOR_WHITE  255, 255, 255, 255
@@ -12,11 +10,17 @@
 static inline int wrap_index(int index, int max) { return ((index % max) + max) % max; }
 
 int main(void) {
-    Player *p = audio_init(default_arrangement());
+    static Psikat psikat;
+    if (!psikat_init(&psikat)) {
+        return EXIT_FAILURE;
+    }
+
+    Player       *player   = &psikat.player;
+    SDL_Renderer *renderer = psikat.graphics.renderer;
 
     int grid_cell_size = 64;
     int grid_cols      = 1; // TODO: Number of tracks...in the future
-    int grid_rows      = p->arrangement->pattern_len;
+    int grid_rows      = player->composition.pattern_len;
 
     float grid_pixel_w = (float)(grid_cols * grid_cell_size);
     float grid_pixel_h = (float)(grid_rows * grid_cell_size);
@@ -24,68 +28,45 @@ int main(void) {
     int cursor_x = 0;
     int cursor_y = 0;
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        fprintf(0, "Error initializing SDL: %s", SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
-    if (!TTF_Init()) {
-        SDL_LogError(0, "Error initializing TTF: %s", SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
-    SDL_Window   *window;
-    SDL_Renderer *renderer;
-    if (!SDL_CreateWindowAndRenderer("psikat", 1280, 800, SDL_WINDOW_HIGH_PIXEL_DENSITY, &window, &renderer)) {
-        SDL_LogError(0, "Create window and renderer: %s", SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
-    TTF_Font *font = TTF_OpenFont("fonts/jbmono.ttf", 64);
-    if (!font) {
-        SDL_LogError(0, "Failed to load font: %s", SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
     // There must be a way to skip this extra step
-    SDL_Surface *surf = TTF_RenderText_Blended(font, "C4", 0, (SDL_Color){COLOR_WHITE});
-    SDL_Texture *text = SDL_CreateTextureFromSurface(renderer, surf);
-    SDL_SetTextureScaleMode(text, SDL_SCALEMODE_NEAREST);
-    // we don't need the surface anymore
-    SDL_DestroySurface(surf);
+    // SDL_Surface *surf = TTF_RenderText_Blended(psikat.graphics.font, "C4", 0, (SDL_Color){COLOR_WHITE});
+    // SDL_Texture *text = SDL_CreateTextureFromSurface(renderer, surf);
+    // SDL_SetTextureScaleMode(text, SDL_SCALEMODE_NEAREST);
+    // // we don't need the surface anymore
+    // SDL_DestroySurface(surf);
 
-    bool quit = false;
+    bool running = true;
 
-    while (!quit) {
+    while (running) {
         SDL_Event event;
-        if (p->playback_state == PLAYING) {
-            cursor_y = p->curr_note_index;
+        if (player->playback_state == PLAYING) {
+            cursor_y = player->curr_note_index;
         }
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
             case SDL_EVENT_KEY_DOWN:
                 switch (event.key.key) {
                 case SDLK_RETURN:
-                    p->curr_note_index = 0;
-                    p->sample_count    = 0;
-                    cursor_y           = 0;
+                    player->curr_note_index = 0;
+                    player->sample_count    = 0;
+                    cursor_y                = 0;
 
-                    if (p->playback_state == STOPPED || p->playback_state == PAUSED) {
-                        p->playback_state = PLAYING;
-                        audio_unit_start(p);
+                    if (player->playback_state == STOPPED || player->playback_state == PAUSED) {
+                        player->playback_state = PLAYING;
+                        audio_start(&psikat.output_unit);
                     } else {
-                        p->playback_state = STOPPED;
-                        audio_unit_stop(p);
+                        player->playback_state = STOPPED;
+                        audio_stop(&psikat.output_unit);
                     }
                     break;
                 case SDLK_SPACE:
-                    p->sample_count = 0;
-                    if (p->playback_state == PLAYING) {
-                        p->playback_state = PAUSED;
-                        audio_unit_stop(p);
+                    player->sample_count = 0;
+                    if (player->playback_state == PLAYING) {
+                        player->playback_state = PAUSED;
+                        audio_stop(&psikat.output_unit);
                     } else {
-                        p->playback_state = PLAYING;
-                        audio_unit_start(p);
+                        player->playback_state = PLAYING;
+                        audio_start(&psikat.output_unit);
                     }
                     break;
                 case SDLK_UP:
@@ -103,7 +84,7 @@ int main(void) {
                 }
                 break;
             case SDL_EVENT_QUIT:
-                quit = true;
+                running = false;
                 break;
             }
         }
@@ -113,14 +94,14 @@ int main(void) {
         SDL_RenderClear(renderer);
 
         // Text drawing!
-        SDL_FRect text_box = {
-            .x = 0.0,
-            .y = 0.0,
-            .w = (float)grid_cell_size,
-            .h = (float)grid_cell_size,
-        };
+        // SDL_FRect text_box = {
+        //     .x = 0.0,
+        //     .y = 0.0,
+        //     .w = (float)grid_cell_size,
+        //     .h = (float)grid_cell_size,
+        // };
 
-        SDL_RenderTexture(renderer, text, NULL, &text_box);
+        // SDL_RenderTexture(renderer, text, NULL, &text_box);
 
         SDL_SetRenderDrawColor(renderer, COLOR_CURSOR);
 
@@ -137,21 +118,17 @@ int main(void) {
             SDL_RenderLine(renderer, x, 0.0f, x, grid_pixel_h);
         }
 
-        for (int r = 0; r <= grid_rows; r++) {
-            float y = (float)(r * grid_cell_size);
+        for (int row = 0; row <= grid_rows; row++) {
+            float y = (float)(row * grid_cell_size);
             SDL_RenderLine(renderer, 0.0f, y, grid_pixel_w, y);
         }
 
         SDL_RenderPresent(renderer);
     }
 
-    audio_unit_destroy(p);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_DestroyTexture(text);
-    TTF_CloseFont(font);
-    TTF_Quit();
-    SDL_Quit();
+    // SDL_DestroyTexture(text);
+
+    psikat_destroy(&psikat);
 
     return EXIT_SUCCESS;
 }
