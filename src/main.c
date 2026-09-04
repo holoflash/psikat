@@ -1,10 +1,40 @@
 #include "colors.h"
 #include "graphics.h"
 #include "notes.h"
-#include "player.h"
 #include <SDL3/SDL_main.h>
 #include <math.h>
 #include <stdlib.h>
+
+typedef enum { SINE, SQUARE } Waveform;
+
+typedef struct {
+    int      midi_value;
+    double   subdivision;
+    Waveform waveform;
+} Note;
+
+typedef struct {
+    Note   pattern[16];
+    int    pattern_len;
+    double bpm;
+} Composition;
+
+typedef struct {
+    SDL_AudioSpec audio_spec;
+    int           sample_frames;
+} AudioDevice;
+
+typedef enum { STOPPED, PLAYING, PAUSED } PlaybackState;
+
+typedef struct Player {
+    Composition   composition;
+    PlaybackState playback_state;
+    int           curr_note_index;
+    double        phase;
+    double        sample_count;
+    double        volume;
+    AudioDevice   audio_device;
+} Player;
 
 typedef struct {
     Graphics         graphics;
