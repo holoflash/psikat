@@ -1,7 +1,7 @@
-#include "colors.h"
-#include "graphics.h"
-#include "notes.h"
+#include "constants.h"
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <math.h>
 #include <stdlib.h>
 
@@ -13,98 +13,111 @@ typedef struct Note {
     Waveform waveform;
 } Note;
 
-typedef struct Composition {
-    Note   pattern[16];
+typedef struct Project {
     int    pattern_len;
     double bpm;
-} Composition;
-
-typedef struct AudioDevice {
-    SDL_AudioSpec audio_spec;
-    int           sample_frames;
-} AudioDevice;
+    double tuning;
+    Note   pattern[16];
+} Project;
 
 typedef enum { STOPPED, PLAYING, PAUSED } PlaybackState;
 
-typedef struct Player {
-    Composition   composition;
+typedef struct Transport {
     PlaybackState playback_state;
-    int           curr_note_index;
     double        phase;
     double        sample_count;
-    double        volume;
-    AudioDevice   audio_device;
-} Player;
+    float         master_volume;
+    int           curr_note_index;
+} Transport;
+
+typedef struct Audio {
+    SDL_AudioSpec    spec;
+    int              sample_frames;
+    SDL_AudioStream *stream;
+} Audio;
+
+typedef struct Graphics {
+    SDL_Window   *window;
+    SDL_Renderer *renderer;
+    TTF_Font     *font;
+} Graphics;
 
 typedef struct App {
-    Graphics         graphics;
-    Player           player;
-    SDL_AudioStream *stream;
+    Graphics  graphics;
+    Audio     audio;
+    Transport transport;
+    Project   project;
 } App;
-
-#define TWO_PI 6.283185307
 
 static inline int wrap_index(int index, int max) { return ((index % max) + max) % max; }
 
 static void audio_callback(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount) {
     (void)total_amount;
-    Player *player = (Player *)userdata;
-    additional_amount /= sizeof(float) * 2;
-    float sample_rate = (float)player->audio_device.audio_spec.freq;
+    App *app = (App *)userdata;
 
-    while (additional_amount > 0) {
-        float     samples[128];
-        const int total = additional_amount < 64 ? additional_amount : 64;
-        double    phase = player->phase;
+    int   frames_needed = additional_amount / (sizeof(float) * 2);
+    float sample_rate   = (float)app->audio.spec.freq;
 
-        // "sequencer"
-        for (int frame = 0; frame < total; ++frame) {
-            Note curr_note = player->composition.pattern[player->curr_note_index];
+    float samples[128 * 2];
 
-            double duration_in_samples =
-                (60.0 / player->composition.bpm) * sample_rate * (4.0 / curr_note.subdivision);
+    while (frames_needed > 0) {
+        const int chunk = frames_needed < 128 ? frames_needed : 128;
+        double    phase = app->transport.phase;
 
-            if (player->sample_count >= duration_in_samples) {
-                player->sample_count    = 0;
-                player->curr_note_index = (player->curr_note_index + 1) % player->composition.pattern_len;
-            }
+        Note   current_note        = app->project.pattern[app->transport.curr_note_index];
+        double duration_in_samples = (60.0 / app->project.bpm) * sample_rate * (4.0 / current_note.subdivision);
 
-            // "Wave generator"
-            double phase_increment = (TWO_PI) / sample_rate * N_FREQUENCY[curr_note.midi_value];
+        if (app->transport.sample_count >= duration_in_samples) {
+            app->transport.sample_count    = 0;
+            app->transport.curr_note_index = (app->transport.curr_note_index + 1) % app->project.pattern_len;
 
-            phase += phase_increment;
-
-            if (phase >= TWO_PI) {
-                phase -= TWO_PI;
-            }
-
-            if (SINE == curr_note.waveform) {
-                samples[frame * 2]     = sin(phase);
-                samples[frame * 2 + 1] = sin(phase);
-            }
-            if (SQUARE == curr_note.waveform) {
-                // Square wave: flip halway through the wave cycle
-                if (phase >= M_PI) {
-                    samples[frame * 2]     = -1.0;
-                    samples[frame * 2 + 1] = -1.0;
-                } else {
-                    samples[frame * 2]     = 1.0;
-                    samples[frame * 2 + 1] = 1.0;
-                }
-            }
-            player->sample_count++;
+            current_note = app->project.pattern[app->transport.curr_note_index];
         }
 
-        SDL_PutAudioStreamData(stream, samples, total * sizeof(float) * 2);
-        player->phase = phase;
-        additional_amount -= total;
+        double frequency       = app->project.tuning * pow(2.0, (current_note.midi_value - 69.0) / 12.0);
+        double phase_increment = (TWO_PI / sample_rate) * frequency;
+
+        if (current_note.waveform == SINE) {
+            for (int frame = 0; frame < chunk; ++frame) {
+                float sample = (float)sin(phase);
+                // TODO: maybe need to divide gain by 2 first?
+                float sample_with_gain = sample * app->transport.master_volume;
+                samples[frame * 2]     = sample_with_gain;
+                samples[frame * 2 + 1] = sample_with_gain;
+
+                phase += phase_increment;
+                if (phase >= TWO_PI) {
+                    phase -= TWO_PI;
+                }
+            }
+        } else if (current_note.waveform == SQUARE) {
+            for (int frame = 0; frame < chunk; ++frame) {
+                float sample           = (phase >= M_PI) ? -1.0f : 1.0f;
+                float sample_with_gain = sample * app->transport.master_volume;
+                samples[frame * 2]     = sample_with_gain;
+                samples[frame * 2 + 1] = sample_with_gain;
+
+                phase += phase_increment;
+                if (phase >= TWO_PI) {
+                    phase -= TWO_PI;
+                }
+            }
+        }
+
+        app->transport.sample_count += chunk;
+        app->transport.phase = phase;
+
+        SDL_PutAudioStreamData(stream, samples, chunk * sizeof(float) * 2);
+
+        frames_needed -= chunk;
     }
 }
 
 bool app_init(App *app) {
-    app->player.composition = (Composition){
+    app->project = (Project){
         .pattern_len = 16,
         .bpm         = 120,
+        .tuning      = 440.0,
         .pattern =
             {
                       {57, 16.0, SQUARE},
@@ -126,31 +139,48 @@ bool app_init(App *app) {
                       },
     };
 
-    app->player.playback_state  = STOPPED;
-    app->player.curr_note_index = 0;
-    app->player.phase           = 0.0;
-    app->player.sample_count    = 0.0;
+    app->transport.playback_state  = STOPPED;
+    app->transport.curr_note_index = 0;
+    app->transport.phase           = 0.0;
+    app->transport.sample_count    = 0.0;
+    app->transport.master_volume   = 0.1f;
 
-    app->player.audio_device.audio_spec.channels = 2;
-    app->player.audio_device.audio_spec.format   = SDL_AUDIO_F32LE;
-    app->player.audio_device.audio_spec.freq     = 48000;
+    app->audio.spec.channels = 2;
+    app->audio.spec.format   = SDL_AUDIO_F32LE;
+    app->audio.spec.freq     = 48000;
 
-    if (!graphics_init(&app->graphics)) {
+    SDL_SetAppMetadata("psikat", "v0.0.1", "com.holoflash.psikat");
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+        fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
         return false;
     }
 
+    if (!TTF_Init()) {
+        fprintf(stderr, "Error initializing TTF: %s\n", SDL_GetError());
+        return false;
+    }
+
+    if (!SDL_CreateWindowAndRenderer(
+            "psikat", 1280, 800, SDL_WINDOW_HIGH_PIXEL_DENSITY, &app->graphics.window, &app->graphics.renderer)) {
+        fprintf(stderr, "Create window and renderer: %s\n", SDL_GetError());
+        return false;
+    }
+
+    // app->graphics.font = TTF_OpenFont("fonts/jbmono.ttf", 64);
+    // if (!app->graphics.font) {
+    //     fprintf(stderr, "Failed to load font: %s\n", SDL_GetError());
+    //     return false;
+    // }
+
     SDL_SetHintWithPriority(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "128", SDL_HINT_NORMAL);
 
-    app->stream = SDL_OpenAudioDeviceStream(
-        SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &app->player.audio_device.audio_spec, audio_callback, &app->player);
+    app->audio.stream =
+        SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &app->audio.spec, audio_callback, app);
 
-    SDL_GetAudioDeviceFormat(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
-                             &app->player.audio_device.audio_spec,
-                             &app->player.audio_device.sample_frames);
+    SDL_GetAudioDeviceFormat(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &app->audio.spec, &app->audio.sample_frames);
 
-    if (!app->stream) {
+    if (!app->audio.stream) {
         fprintf(stderr, "Error initializing SDL Audio Stream: %s\n", SDL_GetError());
-        graphics_destroy(&app->graphics);
         return false;
     }
 
@@ -158,22 +188,37 @@ bool app_init(App *app) {
 }
 
 void app_destroy(App *app) {
-    SDL_DestroyAudioStream(app->stream);
-    graphics_destroy(&app->graphics);
+    if (app->audio.stream) {
+        SDL_DestroyAudioStream(app->audio.stream);
+    }
+    // SDL_DestroyTexture(text);
+    // if (&app.graphics.font) {
+    //     TTF_CloseFont(&app.graphics.font);
+    // }
+    if (app->graphics.renderer) {
+        SDL_DestroyRenderer(app->graphics.renderer);
+    }
+    if (app->graphics.window) {
+        SDL_DestroyWindow(app->graphics.window);
+    }
+    TTF_Quit();
+    SDL_Quit();
 }
 
 int main(void) {
     static App app;
     if (!app_init(&app)) {
+        app_destroy(&app);
         return EXIT_FAILURE;
     }
 
-    Player       *player   = &app.player;
-    SDL_Renderer *renderer = app.graphics.renderer;
+    Transport    *transport = &app.transport;
+    Project      *project   = &app.project;
+    SDL_Renderer *renderer  = app.graphics.renderer;
 
     int grid_cell_size = 64;
     int grid_cols      = 1; // TODO: Number of tracks...in the future
-    int grid_rows      = player->composition.pattern_len;
+    int grid_rows      = project->pattern_len;
 
     float grid_pixel_w = (float)(grid_cols * grid_cell_size);
     float grid_pixel_h = (float)(grid_rows * grid_cell_size);
@@ -192,35 +237,41 @@ int main(void) {
 
     while (running) {
         SDL_Event event;
-        if (player->playback_state == PLAYING) {
-            cursor_y = player->curr_note_index;
+        if (transport->playback_state == PLAYING) {
+            SDL_LockAudioStream(app.audio.stream);
+            cursor_y = transport->curr_note_index;
+            SDL_UnlockAudioStream(app.audio.stream);
         }
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
             case SDL_EVENT_KEY_DOWN:
                 switch (event.key.key) {
                 case SDLK_RETURN:
-                    player->curr_note_index = 0;
-                    player->sample_count    = 0;
-                    cursor_y                = 0;
+                    SDL_LockAudioStream(app.audio.stream);
+                    transport->curr_note_index = 0;
+                    transport->sample_count    = 0;
+                    transport->phase           = 0.0;
+                    SDL_UnlockAudioStream(app.audio.stream);
 
-                    if (player->playback_state == STOPPED || player->playback_state == PAUSED) {
-                        player->playback_state = PLAYING;
-                        SDL_ResumeAudioStreamDevice(app.stream);
+                    cursor_y = 0;
+
+                    if (transport->playback_state == STOPPED || transport->playback_state == PAUSED) {
+                        transport->playback_state = PLAYING;
+                        SDL_ResumeAudioStreamDevice(app.audio.stream);
 
                     } else {
-                        player->playback_state = STOPPED;
-                        SDL_PauseAudioStreamDevice(app.stream);
+                        transport->playback_state = STOPPED;
+                        SDL_PauseAudioStreamDevice(app.audio.stream);
                     }
                     break;
                 case SDLK_SPACE:
-                    player->sample_count = 0;
-                    if (player->playback_state == PLAYING) {
-                        player->playback_state = PAUSED;
-                        SDL_PauseAudioStreamDevice(app.stream);
+                    transport->sample_count = 0;
+                    if (transport->playback_state == PLAYING) {
+                        transport->playback_state = PAUSED;
+                        SDL_PauseAudioStreamDevice(app.audio.stream);
                     } else {
-                        player->playback_state = PLAYING;
-                        SDL_ResumeAudioStreamDevice(app.stream);
+                        transport->playback_state = PLAYING;
+                        SDL_ResumeAudioStreamDevice(app.audio.stream);
                     }
                     break;
                 case SDLK_UP:
@@ -279,9 +330,6 @@ int main(void) {
 
         SDL_RenderPresent(renderer);
     }
-
-    // SDL_DestroyTexture(text);
     app_destroy(&app);
-
     return EXIT_SUCCESS;
 }
