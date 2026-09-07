@@ -19,3 +19,5 @@ int main(void) {
         // if duration in samples is 400.0 and our max gain is 1.0
     }
 }
+
+// https://mu.krj.st/ <- this lecture series might be worth checking out

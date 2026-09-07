@@ -1,7 +1,9 @@
 #include "constants.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <SDL3_ttf/SDL_ttf.h>
+// #include <SDL3_ttf/SDL_ttf.h>
+#include "helpers.h"
+#include "wav.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -18,6 +20,7 @@ typedef struct Project {
     double bpm;
     double tuning;
     Note   pattern[16];
+    double duration;
 } Project;
 
 typedef enum { STOPPED, PLAYING, PAUSED } PlaybackState;
@@ -28,6 +31,7 @@ typedef struct Transport {
     double        sample_count;
     float         master_volume;
     int           curr_note_index;
+    bool          loop;
 } Transport;
 
 typedef struct Audio {
@@ -39,7 +43,7 @@ typedef struct Audio {
 typedef struct Graphics {
     SDL_Window   *window;
     SDL_Renderer *renderer;
-    TTF_Font     *font;
+    // TTF_Font     *font;
 } Graphics;
 
 typedef struct App {
@@ -48,8 +52,6 @@ typedef struct App {
     Transport transport;
     Project   project;
 } App;
-
-static inline int wrap_index(int index, int max) { return ((index % max) + max) % max; }
 
 static void audio_callback(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount) {
     (void)total_amount;
@@ -65,12 +67,21 @@ static void audio_callback(void *userdata, SDL_AudioStream *stream, int addition
         double    phase = app->transport.phase;
 
         Note   current_note        = app->project.pattern[app->transport.curr_note_index];
-        double duration_in_samples = (60.0 / app->project.bpm) * sample_rate * (4.0 / current_note.subdivision);
+        double duration_in_samples = subdivision_to_samples(app->project.bpm, current_note.subdivision, sample_rate);
 
         if (app->transport.sample_count >= duration_in_samples) {
-            app->transport.sample_count    = 0;
-            app->transport.curr_note_index = (app->transport.curr_note_index + 1) % app->project.pattern_len;
-
+            app->transport.sample_count = 0;
+            if (app->transport.curr_note_index + 1 >= app->project.pattern_len) {
+                if (app->transport.loop == true) {
+                    app->transport.curr_note_index = 0;
+                } else {
+                    app->transport.playback_state  = STOPPED;
+                    app->transport.curr_note_index = 0;
+                    return;
+                }
+            } else {
+                app->transport.curr_note_index++;
+            }
             current_note = app->project.pattern[app->transport.curr_note_index];
         }
 
@@ -118,6 +129,7 @@ bool app_init(App *app) {
         .pattern_len = 16,
         .bpm         = 120,
         .tuning      = 440.0,
+        .duration    = 0.0,
         .pattern =
             {
                       {57, 16.0, SQUARE},
@@ -144,6 +156,7 @@ bool app_init(App *app) {
     app->transport.phase           = 0.0;
     app->transport.sample_count    = 0.0;
     app->transport.master_volume   = 0.1f;
+    app->transport.loop            = false;
 
     app->audio.spec.channels = 2;
     app->audio.spec.format   = SDL_AUDIO_F32LE;
@@ -155,10 +168,10 @@ bool app_init(App *app) {
         return false;
     }
 
-    if (!TTF_Init()) {
-        fprintf(stderr, "Error initializing TTF: %s\n", SDL_GetError());
-        return false;
-    }
+    // if (!TTF_Init()) {
+    //     fprintf(stderr, "Error initializing TTF: %s\n", SDL_GetError());
+    //     return false;
+    // }
 
     if (!SDL_CreateWindowAndRenderer(
             "psikat", 1280, 800, SDL_WINDOW_HIGH_PIXEL_DENSITY, &app->graphics.window, &app->graphics.renderer)) {
@@ -201,11 +214,25 @@ void app_destroy(App *app) {
     if (app->graphics.window) {
         SDL_DestroyWindow(app->graphics.window);
     }
-    TTF_Quit();
+    // TTF_Quit();
     SDL_Quit();
 }
 
+//    ▄███████▄    ▄████████  ▄█     ▄█   ▄█▄    ▄████████     ███
+//   ███    ███   ███    ███ ███    ███ ▄███▀   ███    ███ ▀█████████▄
+//   ███    ███   ███    █▀  ███▌   ███▐██▀     ███    ███    ▀███▀▀██
+//   ███    ███   ███        ███▌  ▄█████▀      ███    ███     ███   ▀
+// ▀█████████▀  ▀███████████ ███▌ ▀▀█████▄    ▀███████████     ███
+//   ███                 ███ ███    ███▐██▄     ███    ███     ███
+//   ███           ▄█    ███ ███    ███ ▀███▄   ███    ███     ███
+//  ▄████▀       ▄████████▀  █▀     ███   ▀█▀   ███    █▀     ▄████▀
+//                                  ▀
+
 int main(void) {
+    // TODO: here while debugging
+    wav_hello_world();
+    return 0;
+    //___________________________
     static App app;
     if (!app_init(&app)) {
         app_destroy(&app);
@@ -237,6 +264,10 @@ int main(void) {
 
     while (running) {
         SDL_Event event;
+        if (transport->playback_state == STOPPED) {
+            SDL_PauseAudioStreamDevice(app.audio.stream);
+            cursor_y = 0;
+        }
         if (transport->playback_state == PLAYING) {
             SDL_LockAudioStream(app.audio.stream);
             cursor_y = transport->curr_note_index;
@@ -253,15 +284,12 @@ int main(void) {
                     transport->phase           = 0.0;
                     SDL_UnlockAudioStream(app.audio.stream);
 
-                    cursor_y = 0;
-
                     if (transport->playback_state == STOPPED || transport->playback_state == PAUSED) {
                         transport->playback_state = PLAYING;
                         SDL_ResumeAudioStreamDevice(app.audio.stream);
 
                     } else {
                         transport->playback_state = STOPPED;
-                        SDL_PauseAudioStreamDevice(app.audio.stream);
                     }
                     break;
                 case SDLK_SPACE:
@@ -275,17 +303,34 @@ int main(void) {
                     }
                     break;
                 case SDLK_UP:
-                    cursor_y = wrap_index(cursor_y - 1, grid_rows);
-                    break;
+                    if (transport->playback_state != PLAYING) {
+                        cursor_y                   = wrap_index(cursor_y - 1, grid_rows);
+                        transport->curr_note_index = cursor_y;
+                        transport->sample_count    = 0;
+                        transport->phase           = 0.0;
+                        break;
+                    }
                 case SDLK_DOWN:
-                    cursor_y = wrap_index(cursor_y + 1, grid_rows);
-                    break;
-                case SDLK_LEFT:
-                    cursor_x = wrap_index(cursor_x - 1, grid_cols);
-                    break;
-                case SDLK_RIGHT:
-                    cursor_x = wrap_index(cursor_x + 1, grid_cols);
-                    break;
+                    if (transport->playback_state != PLAYING) {
+                        cursor_y                   = wrap_index(cursor_y + 1, grid_rows);
+                        transport->curr_note_index = cursor_y;
+                        transport->sample_count    = 0;
+                        transport->phase           = 0.0;
+                        break;
+                    }
+                case SDLK_L:
+                    transport->loop = !transport->loop;
+                    // TODO: changing tracks
+                    // case SDLK_LEFT:
+                    //     if (transport->playback_state != PLAYING) {
+                    //         cursor_x = wrap_index(cursor_x - 1, grid_cols);
+                    //         break;
+                    //     }
+                    // case SDLK_RIGHT:
+                    //     if (transport->playback_state != PLAYING) {
+                    //         cursor_x = wrap_index(cursor_x + 1, grid_cols);
+                    //         break;
+                    //     }
                 }
                 break;
             case SDL_EVENT_QUIT:
