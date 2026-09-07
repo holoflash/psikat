@@ -75,6 +75,7 @@ static void audio_callback(void *userdata, SDL_AudioStream *stream, int addition
                 if (app->transport.loop == true) {
                     app->transport.curr_note_index = 0;
                 } else {
+                    // TODO: Stopping here makes a sound like the first note is about to play very briefly
                     app->transport.playback_state  = STOPPED;
                     app->transport.curr_note_index = 0;
                     return;
