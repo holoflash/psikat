@@ -6,10 +6,10 @@
 #define FORMAT_TAG      1 // (1): PCM;(3): IEEE float audio.
 #define BITS_PER_SAMPLE 8
 #define DURATION        5
-#define SR              44100
+#define SAMPLE_RATE     44100
 #define NCHANNELS       2
 #define FMT_STRING_SIZE 4
-#define NSAMPLES        (NCHANNELS * DURATION * SR)
+#define NSAMPLES        (NCHANNELS * DURATION * SAMPLE_RATE)
 #define A4              440
 
 // TODO: should I use stdint values in other parts of the program instead of just int?
