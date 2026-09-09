@@ -1,6 +1,10 @@
 CC      := clang
-CFLAGS  := -std=c99 -Wall -Wextra -pedantic -O3 -Isrc -I/opt/homebrew/include
-LDFLAGS := -L/opt/homebrew/lib -lSDL3 -lSDL3_ttf -framework AudioToolbox -framework CoreAudio
+CFLAGS  := -std=c99 -Wall -Wextra -pedantic -O3 -Isrc
+LDFLAGS := -framework AudioToolbox \
+           -framework CoreAudio \
+           -framework Foundation \
+           -framework AppKit \
+           -framework CoreVideo
 
 BUILD   := build
 TARGET  := $(BUILD)/psikat
@@ -15,16 +19,14 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	$(CC) $(OBJ) $(LDFLAGS) -o $@
 
-$(BUILD)/%.o: src/%.c | $(BUILD)
+$(BUILD)/%.o: src/%.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
-$(BUILD):
-	mkdir -p $(BUILD)
-
-run: all
+run: $(TARGET)
 	./$(TARGET)
 
 clean:
-	rm -rf $(BUILD)
+	$(RM) -r $(BUILD)
 
 -include $(DEP)
