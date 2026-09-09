@@ -12,6 +12,8 @@
 
 #define TWO_PI 6.283185307
 
+#define UNUSED __attribute__((unused))
+
 /* MUSICAL DATA */
 
 // extern const double N_FREQUENCY[128];
