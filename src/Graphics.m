@@ -4,8 +4,8 @@
 #define COLOR_BG   0.06, 0.016, 0.06, 1.0
 #define COLOR_TEXT 1.0, 1.0, 1.0, 1.0
 
-#define CELL_H 50
-#define CELL_W 40
+#define SIZE_CELL_H 50
+#define SIZE_CELL_W 50
 
 #define SIZE_STROKE 1
 
@@ -30,9 +30,8 @@ extern App g_app;
     CGContextSetLineWidth(ctx, SIZE_STROKE);
 
     for (int i = 0; i < g_app.project.pattern_len; i++) {
-        int    curr_y = bounds.size.height - (i * (CELL_H - SIZE_STROKE));
-        CGRect cell   = CGRectMake(SIZE_STROKE, curr_y, CELL_W, CELL_H);
-        CGContextStrokeRect(ctx, cell);
+        int curr_y = bounds.size.height - SIZE_CELL_H - (i * (SIZE_CELL_H)) - SIZE_STROKE;
+        CGContextStrokeRect(ctx, CGRectMake(SIZE_STROKE, curr_y, SIZE_CELL_W, SIZE_CELL_H));
     }
 
     CGContextStrokePath(ctx);

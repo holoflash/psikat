@@ -197,8 +197,8 @@ int main(void) {
     [pool drain];
 
     while (running) {
-        [graphics setNeedsDisplay:YES];
-
+        // May only want to call this when updates are needed?
+        // [graphics setNeedsDisplay:YES];
         if (g_app.transport.playback_state == STOPPED) {
             audio_stop(&g_app.audio.output_unit);
         }
