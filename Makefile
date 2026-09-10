@@ -1,5 +1,5 @@
 CC      := clang
-CFLAGS  := -std=c99 -Wall -Wextra -pedantic -O3 -Isrc
+CFLAGS  := -Wall -Wextra -pedantic -O3 -Isrc
 LDFLAGS := -framework AudioToolbox \
            -framework CoreAudio \
            -framework Foundation \
@@ -8,8 +8,11 @@ LDFLAGS := -framework AudioToolbox \
 
 BUILD   := build
 TARGET  := $(BUILD)/psikat
-SRC     := $(wildcard src/*.c)
-OBJ     := $(SRC:src/%.c=$(BUILD)/%.o)
+
+C_SRC   := $(wildcard src/*.c)
+M_SRC   := $(wildcard src/*.m)
+
+OBJ     := $(C_SRC:src/%.c=$(BUILD)/%.o) $(M_SRC:src/%.m=$(BUILD)/%.o)
 DEP     := $(OBJ:.o=.d)
 
 .PHONY: all run clean
@@ -21,7 +24,11 @@ $(TARGET): $(OBJ)
 
 $(BUILD)/%.o: src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+	$(CC) -std=c99 $(CFLAGS) -MMD -MP -c $< -o $@
+
+$(BUILD)/%.o: src/%.m
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -fno-objc-arc -MMD -MP -c $< -o $@
 
 run: $(TARGET)
 	./$(TARGET)
