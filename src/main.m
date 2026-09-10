@@ -2,8 +2,6 @@
 #include "audio.h"
 #include "constants.h"
 #include "helpers.h"
-#include "menu.h"
-#include "wav.h"
 #import <Cocoa/Cocoa.h>
 #include <math.h>
 #include <stdlib.h>
@@ -16,7 +14,7 @@ bool running = true;
 }
 - (void)setWindow:(NSWindow *)win;
 - (void)open_document:(id)sender;
-- (void)start_playback:(id)sender;
+- (NSMenu *)create_menu;
 @end
 
 @implementation WindowDelegate
@@ -36,6 +34,45 @@ bool running = true;
     return frameSize;
 }
 
+- (NSMenu *)create_menu {
+    NSMenu *main_menu = [[NSMenu alloc] init];
+
+    NSMenuItem *app_menu_item = [[NSMenuItem alloc] init];
+    [main_menu addItem:app_menu_item];
+
+    NSMenu *app_menu = [[NSMenu alloc] init];
+    [app_menu addItemWithTitle:@"Quit App" action:@selector(terminate:) keyEquivalent:@"q"];
+    [app_menu_item setSubmenu:app_menu];
+
+    NSMenuItem *file_menu_item = [[NSMenuItem alloc] init];
+    [main_menu addItem:file_menu_item];
+
+    // keyEquivalent
+    // Allows to easily assign keyboard shortcuts while adding them to the menu bar
+    // -----------------------------------------------------------------
+    // keyEquivalent:@"a" = CMD+a,  keyEquivalent:@"A" = CMD+SHIFT+A
+    // -----------------------------------------------------------------
+    // setKeyEquivalentModifierMask:
+    //      NSEventModifierFlagCommand | NSEventModifierFlagOption | NSEventModifierFlagControl
+    NSMenu *file_menu = [[NSMenu alloc] initWithTitle:@"File"];
+    // CMD+n
+    [[file_menu addItemWithTitle:@"New" action:nil
+                   keyEquivalent:@"n"] setKeyEquivalentModifierMask:NSEventModifierFlagOption];
+    // CMD+SHIFT+O
+    [[file_menu addItemWithTitle:@"Load project..." action:@selector(open_document:)
+                   keyEquivalent:@"O"] setTarget:self];
+
+    // [openItem setTarget:self];
+
+    [file_menu addItem:[NSMenuItem separatorItem]];
+    // CTRL+CMD+S
+    [[file_menu addItemWithTitle:@"Save" action:nil keyEquivalent:@"s"]
+        setKeyEquivalentModifierMask:NSEventModifierFlagControl | NSEventModifierFlagCommand];
+
+    [file_menu_item setSubmenu:file_menu];
+    return main_menu;
+}
+
 - (void)open_document:(id)sender {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
 
@@ -44,50 +81,42 @@ bool running = true;
           NSURL *file = [[panel URLs] firstObject];
           if (file) {
               // Do things here with the file
+              NSLog(@"%@", file.path);
           }
       }
     }];
 }
-- (void)start_playback:(id)sender {
-    audio_start(&g_app.audio.output_unit);
-}
 @end
 
-char *ns_strcat(char *s, const char *append) {
-    char *save = s;
-    for (; *s; ++s)
-        ;
-    while ((*s++ = *append++))
-        ;
-    return save;
+void handle_key_down(int key_code) {
+    switch (key_code) {
+    case KEY_ENTER:
+        g_app.transport.curr_note_index = 0;
+        g_app.transport.sample_count    = 0;
+        g_app.transport.phase           = 0.0;
+
+        if (g_app.transport.playback_state == STOPPED || g_app.transport.playback_state == PAUSED) {
+            g_app.transport.playback_state = PLAYING;
+            audio_start(&g_app.audio.output_unit);
+
+        } else {
+            g_app.transport.playback_state = STOPPED;
+        }
+        break;
+    case KEY_SPACE:
+        g_app.transport.sample_count = 0;
+        if (g_app.transport.playback_state == PLAYING) {
+            g_app.transport.playback_state = PAUSED;
+            audio_stop(&g_app.audio.output_unit);
+        } else {
+            g_app.transport.playback_state = PLAYING;
+            audio_start(&g_app.audio.output_unit);
+        }
+        break;
+    }
 }
 
-const char *NSEventModifierFlagsToChar(NSEventModifierFlags modifierFlags) {
-    static char result[100];
-    result[0] = '\0';
-    if ((modifierFlags & NSEventModifierFlagCapsLock) == NSEventModifierFlagCapsLock)
-        ns_strcat(result, "CAPSLOCK, ");
-    if ((modifierFlags & NSEventModifierFlagShift) == NSEventModifierFlagShift)
-        ns_strcat(result, "SHIFT, ");
-    if ((modifierFlags & NSEventModifierFlagControl) == NSEventModifierFlagControl)
-        ns_strcat(result, "CONTROL, ");
-    if ((modifierFlags & NSEventModifierFlagOption) == NSEventModifierFlagOption)
-        ns_strcat(result, "OPTION, ");
-    if ((modifierFlags & NSEventModifierFlagCommand) == NSEventModifierFlagCommand)
-        ns_strcat(result, "COMMAND, ");
-    return result;
-}
-
-//    ▄███████▄    ▄████████  ▄█     ▄█   ▄█▄    ▄████████     ███
-//   ███    ███   ███    ███ ███    ███ ▄███▀   ███    ███ ▀█████████▄
-//   ███    ███   ███    █▀  ███▌   ███▐██▀     ███    ███    ▀███▀▀██
-//   ███    ███   ███        ███▌  ▄█████▀      ███    ███     ███   ▀
-// ▀█████████▀  ▀███████████ ███▌ ▀▀█████▄    ▀███████████     ███
-//   ███                 ███ ███    ███▐██▄     ███    ███     ███
-//   ███           ▄█    ███ ███    ███ ▀███▄   ███    ███     ███
-//  ▄████▀       ▄████████▀  █▀     ███   ▀█▀   ███    █▀     ▄████▀
-//                                  ▀
-int main(void) {
+void app_init(void) {
     g_app.project = (Project){
         .pattern_len = 16,
         .bpm         = 100,
@@ -122,6 +151,24 @@ int main(void) {
     g_app.audio.sample_rate         = 48000.0;
 
     audio_init(&g_app.audio.output_unit, &g_app);
+}
+
+void app_destroy(void) {
+    audio_stop(&g_app.audio.output_unit);
+    audio_destroy(&g_app.audio.output_unit);
+}
+
+//    ▄███████▄    ▄████████  ▄█     ▄█   ▄█▄    ▄████████     ███
+//   ███    ███   ███    ███ ███    ███ ▄███▀   ███    ███ ▀█████████▄
+//   ███    ███   ███    █▀  ███▌   ███▐██▀     ███    ███    ▀███▀▀██
+//   ███    ███   ███        ███▌  ▄█████▀      ███    ███     ███   ▀
+// ▀█████████▀  ▀███████████ ███▌ ▀▀█████▄    ▀███████████     ███
+//   ███                 ███ ███    ███▐██▄     ███    ███     ███
+//   ███           ▄█    ███ ███    ███ ▀███▄   ███    ███     ███
+//  ▄████▀       ▄████████▀  █▀     ███   ▀█▀   ███    █▀     ▄████▀
+//                                  ▀
+int main(void) {
+    app_init();
 
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
@@ -130,45 +177,7 @@ int main(void) {
 
     WindowDelegate *delegate = [[WindowDelegate alloc] init];
 
-    /* MENU*/
-    // -----------------------------------------------------------------
-    NSMenu     *main_menu     = [[NSMenu alloc] init];
-    NSMenuItem *app_menu_item = [[NSMenuItem alloc] init];
-    [main_menu addItem:app_menu_item];
-
-    NSMenu *app_menu = [[NSMenu alloc] init];
-    [app_menu addItemWithTitle:@"Quit App" action:@selector(terminate:) keyEquivalent:@"q"];
-    [app_menu_item setSubmenu:app_menu];
-
-    NSMenuItem *file_menu_item = [[NSMenuItem alloc] init];
-    [main_menu addItem:file_menu_item];
-
-    // keyEquivalent
-    // Allows to easily assign keyboard shortcuts while adding them to the menu bar
-    // -----------------------------------------------------------------
-    // keyEquivalent:@"a" = CMD+a,  keyEquivalent:@"A" = CMD+SHIFT+A
-    // -----------------------------------------------------------------
-    // setKeyEquivalentModifierMask:
-    //      NSEventModifierFlagCommand | NSEventModifierFlagOption | NSEventModifierFlagControl
-    NSMenu *file_menu = [[NSMenu alloc] initWithTitle:@"File"];
-    // CMD+n
-    [[file_menu addItemWithTitle:@"New" action:nil
-                   keyEquivalent:@"n"] setKeyEquivalentModifierMask:NSEventModifierFlagOption];
-    // CMD+SHIFT+O
-    [[file_menu addItemWithTitle:@"Load project..." action:@selector(open_document:)
-                   keyEquivalent:@"O"] setTarget:delegate];
-    [file_menu addItem:[NSMenuItem separatorItem]];
-    // CTRL+CMD+S
-    [[file_menu addItemWithTitle:@"Save" action:nil keyEquivalent:@"s"]
-        setKeyEquivalentModifierMask:NSEventModifierFlagControl | NSEventModifierFlagCommand];
-
-    NSMenuItem *startItem = [file_menu addItemWithTitle:@"Start"
-                                                 action:@selector(start_playback:)
-                                          keyEquivalent:@"S"];
-
-    [file_menu_item setSubmenu:file_menu];
-    [NSApp setMainMenu:main_menu];
-    // -----------------------------------------------------------------
+    [NSApp setMainMenu:[delegate create_menu]];
 
     NSWindowStyleMask styleMask = NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable |
                                   NSWindowStyleMaskTitled | NSWindowStyleMaskResizable;
@@ -190,6 +199,9 @@ int main(void) {
     [pool drain];
 
     while (running) {
+        if (g_app.transport.playback_state == STOPPED) {
+            audio_stop(&g_app.audio.output_unit);
+        }
         NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
 
         NSEvent *event = [NSApp nextEventMatchingMask:NSUIntegerMax
@@ -198,22 +210,23 @@ int main(void) {
                                               dequeue:YES];
 
         if (event) {
+            // Will want to handle NSEventTypeKeyUp later on
             if (event.type == NSEventTypeKeyDown) {
-                NSLog(@"EVENT: [%@]) [%s] [%d]",
-                      event.charactersIgnoringModifiers,
-                      NSEventModifierFlagsToChar(event.modifierFlags),
-                      event.keyCode);
+                handle_key_down(event.keyCode);
+                // NSLog(@"EVENT: [%@]) [%s] [%d]",
+                //       event.charactersIgnoringModifiers,
+                //       NSEventModifierFlagsToChar(event.modifierFlags),
+                //       event.keyCode);
+            } else {
+                [NSApp sendEvent:event];
             }
-            [NSApp sendEvent:event];
         }
         [NSApp updateWindows];
 
         [loopPool drain];
     }
 
-    audio_stop(&g_app.audio.output_unit);
-    audio_destroy(&g_app.audio.output_unit);
-
+    app_destroy();
     [delegate release];
     [window release];
 

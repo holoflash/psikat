@@ -1,7 +1,8 @@
 {
-  // "files.associations": {
-  //   "Info.plist": "xml"
-  // },
+  "files.associations": {
+    "Info.plist": "xml",
+    "*.m": "objective-c"
+  },
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "file",
   "[c]": {
