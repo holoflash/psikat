@@ -1,4 +1,4 @@
-#import "Graphics.h"
+#import "RenderGrid.h"
 #include "app.h"
 #include "audio.h"
 #include "constants.h"
@@ -171,7 +171,7 @@ int main(void) {
 
     [NSApp setMainMenu:[delegate create_menu]];
 
-    Graphics *graphics = [[Graphics alloc] init];
+    RenderGrid *graphics = [[RenderGrid alloc] init];
 
     NSWindowStyleMask style_mask =
         NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskTitled;

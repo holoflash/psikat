@@ -1,4 +1,4 @@
-#import "Graphics.h"
+#import "RenderGrid.h"
 #include "app.h"
 
 #define COLOR_BG   0.06, 0.016, 0.06, 1.0
@@ -11,11 +11,7 @@
 
 extern App g_app;
 
-// NSRect bounds = [self bounds];
-// To get the window bounds:
-// bounds.size.width, bounds.size.height
-
-@implementation Graphics
+@implementation RenderGrid
 - (void)drawRect:(NSRect)dirtyRect {
     [super drawRect:dirtyRect];
     NSRect bounds = [self bounds];
