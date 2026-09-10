@@ -1,3 +1,4 @@
+#import "Graphics.h"
 #include "app.h"
 #include "audio.h"
 #include "constants.h"
@@ -47,13 +48,6 @@ bool running = true;
     NSMenuItem *file_menu_item = [[NSMenuItem alloc] init];
     [main_menu addItem:file_menu_item];
 
-    // keyEquivalent
-    // Allows to easily assign keyboard shortcuts while adding them to the menu bar
-    // -----------------------------------------------------------------
-    // keyEquivalent:@"a" = CMD+a,  keyEquivalent:@"A" = CMD+SHIFT+A
-    // -----------------------------------------------------------------
-    // setKeyEquivalentModifierMask:
-    //      NSEventModifierFlagCommand | NSEventModifierFlagOption | NSEventModifierFlagControl
     NSMenu *file_menu = [[NSMenu alloc] initWithTitle:@"File"];
     // CMD+n
     [[file_menu addItemWithTitle:@"New" action:nil
@@ -61,8 +55,6 @@ bool running = true;
     // CMD+SHIFT+O
     [[file_menu addItemWithTitle:@"Load project..." action:@selector(open_document:)
                    keyEquivalent:@"O"] setTarget:self];
-
-    // [openItem setTarget:self];
 
     [file_menu addItem:[NSMenuItem separatorItem]];
     // CTRL+CMD+S
@@ -179,26 +171,34 @@ int main(void) {
 
     [NSApp setMainMenu:[delegate create_menu]];
 
-    NSWindowStyleMask styleMask = NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable |
-                                  NSWindowStyleMaskTitled | NSWindowStyleMaskResizable;
+    Graphics *graphics = [[Graphics alloc] init];
+
+    NSWindowStyleMask style_mask =
+        NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskTitled;
 
     NSRect    frame  = NSMakeRect(500, 400, 600, 400);
     NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
-                                                   styleMask:styleMask
+                                                   styleMask:style_mask
                                                      backing:NSBackingStoreBuffered
                                                        defer:NO];
 
     [delegate setWindow:window];
-    [window setDelegate:delegate];
 
+    [window setDelegate:delegate];
     [window makeKeyAndOrderFront:nil];
     [window setIsVisible:YES];
+    [window setTitle:@"psikat"];
+    [window setContentView:graphics];
+    [window setFrame:[[NSScreen mainScreen] visibleFrame] display:YES];
+
     [NSApp activateIgnoringOtherApps:YES];
     [NSApp finishLaunching];
 
     [pool drain];
 
     while (running) {
+        [graphics setNeedsDisplay:YES];
+
         if (g_app.transport.playback_state == STOPPED) {
             audio_stop(&g_app.audio.output_unit);
         }
