@@ -5,7 +5,6 @@ AlignConsecutiveBitFields: true
 AlignConsecutiveDeclarations: true
 AlignConsecutiveMacros: Consecutive
 AlignAfterOpenBracket: true
-AlignArrayOfStructures: Left
 IndentWidth: 4
 ColumnLimit: 118
 AlignTrailingComments:
