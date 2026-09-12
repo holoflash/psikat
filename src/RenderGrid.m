@@ -34,10 +34,10 @@ extern App g_app;
     CGContextStrokePath(ctx);
 
     // TODO: This should live elsewhere
-    static struct PSK_String psikat = {.font_size   = 4,
+    static struct PSK_String string = {.font_size   = 8,
                                        .line_height = 6,
                                        .line_width  = 8,
-                                       .char_count  = 7,
+                                       .char_count  = 6,
                                        .content     = {
                                            // Shouldn't have to do this manually once all characters are defined
                                            {
@@ -88,47 +88,33 @@ extern App g_app;
                                                ___O____,
                                                __OOO___,
                                            },
-                                           {
-                                               __O_____,
-                                               __O_____,
-                                               __O_____,
-                                               __O_____,
-                                               ________,
-                                               __O_____,
-                                           },
                                        }};
 
     // LET'S GOO! Drawing text like it's the 80s :)
-    int x = bounds.size.height / 2 + (psikat.font_size * psikat.line_width);
-    int y = bounds.size.width / 2 + (psikat.font_size * psikat.line_width);
+    int x = bounds.size.height / 2;
+    int y = bounds.size.width / 2;
 
-    int shift = psikat.line_width * psikat.font_size;
+    int size = string.char_count * string.line_height * string.line_width;
 
-    // TODO: This should be a more flexible function in font.c
-    // void render_string(PSK_String string, int position_x, int position_y );
-    // Maybe a Coordinates struct too ^
-    for (int c = 0; c < psikat.char_count; c++) {
-        int char_x = x + (c * shift);
+    PSK_Rect *string_rects = PSK_string_to_rects(&string, x, y, size);
 
-        for (int row = 0; row < psikat.line_height; row++) {
-            int curr_byte = psikat.content[c][row];
+    for (int i = 0; i < size; i++) {
+        CGRect string_rect = CGRectMake(string_rects[i].position[0],
+                                        string_rects[i].position[1],
+                                        string_rects[i].size[0],
+                                        string_rects[i].size[1]);
 
-            for (int col = psikat.line_width - 1; col >= 0; col--) {
-                int pixel_x = char_x + ((psikat.line_width - col) * psikat.font_size);
-                int pixel_y = y - (row * psikat.font_size);
-
-                CGRect rectangle = CGRectMake(pixel_x, pixel_y, psikat.font_size, psikat.font_size);
-
-                if (((curr_byte >> col) & 1) == 1) {
-                    CGContextSetRGBFillColor(ctx, COLOR_TEXT);
-                    CGContextFillRect(ctx, rectangle);
-                } else {
-                    CGContextSetRGBFillColor(ctx, COLOR_BG);
-                    CGContextFillRect(ctx, rectangle);
-                }
-            }
+        if (string_rects[i].filled == 1) {
+            CGContextSetRGBFillColor(ctx, 1.0, 1.0, 1.0, 1.0);
+            CGContextFillRect(ctx, string_rect);
+        } else {
+            CGContextSetRGBFillColor(ctx, 0.0, 0.0, 0.0, 0.0);
+            CGContextFillRect(ctx, string_rect);
         }
     }
+
+    free(string_rects);
+    string_rects = NULL;
 }
 
 @end

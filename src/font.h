@@ -10,6 +10,15 @@ typedef struct PSK_String {
     int content[32][6];
 } PSK_String;
 
+typedef struct PSK_Rect {
+    double position[2];
+    double size[2];
+    int    filled; // 1 || 0
+    // TODO: Add RGB color too
+} PSK_Rect;
+
+PSK_Rect *PSK_string_to_rects(PSK_String *string, int x, int y, int size);
+
 // Helper for drawing!
 // The idea is:
 // OOOOOOOO = 0b11111111 = 0xFF
