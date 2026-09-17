@@ -33,62 +33,8 @@ extern App g_app;
 
     CGContextStrokePath(ctx);
 
-    // TODO: This should live elsewhere
-    static struct PSK_String string = {.font_size   = 8,
-                                       .line_height = 6,
-                                       .line_width  = 8,
-                                       .char_count  = 6,
-                                       .content     = {
-                                           // Shouldn't have to do this manually once all characters are defined
-                                           {
-                                               OOO_____,
-                                               O__OO___,
-                                               O___OOO_,
-                                               OOOOO___,
-                                               OO______,
-                                               OO______,
-                                           },
-                                           {
-                                               ________,
-                                               _OOOOOO_,
-                                               OO____O_,
-                                               __OOO___,
-                                               O____OO_,
-                                               OOOOOO__,
-                                           },
-                                           {
-                                               ________,
-                                               OOOOOO__,
-                                               __O_____,
-                                               __OO____,
-                                               ___O____,
-                                               OOOOOO__,
-                                           },
-                                           {
-                                               _____O__,
-                                               OO___O__,
-                                               _O__OO__,
-                                               _OOOO___,
-                                               _O__OO__,
-                                               OO____O_,
-                                           },
-                                           {
-                                               ________,
-                                               _OOOOO__,
-                                               OO___OO_,
-                                               OOOOOOO_,
-                                               O_____O_,
-                                               OO___OO_,
-                                           },
-                                           {
-                                               O_____O_,
-                                               OOOOOOO_,
-                                               ___OO___,
-                                               ___O____,
-                                               ___O____,
-                                               __OOO___,
-                                           },
-                                       }};
+    static struct PSK_String string = {
+        .font_size = 16, .line_height = PSK_GLYPH_W, .line_width = PSK_GLYPH_W, .char_count = 2, .content = {"AA"}};
 
     // LET'S GOO! Drawing text like it's the 80s :)
     int x = bounds.size.height / 2;
