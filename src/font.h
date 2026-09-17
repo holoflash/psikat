@@ -48,7 +48,7 @@ const char *PSK_glyph_from_char(char ascii_value) {
 }
 
 PSK_Rect *PSK_string_to_rects(PSK_String *string, int start_x, int start_y, int capacity) {
-    PSK_Rect *rects = calloc(capacity, sizeof(PSK_Rect));
+    PSK_Rect *rects = (PSK_Rect *)calloc(capacity, sizeof(PSK_Rect));
     if (!rects) {
         return NULL;
     }
