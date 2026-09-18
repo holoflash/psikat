@@ -34,7 +34,7 @@ extern App g_app;
 
     CGContextStrokePath(ctx);
 
-    static struct PSK_String string = {.font_size   = 4,
+    static struct PSK_String string = {.font_size   = 6,
                                        .line_height = PSK_GLYPH_H,
                                        .line_width  = PSK_GLYPH_W,
                                        .char_count  = 26,
