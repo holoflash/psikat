@@ -26,19 +26,25 @@ extern App g_app;
     CGContextSetRGBStrokeColor(ctx, COLOR_TEXT);
     CGContextSetLineWidth(ctx, SIZE_STROKE);
 
-    for (int i = 0; i < g_app.project.pattern_len; i++) {
-        int curr_y = bounds.size.height - SIZE_CELL_H - (i * (SIZE_CELL_H)) - SIZE_STROKE;
-        CGContextStrokeRect(ctx, CGRectMake(SIZE_STROKE, curr_y, SIZE_CELL_W, SIZE_CELL_H));
-    }
+    // Grid drawing
+    // for (int i = 0; i < g_app.project.pattern_len; i++) {
+    //     int curr_y = bounds.size.height - SIZE_CELL_H - (i * (SIZE_CELL_H)) - SIZE_STROKE;
+    //     CGContextStrokeRect(ctx, CGRectMake(SIZE_STROKE, curr_y, SIZE_CELL_W, SIZE_CELL_H));
+    // }
 
     CGContextStrokePath(ctx);
 
-    static struct PSK_String string = {
-        .font_size = 16, .line_height = PSK_GLYPH_W, .line_width = PSK_GLYPH_W, .char_count = 2, .content = {"AA"}};
+    static struct PSK_String string = {.font_size   = 4,
+                                       .line_height = PSK_GLYPH_H,
+                                       .line_width  = PSK_GLYPH_W,
+                                       .char_count  = 26,
+                                       .content     = {"ABCDEFGHIJKLMNOPQRSTUVWXYZ"}};
 
-    // LET'S GOO! Drawing text like it's the 80s :)
-    int x = bounds.size.height / 2;
-    int y = bounds.size.width / 2;
+    int string_width  = ((string.line_width * string.font_size) - string.font_size) * string.char_count;
+    int string_height = (string.line_height * string.font_size);
+
+    int x = (bounds.size.width / 2) - (string_width / 2);
+    int y = (bounds.size.height / 2) + (string_height / 2);
 
     int size = string.char_count * string.line_height * string.line_width;
 

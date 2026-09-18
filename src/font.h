@@ -5,86 +5,6 @@
 #include "stdlib.h"
 #include <string.h>
 
-#define PSK_GLYPH_W        8
-#define PSK_STRING_MAX_LEN 32
-#define PSK_GLYPH_H        12
-
-typedef char PSK_Glyph[PSK_GLYPH_H];
-
-typedef struct PSK_String {
-    int  font_size;
-    int  line_height;
-    int  line_width;
-    int  char_count;
-    char content[PSK_STRING_MAX_LEN];
-} PSK_String;
-
-typedef struct PSK_Rect {
-    double position[2];
-    double size[2];
-    int    filled; // 1 || 0
-    // TODO: Add RGB color too
-} PSK_Rect;
-
-static const PSK_Glyph FONT_TABLE[128] = {
-    // --------
-    // --###---
-    // -#---#--
-    // -#---#--
-    // -#####--
-    // -#---#--
-    // -#---#--
-    // -#---#--
-    // -#---#--
-    // --------
-    // --------
-    // --------
-    ['A'] = {0x00, 0x38, 0x44, 0x44, 0x7C, 0x44, 0x44, 0x44, 0x44, 0x00, 0x00, 0x00},
-};
-
-const char *PSK_glyph_from_char(char ascii_value) {
-    unsigned char index = (unsigned char)ascii_value;
-    return FONT_TABLE[index];
-}
-
-PSK_Rect *PSK_string_to_rects(PSK_String *string, int start_x, int start_y, int capacity) {
-    PSK_Rect *rects = (PSK_Rect *)calloc(capacity, sizeof(PSK_Rect));
-    if (!rects) {
-        return NULL;
-    }
-
-    int current_rect = 0;
-    int char_stride  = string->line_width * string->font_size;
-
-    for (int char_i = 0; char_i < string->char_count; char_i++) {
-        int char_x = start_x + (char_i * char_stride);
-
-        char ascii_char = string->content[char_i];
-
-        const char *glyph = PSK_glyph_from_char(ascii_char);
-
-        for (int row_i = 0; row_i < string->line_height; row_i++) {
-            int bitmap_row = glyph[row_i];
-
-            for (int col_i = string->line_width - 1; col_i >= 0; col_i--) {
-                int pixel_x = char_x + ((string->line_width - col_i) * string->font_size);
-                int pixel_y = start_y - (row_i * string->font_size);
-
-                PSK_Rect rect = {.position = {pixel_x, pixel_y}, .size = {string->font_size, string->font_size}};
-
-                if (((bitmap_row >> col_i) & 1) == 1) {
-                    rect.filled = 1;
-                } else {
-                    rect.filled = 0;
-                }
-                rects[current_rect] = rect;
-                current_rect++;
-            }
-        }
-    }
-    return rects;
-}
-
 // Helper for drawing!
 // The idea is:
 // The letter O (oh) = 1; underscore = 0;
@@ -348,5 +268,384 @@ PSK_Rect *PSK_string_to_rects(PSK_String *string, int start_x, int start_y, int 
 #define OOOOOO_O 0xFD
 #define OOOOOOO_ 0xFE
 #define OOOOOOOO 0xFF
+
+#define PSK_GLYPH_W        8
+#define PSK_STRING_MAX_LEN 32
+#define PSK_GLYPH_H        12
+
+typedef char PSK_Glyph[PSK_GLYPH_H];
+
+typedef struct PSK_String {
+    int  font_size;
+    int  line_height;
+    int  line_width;
+    int  char_count;
+    char content[PSK_STRING_MAX_LEN];
+} PSK_String;
+
+typedef struct PSK_Rect {
+    double position[2];
+    double size[2];
+    int    filled; // 1 || 0
+    // TODO: Add RGB color too
+} PSK_Rect;
+
+static const PSK_Glyph FONT_TABLE[128] = {
+    ['A'] = {________,
+             __OOO___,
+             _O___O__,
+             _O___O__,
+             _OOOOO__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             ________,
+             ________,
+             ________},
+    ['B'] = {________,
+             _OOOO___,
+             _O___O__,
+             _O___O__,
+             _OOOO___,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _OOOO___,
+             ________,
+             ________,
+             ________},
+    ['C'] = {________,
+             __OOO___,
+             _O___O__,
+             _O______,
+             _O______,
+             _O______,
+             _O______,
+             _O___O__,
+             __OOO___,
+             ________,
+             ________,
+             ________},
+    ['D'] = {________,
+             _OOOO___,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _OOOO___,
+             ________,
+             ________,
+             ________},
+    ['E'] = {________,
+             _OOOOO__,
+             _O______,
+             _O______,
+             _OOO____,
+             _O______,
+             _O______,
+             _O______,
+             _OOOOO__,
+             ________,
+             ________,
+             ________},
+    ['F'] = {________,
+             _OOOOO__,
+             _O______,
+             _O______,
+             _OOO____,
+             _O______,
+             _O______,
+             _O______,
+             _O______,
+             ________,
+             ________,
+             ________},
+    ['G'] = {________,
+             __OOO___,
+             _O___O__,
+             _O______,
+             _O_OOO__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             __OOO___,
+             ________,
+             ________,
+             ________},
+    ['H'] = {________,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _OOOOO__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             ________,
+             ________,
+             ________},
+    ['I'] = {________,
+             _OOOOO__,
+             ___O____,
+             ___O____,
+             ___O____,
+             ___O____,
+             ___O____,
+             ___O____,
+             _OOOOO__,
+             ________,
+             ________,
+             ________},
+    ['J'] = {________,
+             _OOOOO__,
+             _____O__,
+             _____O__,
+             _____O__,
+             _____O__,
+             _____O__,
+             _O___O__,
+             __OOO___,
+             ________,
+             ________,
+             ________},
+    ['K'] = {________,
+             _O___O__,
+             _O__O___,
+             _O_O____,
+             _OO_____,
+             _O_O____,
+             _O__O___,
+             _O___O__,
+             _O___O__,
+             ________,
+             ________,
+             ________},
+    ['L'] = {________,
+             _O______,
+             _O______,
+             _O______,
+             _O______,
+             _O______,
+             _O______,
+             _O______,
+             _OOOOO__,
+             ________,
+             ________,
+             ________},
+    ['M'] = {________,
+             _O___O__,
+             _OO_OO__,
+             _O_O_O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             ________,
+             ________,
+             ________},
+    ['N'] = {________,
+             _O___O__,
+             _OO__O__,
+             _O_O_O__,
+             _O__OO__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             ________,
+             ________,
+             ________},
+    ['O'] = {________,
+             __OOO___,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             __OOO___,
+             ________,
+             ________,
+             ________},
+    ['P'] = {________,
+             _OOOO___,
+             _O___O__,
+             _O___O__,
+             _OOOO___,
+             _O______,
+             _O______,
+             _O______,
+             _O______,
+             ________,
+             ________,
+             ________},
+    ['Q'] = {________,
+             _OOOO___,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O_O_O__,
+             _O__OO__,
+             __OOOO__,
+             _____OO_,
+             ________,
+             ________},
+    ['R'] = {________,
+             _OOOO___,
+             _O___O__,
+             _O___O__,
+             _OOOO___,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             ________,
+             ________,
+             ________},
+    ['S'] = {________,
+             __OOO___,
+             _O___O__,
+             _O______,
+             __OOO___,
+             _____O__,
+             _____O__,
+             _O___O__,
+             __OOO___,
+             ________,
+             ________,
+             ________},
+    ['T'] = {________,
+             _OOOOO__,
+             ___O____,
+             ___O____,
+             ___O____,
+             ___O____,
+             ___O____,
+             ___O____,
+             ___O____,
+             ________,
+             ________,
+             ________},
+    ['U'] = {________,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             __OOO___,
+             ________,
+             ________,
+             ________},
+    ['V'] = {________,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             __O_O___,
+             __O_O___,
+             ___O____,
+             ________,
+             ________,
+             ________},
+    ['W'] = {________,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             _O_O_O__,
+             _OO_OO__,
+             _O___O__,
+             ________,
+             ________,
+             ________},
+    ['X'] = {________,
+             _O___O__,
+             _O___O__,
+             __O_O___,
+             ___O____,
+             __O_O___,
+             __O_O___,
+             _O___O__,
+             _O___O__,
+             ________,
+             ________,
+             ________},
+    ['Y'] = {________,
+             _O___O__,
+             _O___O__,
+             _O___O__,
+             __OOO___,
+             ___O____,
+             ___O____,
+             ___O____,
+             ___O____,
+             ________,
+             ________,
+             ________},
+    ['Z'] = {________,
+             _OOOOO__,
+             ____O___,
+             ____O___,
+             ___O____,
+             ___O____,
+             __O_____,
+             __O_____,
+             _OOOOO__,
+             ________,
+             ________,
+             ________},
+};
+
+const char *PSK_glyph_from_char(char ascii_value) {
+    unsigned char index = (unsigned char)ascii_value;
+    return FONT_TABLE[index];
+}
+
+PSK_Rect *PSK_string_to_rects(PSK_String *string, int start_x, int start_y, int capacity) {
+    PSK_Rect *rects = (PSK_Rect *)calloc(capacity, sizeof(PSK_Rect));
+    if (!rects) {
+        return NULL;
+    }
+
+    int current_rect = 0;
+    int char_stride  = (string->line_width * string->font_size) - string->font_size;
+
+    for (int char_i = 0; char_i < string->char_count; char_i++) {
+        int char_x = start_x + (char_i * char_stride);
+
+        char ascii_char = string->content[char_i];
+
+        const char *glyph = PSK_glyph_from_char(ascii_char);
+
+        for (int row_i = 0; row_i < string->line_height; row_i++) {
+            int bitmap_row = glyph[row_i];
+
+            for (int col_i = string->line_width - 1; col_i >= 0; col_i--) {
+                int pixel_x = char_x + ((string->line_width - col_i) * string->font_size);
+                int pixel_y = start_y - (row_i * string->font_size);
+
+                PSK_Rect rect = {.position = {pixel_x, pixel_y}, .size = {string->font_size, string->font_size}};
+
+                if (((bitmap_row >> col_i) & 1) == 1) {
+                    rect.filled = 1;
+                } else {
+                    rect.filled = 0;
+                }
+                rects[current_rect] = rect;
+                current_rect++;
+            }
+        }
+    }
+    return rects;
+}
 
 #endif
