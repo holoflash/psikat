@@ -34,35 +34,26 @@ extern App g_app;
 
     CGContextStrokePath(ctx);
 
-    static struct PSK_String string = {.font_size   = 6,
-                                       .line_height = PSK_GLYPH_H,
-                                       .line_width  = PSK_GLYPH_W,
-                                       .char_count  = 26,
-                                       .content     = {"ABCDEFGHIJKLMNOPQRSTUVWXYZ"}};
+    static struct PSK_String string = {.font_size = 4, .char_count = 28, .content = {"`ABCDEFGHIJKLMNOPQRSTUVWXYZ`"}};
 
-    int string_width  = ((string.line_width * string.font_size) - string.font_size) * string.char_count;
-    int string_height = (string.line_height * string.font_size);
+    int string_width  = (PSK_GLYPH_W * string.font_size) * string.char_count;
+    int string_height = (PSK_GLYPH_H * string.font_size);
 
-    int x = (bounds.size.width / 2) - (string_width / 2);
-    int y = (bounds.size.height / 2) + (string_height / 2);
+    // If we gonna have newlines, calculating the center like this doesn't work!
+    Vec2 start_position =
+        get_coords_to_center((Vec2){bounds.size.width, bounds.size.height}, (Vec2){string_width, string_height});
 
-    int size = string.char_count * string.line_height * string.line_width;
+    int size = string.char_count * PSK_GLYPH_H * PSK_GLYPH_W;
 
-    PSK_Rect *string_rects = PSK_string_to_rects(&string, x, y, size);
+    PSK_Rect *string_rects = PSK_string_to_rects(&string, (Vec2){start_position.x, start_position.y}, size);
 
     for (int i = 0; i < size; i++) {
-        CGRect string_rect = CGRectMake(string_rects[i].position[0],
-                                        string_rects[i].position[1],
-                                        string_rects[i].size[0],
-                                        string_rects[i].size[1]);
-
-        if (string_rects[i].filled == 1) {
-            CGContextSetRGBFillColor(ctx, 1.0, 1.0, 1.0, 1.0);
-            CGContextFillRect(ctx, string_rect);
-        } else {
-            CGContextSetRGBFillColor(ctx, 0.0, 0.0, 0.0, 0.0);
-            CGContextFillRect(ctx, string_rect);
-        }
+        CGContextSetRGBFillColor(ctx, 1.0, 1.0, 1.0, 1.0);
+        CGContextFillRect(ctx,
+                          CGRectMake(string_rects[i].position.x,
+                                     string_rects[i].position.y,
+                                     string_rects[i].dimensions.x,
+                                     string_rects[i].dimensions.y));
     }
 
     free(string_rects);

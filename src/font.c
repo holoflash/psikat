@@ -1,44 +1,397 @@
 #include "font.h"
+#include "helpers.h"
+#include "stdio.h"
+#include "stdlib.h"
 
-const char *PSK_glyph_from_char(char ascii_value) {
-    unsigned char index = (unsigned char)ascii_value;
-    return FONT_TABLE[index];
-}
-
-PSK_Rect *PSK_string_to_rects(PSK_String *string, int start_x, int start_y, int capacity) {
+PSK_Rect *PSK_string_to_rects(PSK_String *string, Vec2 start_pos, int capacity) {
     PSK_Rect *rects = (PSK_Rect *)calloc(capacity, sizeof(PSK_Rect));
     if (!rects) {
         return NULL;
     }
 
     int current_rect = 0;
-    int char_stride  = string->line_width * string->font_size;
+    int char_stride  = PSK_GLYPH_W * string->font_size;
 
     for (int char_i = 0; char_i < string->char_count; char_i++) {
-        int char_x = start_x + (char_i * char_stride);
+        int char_x = start_pos.x + (char_i * char_stride);
 
-        char ascii_char = string->content[char_i];
+        char            ascii_char = string->content[char_i];
+        const PSK_Glyph glyph      = PSK_glyph_from_char(ascii_char);
 
-        const char *glyph = PSK_glyph_from_char(ascii_char);
+        for (int row_i = 0; row_i < PSK_GLYPH_H; row_i++) {
+            int bitmap_row = glyph.rows[row_i];
 
-        for (int row_i = 0; row_i < string->line_height; row_i++) {
-            int bitmap_rKw = glyph[row_i];
+            for (int col_i = PSK_GLYPH_W - 1; col_i >= 0; col_i--) {
+                int pixel_x = char_x + ((PSK_GLYPH_W - col_i) * string->font_size);
+                int pixel_y = start_pos.y - (row_i * string->font_size);
 
-            for (int col_i = string->line_width - 1; col_i >= 0; col_i--) {
-                int pixel_x = char_x + ((string->line_width - col_i) * string->font_size);
-                int pixel_y = start_y - (row_i * string->font_size);
+                PSK_Rect rect = {.position   = {pixel_x, pixel_y},
+                                 .dimensions = {string->font_size, string->font_size}};
 
-                PSK_Rect rect = {.position = {pixel_x, pixel_y}, .size = {string->font_size, string->font_size}};
-
-                if (((bitmap_rKw >> col_i) & 1) == 1) {
-                    rect.filled = 1;
-                } else {
-                    rect.filled = 0;
+                if (((bitmap_row >> col_i) & 1) == 1) {
+                    rects[current_rect] = rect;
                 }
-                rects[current_rect] = rect;
                 current_rect++;
             }
         }
     }
     return rects;
+}
+
+PSK_Glyph PSK_glyph_from_char(char ascii_value) {
+    switch (ascii_value) {
+    case 'A':
+        return (PSK_Glyph){{________,
+                            __OO____,
+                            _OOOO___,
+                            OO__OO__,
+                            OO__OO__,
+                            OOOOOO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            ________,
+                            ________}};
+    case 'B':
+        return (PSK_Glyph){{________,
+                            OOOOOO__,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OOOOO__,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OO__OO_,
+                            OOOOOO__,
+                            ________,
+                            ________}};
+    case 'C':
+        return (PSK_Glyph){{________,
+                            __OOOO__,
+                            _OO__OO_,
+                            OO___OO_,
+                            OO______,
+                            OO______,
+                            OO______,
+                            OO___OO_,
+                            _OO__OO_,
+                            __OOOO__,
+                            ________,
+                            ________}};
+    case 'D':
+        return (PSK_Glyph){{________,
+                            OOOOO___,
+                            _OO_OO__,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OO_OO__,
+                            OOOOO___,
+                            ________,
+                            ________}};
+    case 'E':
+        return (PSK_Glyph){{________,
+                            OOOOOOO_,
+                            _OO___O_,
+                            _OO_____,
+                            _OO__O__,
+                            _OOOOO__,
+                            _OO__O__,
+                            _OO_____,
+                            _OO___O_,
+                            OOOOOOO_,
+                            ________,
+                            ________}};
+    case 'F':
+        return (PSK_Glyph){{________,
+                            OOOOOOO_,
+                            _OO___O_,
+                            _OO_____,
+                            _OO__O__,
+                            _OOOOO__,
+                            _OO__O__,
+                            _OO_____,
+                            _OO_____,
+                            OOOO____,
+                            ________,
+                            ________}};
+    case 'G':
+        return (PSK_Glyph){{________,
+                            __OOOO__,
+                            _OO__OO_,
+                            OO___OO_,
+                            OO______,
+                            OO______,
+                            OO__OOO_,
+                            OO___OO_,
+                            _OO__OO_,
+                            __OOOOO_,
+                            ________,
+                            ________}};
+    case 'H':
+        return (PSK_Glyph){{________,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OOOOOO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            ________,
+                            ________}};
+    case 'I':
+        return (PSK_Glyph){{________,
+                            _OOOO___,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            _OOOO___,
+                            ________,
+                            ________}};
+    case 'J':
+        return (PSK_Glyph){{________,
+                            ___OOOO_,
+                            ____OO__,
+                            ____OO__,
+                            ____OO__,
+                            ____OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            _OOOO___,
+                            ________,
+                            ________}};
+    case 'K':
+        return (PSK_Glyph){{________,
+                            OOO__OO_,
+                            _OO__OO_,
+                            _OO_OO__,
+                            _OO_OO__,
+                            _OOO____,
+                            _OO_OO__,
+                            _OO_OO__,
+                            _OO__OO_,
+                            OOO__OO_,
+                            ________,
+                            ________}};
+    case 'L':
+        return (PSK_Glyph){{________,
+                            OOOO____,
+                            _OO_____,
+                            _OO_____,
+                            _OO_____,
+                            _OO_____,
+                            _OO___O_,
+                            _OO__OO_,
+                            _OO__OO_,
+                            OOOOOOO_,
+                            ________,
+                            ________}};
+    case 'M':
+        return (PSK_Glyph){{________,
+                            OO___OO_,
+                            OOO_OOO_,
+                            OOOOOOO_,
+                            OOOOOOO_,
+                            OO_O_OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            ________,
+                            ________}};
+    case 'N':
+        return (PSK_Glyph){{________,
+                            OO___OO_,
+                            OO___OO_,
+                            OOO__OO_,
+                            OOOO_OO_,
+                            OOOOOOO_,
+                            OO_OOOO_,
+                            OO__OOO_,
+                            OO___OO_,
+                            OO___OO_,
+                            ________,
+                            ________}};
+    case 'O':
+        return (PSK_Glyph){{________,
+                            __OOO___,
+                            _OO_OO__,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            _OO_OO__,
+                            __OOO___,
+                            ________,
+                            ________}};
+    case 'P':
+        return (PSK_Glyph){{________,
+                            OOOOOO__,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OOOOO__,
+                            _OO_____,
+                            _OO_____,
+                            _OO_____,
+                            OOOO____,
+                            ________,
+                            ________}};
+    case 'Q':
+        return (PSK_Glyph){{________,
+                            __OOO___,
+                            _OO_OO__,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            _OOOOO__,
+                            ____OO__,
+                            _____OO_,
+                            ________}};
+    case 'R':
+        return (PSK_Glyph){{________,
+                            OOOOOO__,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OO__OO_,
+                            _OOOOO__,
+                            _OO_OO__,
+                            _OO__OO_,
+                            _OO__OO_,
+                            OOO__OO_,
+                            ________,
+                            ________}};
+    case 'S':
+        return (PSK_Glyph){{________,
+                            _OOOO___,
+                            OO__OO__,
+                            OO__OO__,
+                            OO______,
+                            _OOO____,
+                            ___OO___,
+                            OO__OO__,
+                            OO__OO__,
+                            _OOOO___,
+                            ________,
+                            ________}};
+    case 'T':
+        return (PSK_Glyph){{________,
+                            OOOOOO__,
+                            O_OO_O__,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            _OOOO___,
+                            ________,
+                            ________}};
+    case 'U':
+        return (PSK_Glyph){{________,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            _OOOO___,
+                            ________,
+                            ________}};
+    case 'V':
+        return (PSK_Glyph){{________,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            _OOOO___,
+                            __OO____,
+                            ________,
+                            ________}};
+    case 'W':
+        return (PSK_Glyph){{________,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            OO___OO_,
+                            OO_O_OO_,
+                            OO_O_OO_,
+                            _OO_OO__,
+                            _OO_OO__,
+                            _OO_OO__,
+                            ________,
+                            ________}};
+    case 'X':
+        return (PSK_Glyph){{________,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            _OOOO___,
+                            __OO____,
+                            _OOOO___,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            ________,
+                            ________}};
+    case 'Y':
+        return (PSK_Glyph){{________,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            OO__OO__,
+                            _OOOO___,
+                            __OO____,
+                            __OO____,
+                            __OO____,
+                            _OOOO___,
+                            ________,
+                            ________}};
+    case 'Z':
+        return (PSK_Glyph){{________,
+                            OOOOOOO_,
+                            OO__OOO_,
+                            O__OO___,
+                            ___OO___,
+                            __OO____,
+                            _OO_____,
+                            _OO___O_,
+                            OO___OO_,
+                            OOOOOOO_,
+                            ________,
+                            ________}};
+    default:
+        return (PSK_Glyph){{
+            ___OO___,
+            ___OO___,
+            ___O_O__,
+            ___OO_O_,
+            ___O_O__,
+            ___O__O_,
+            ___O__O_,
+            ___O_O__,
+            ___O____,
+            _OOO____,
+            OOOO____,
+            OOO_____,
+        }};
+    }
 }
