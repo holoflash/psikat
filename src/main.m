@@ -24,7 +24,7 @@ void render_graphics(CGContextRef ctx, CGSize bounds) {
     CGContextFillRect(ctx, CGRectMake(0, 0, bounds.width, bounds.height));
 
     draw_psk_string(ctx, &UI_STR_ALPHABET_UPPER, (Vec2){bounds.width, bounds.height});
-    draw_psk_string(ctx, &UI_STR_ALPHABET_LOWER, (Vec2){bounds.width, bounds.height / 1.5});
+    draw_psk_string(ctx, &UI_STR_ALPHABET_LOWER, (Vec2){bounds.width, bounds.height - 96});
 }
 
 @interface Window : NSWindow
