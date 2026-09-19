@@ -35,4 +35,3 @@ Some of the material that has been invaluable in the process of learning and bui
 
 Some content I'm bookmarking that might be worth checking out:
 [Game Programming Patterns (Nystrom)](https://gameprogrammingpatterns.com/contents.html)
-[Hacker's Delight (bit twiddling)](https://www.amazon.se/-/en/Hackers-Delight-Henry-Warren/dp/0321842685)
