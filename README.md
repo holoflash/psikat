@@ -23,3 +23,16 @@ This time, I want to learn!.<br>
 I want to struggle and overcome.<br>
 I want to do the best I can and let it suck if that's the best I got. <br>
 I want to put my name on it and say - **"I did this!"**, without any disclaimers. <br>
+___
+
+Some of the material that has been invaluable in the process of learning and building this program:
+
+[Amazing series of lectures about audio programming](https://mu.krj.st/)
+[Musimathics Vol 1 & 2](http://www.musimathics.com/)
+[Old but helpful Cocoa 2D guide](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Conceptual/drawingwithquartz2d/Introduction/Introduction.html#//apple_ref/doc/uid/TP40007533-SW1)
+[Core Graphics docs](https://developer.apple.com/documentation/coregraphics)
+[Core Audio docs](https://developer.apple.com/documentation/coreaudio)
+
+Some content I'm bookmarking that might be worth checking out:
+[Game Programming Patterns (Nystrom)](https://gameprogrammingpatterns.com/contents.html)
+[Hacker's Delight (bit twiddling)](https://www.amazon.se/-/en/Hackers-Delight-Henry-Warren/dp/0321842685)

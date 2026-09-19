@@ -1,5 +1,4 @@
 #include "audio.h"
-#include "app.h"
 #include "constants.h"
 #include "helpers.h"
 #include <AudioToolbox/AudioToolbox.h>
@@ -31,7 +30,7 @@ static OSStatus render_callback(void                              *inRefCon,
             transport->curr_note_index = (transport->curr_note_index + 1) % project->pattern_len;
         }
 
-        double frequency       = project->tuning * pow(2.0, (current_note.midi_value - 69.0) / 12.0);
+        double frequency = project->tuning * pow(2.0, (current_note.midi_value - 69.0) / 12.0);
         double phase_increment = (TWO_PI / audio->sample_rate) * frequency;
 
         // "Wave generator"
@@ -68,15 +67,16 @@ bool audio_init(AudioUnit *unit, struct App *app) {
     AudioStreamBasicDescription streamFormat = {0};
     streamFormat.mSampleRate                 = app->audio.sample_rate;
     streamFormat.mFormatID                   = kAudioFormatLinearPCM;
-    streamFormat.mFormatFlags                = kAudioFormatFlagsNativeFloatPacked | kAudioFormatFlagIsNonInterleaved;
-    streamFormat.mChannelsPerFrame           = 2;
-    streamFormat.mBitsPerChannel             = 8 * sizeof(float);
-    streamFormat.mBytesPerFrame              = sizeof(float);
-    streamFormat.mFramesPerPacket            = 1;
-    streamFormat.mBytesPerPacket             = streamFormat.mBytesPerFrame * streamFormat.mFramesPerPacket;
+    streamFormat.mFormatFlags =
+        kAudioFormatFlagsNativeFloatPacked | kAudioFormatFlagIsNonInterleaved;
+    streamFormat.mChannelsPerFrame = 2;
+    streamFormat.mBitsPerChannel   = 8 * sizeof(float);
+    streamFormat.mBytesPerFrame    = sizeof(float);
+    streamFormat.mFramesPerPacket  = 1;
+    streamFormat.mBytesPerPacket   = streamFormat.mBytesPerFrame * streamFormat.mFramesPerPacket;
 
-    AudioComponentDescription description = {.componentType         = kAudioUnitType_Output,
-                                             .componentSubType      = kAudioUnitSubType_DefaultOutput,
+    AudioComponentDescription description = {.componentType    = kAudioUnitType_Output,
+                                             .componentSubType = kAudioUnitSubType_DefaultOutput,
                                              .componentManufacturer = kAudioUnitManufacturer_Apple,
                                              .componentFlags        = 0,
                                              .componentFlagsMask    = 0};
@@ -94,15 +94,22 @@ bool audio_init(AudioUnit *unit, struct App *app) {
 
     AURenderCallbackStruct input = {.inputProc = render_callback, .inputProcRefCon = app};
 
-    if (noErr != AudioUnitSetProperty(
-                     *unit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &input, sizeof(input))) {
+    if (noErr != AudioUnitSetProperty(*unit,
+                                      kAudioUnitProperty_SetRenderCallback,
+                                      kAudioUnitScope_Input,
+                                      0,
+                                      &input,
+                                      sizeof(input))) {
         fprintf(stderr, "Couldn't set render callback\n");
         return false;
     }
 
-    if (noErr !=
-        AudioUnitSetProperty(
-            *unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &streamFormat, sizeof(streamFormat))) {
+    if (noErr != AudioUnitSetProperty(*unit,
+                                      kAudioUnitProperty_StreamFormat,
+                                      kAudioUnitScope_Input,
+                                      0,
+                                      &streamFormat,
+                                      sizeof(streamFormat))) {
         fprintf(stderr, "Couldn't set stream format\n");
         return false;
     }

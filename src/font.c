@@ -2,15 +2,28 @@
 #include "helpers.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include <CoreGraphics/CoreGraphics.h>
 
-PSK_Rect *PSK_string_to_rects(PSK_String *string, Vec2 start_pos, int capacity) {
-    PSK_Rect *rects = (PSK_Rect *)calloc(capacity, sizeof(PSK_Rect));
-    if (!rects) {
-        return NULL;
-    }
+void draw_psk_string(CGContextRef ctx, const PSK_String *string, Vec2 destination) {
+    Vec2 start_position =
+        get_coords_to_center((Vec2){destination.x, destination.y},
+                             (Vec2){(PSK_GLYPH_W * string->font_size) * string->char_count,
+                                    (PSK_GLYPH_H * string->font_size)});
 
-    int current_rect = 0;
-    int char_stride  = PSK_GLYPH_W * string->font_size;
+    int max_rect_count = string->char_count * PSK_GLYPH_H * PSK_GLYPH_W;
+
+    CGRect rect_buffer[max_rect_count];
+
+    int rect_count =
+        PSK_string_to_rects(string, (Vec2){start_position.x, start_position.y}, rect_buffer);
+
+    CGContextSetRGBFillColor(ctx, 1.0, 1.0, 1.0, 1.0);
+    CGContextFillRects(ctx, rect_buffer, rect_count);
+}
+
+int PSK_string_to_rects(const PSK_String *string, Vec2 start_pos, CGRect *rects) {
+    int rect_count  = 0;
+    int char_stride = PSK_GLYPH_W * string->font_size;
 
     for (int char_i = 0; char_i < string->char_count; char_i++) {
         int char_x = start_pos.x + (char_i * char_stride);
@@ -22,20 +35,18 @@ PSK_Rect *PSK_string_to_rects(PSK_String *string, Vec2 start_pos, int capacity) 
             int bitmap_row = glyph.rows[row_i];
 
             for (int col_i = PSK_GLYPH_W - 1; col_i >= 0; col_i--) {
-                int pixel_x = char_x + ((PSK_GLYPH_W - col_i) * string->font_size);
-                int pixel_y = start_pos.y - (row_i * string->font_size);
-
-                PSK_Rect rect = {.position   = {pixel_x, pixel_y},
-                                 .dimensions = {string->font_size, string->font_size}};
 
                 if (((bitmap_row >> col_i) & 1) == 1) {
-                    rects[current_rect] = rect;
+                    int pixel_x = char_x + ((PSK_GLYPH_W - col_i) * string->font_size);
+                    int pixel_y = start_pos.y - (row_i * string->font_size);
+
+                    rects[rect_count++] =
+                        CGRectMake(pixel_x, pixel_y, string->font_size, string->font_size);
                 }
-                current_rect++;
             }
         }
     }
-    return rects;
+    return rect_count;
 }
 
 PSK_Glyph PSK_glyph_from_char(char ascii_value) {
@@ -376,6 +387,19 @@ PSK_Glyph PSK_glyph_from_char(char ascii_value) {
                             _OO___O_,
                             OO___OO_,
                             OOOOOOO_,
+                            ________,
+                            ________}};
+    case 'a':
+        return (PSK_Glyph){{________,
+                            ________,
+                            ________,
+                            ________,
+                            _OOOO___,
+                            ____OO__,
+                            _OOOOO__,
+                            OO__OO__,
+                            OO__OO__,
+                            _OOO_OO_,
                             ________,
                             ________}};
     default:

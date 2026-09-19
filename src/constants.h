@@ -77,6 +77,11 @@
 #define KEY_PLUS   27 // right of 0 key
 #define KEY_APOS   24 // right of + key
 
+// COLORS
+#define COLOR_BG   0.06, 0.016, 0.06, 1.0
+#define COLOR_TEXT 1.0, 1.0, 1.0, 1.0
+#define COLOR_DIM  0.5, 0.5, 0.5, 1.0
+
 // extern const double N_FREQUENCY[128];
 extern const char N_NAME[128][3];
 

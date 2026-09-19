@@ -2,6 +2,7 @@
 #define FONT_H
 
 #include "helpers.h"
+#include <CoreGraphics/CoreGraphics.h>
 
 #define PSK_GLYPH_W        8
 #define PSK_GLYPH_H        12
@@ -13,17 +14,16 @@ typedef struct PSK_String {
     char content[PSK_STRING_MAX_LEN];
 } PSK_String;
 
-typedef struct PSK_Rect {
-    Vec2 position;
-    Vec2 dimensions;
-} PSK_Rect;
-
 typedef struct {
     char rows[PSK_GLYPH_H];
 } PSK_Glyph;
 
 PSK_Glyph PSK_glyph_from_char(char ascii_value);
-PSK_Rect *PSK_string_to_rects(PSK_String *string, Vec2 start_pos, int capacity);
+
+void draw_psk_string(CGContextRef ctx, const PSK_String *string, Vec2 destination);
+
+// Takes a CGRect buffer and populates it with rects. Returns count of non-transparent pixels
+int PSK_string_to_rects(const PSK_String *string, Vec2 start_pos, CGRect *rects);
 
 // "Drawing glyphs in code" helper
 #define ________ 0x00

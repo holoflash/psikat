@@ -1,68 +1,112 @@
-#import "RenderGrid.h"
-#include "app.h"
 #include "audio.h"
 #include "constants.h"
+#include "font.h"
 #include "helpers.h"
+#include "key_handler.h"
+#include "ui_strings.h"
 #import <Cocoa/Cocoa.h>
 #include <math.h>
 #include <stdlib.h>
 
-App  g_app;
-bool running = true;
+App            g_app;
+static NSView *g_graphics = nil;
 
-@interface WindowDelegate : NSObject <NSWindowDelegate> {
-    NSWindow *windowRef;
+void request_redraw(void) {
+    if (g_graphics) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+          [g_graphics setNeedsDisplay:YES];
+        });
+    }
 }
-- (void)setWindow:(NSWindow *)win;
-- (void)open_document:(id)sender;
-- (NSMenu *)create_menu;
+
+void render_graphics(CGContextRef ctx, CGSize bounds) {
+    CGContextSetRGBFillColor(ctx, COLOR_BG);
+    CGContextFillRect(ctx, CGRectMake(0, 0, bounds.width, bounds.height));
+
+    draw_psk_string(ctx, &UI_STR_ALPHABET_UPPER, (Vec2){bounds.width, bounds.height});
+    draw_psk_string(ctx, &UI_STR_ALPHABET_LOWER, (Vec2){bounds.width, bounds.height / 1.5});
+}
+
+@interface Window : NSWindow
 @end
 
-@implementation WindowDelegate
-- (void)setWindow:(NSWindow *)win {
-    windowRef = win;
+@implementation Window
+- (void)sendEvent:(NSEvent *)event {
+    if (event.type == NSEventTypeKeyDown) {
+        handle_key_down(&g_app, event.keyCode);
+        return;
+    }
+    [super sendEvent:event];
 }
+@end
 
-- (BOOL)windowShouldClose:(id)sender {
-    (void)sender;
-    running = false;
-    return YES;
+@interface Graphics : NSView
+@end
+
+@implementation Graphics
+- (void)drawRect:(NSRect)dirtyRect {
+    [super drawRect:dirtyRect];
+    CGContextRef ctx = [[NSGraphicsContext currentContext] CGContext];
+
+    render_graphics(ctx, self.bounds.size);
 }
+@end
 
-- (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize {
-    (void)sender;
-    printf("window resized to %f %f\n", frameSize.width, frameSize.height);
-    return frameSize;
-}
+@interface AppDelegate : NSObject <NSApplicationDelegate>
 
-- (NSMenu *)create_menu {
-    NSMenu *main_menu = [[NSMenu alloc] init];
+@property(strong) Window *window;
+@end
 
-    NSMenuItem *app_menu_item = [[NSMenuItem alloc] init];
+@implementation AppDelegate
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    // MENU
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+
+    NSMenu     *main_menu     = [NSMenu new];
+    NSMenuItem *app_menu_item = [NSMenuItem new];
+    NSMenu     *app_menu      = [NSMenu new];
+    [app_menu addItemWithTitle:@"Quit psikat" action:@selector(terminate:) keyEquivalent:@"q"];
+    [app_menu_item setSubmenu:app_menu];
     [main_menu addItem:app_menu_item];
 
-    NSMenu *app_menu = [[NSMenu alloc] init];
-    [app_menu addItemWithTitle:@"Quit App" action:@selector(terminate:) keyEquivalent:@"q"];
-    [app_menu_item setSubmenu:app_menu];
+    NSMenuItem *file_menu_item = [NSMenuItem new];
+    NSMenu     *file_menu      = [[NSMenu alloc] initWithTitle:@"File"];
 
-    NSMenuItem *file_menu_item = [[NSMenuItem alloc] init];
-    [main_menu addItem:file_menu_item];
-
-    NSMenu *file_menu = [[NSMenu alloc] initWithTitle:@"File"];
-    // CMD+n
     [[file_menu addItemWithTitle:@"New" action:nil
                    keyEquivalent:@"n"] setKeyEquivalentModifierMask:NSEventModifierFlagOption];
-    // CMD+SHIFT+O
-    [[file_menu addItemWithTitle:@"Load project..." action:@selector(open_document:)
+    [[file_menu addItemWithTitle:@"Load project..."
+                          action:@selector(open_document:)
                    keyEquivalent:@"O"] setTarget:self];
-
     [file_menu addItem:[NSMenuItem separatorItem]];
-    // CTRL+CMD+S
+
     [[file_menu addItemWithTitle:@"Save" action:nil keyEquivalent:@"s"]
         setKeyEquivalentModifierMask:NSEventModifierFlagControl | NSEventModifierFlagCommand];
 
     [file_menu_item setSubmenu:file_menu];
-    return main_menu;
+    [main_menu addItem:file_menu_item];
+
+    [NSApp setMainMenu:main_menu];
+
+    // WINDOW
+    self.window =
+        [[Window alloc] initWithContentRect:NSZeroRect
+                                  styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
+                                            NSWindowStyleMaskMiniaturizable
+                                    backing:NSBackingStoreBuffered
+                                      defer:NO];
+
+    Graphics *graphics = [Graphics new];
+    g_graphics         = graphics;
+
+    [self.window setContentView:graphics];
+    [self.window setTitle:@"psikat"];
+    [self.window setFrame:[[NSScreen mainScreen] visibleFrame] display:YES];
+    [self.window makeKeyAndOrderFront:nil];
+    [NSApp activateIgnoringOtherApps:YES];
+}
+
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
+    return YES;
 }
 
 - (void)open_document:(id)sender {
@@ -80,34 +124,6 @@ bool running = true;
 }
 @end
 
-void handle_key_down(int key_code) {
-    switch (key_code) {
-    case KEY_ENTER:
-        g_app.transport.curr_note_index = 0;
-        g_app.transport.sample_count    = 0;
-        g_app.transport.phase           = 0.0;
-
-        if (g_app.transport.playback_state == STOPPED || g_app.transport.playback_state == PAUSED) {
-            g_app.transport.playback_state = PLAYING;
-            audio_start(&g_app.audio.output_unit);
-
-        } else {
-            g_app.transport.playback_state = STOPPED;
-        }
-        break;
-    case KEY_SPACE:
-        g_app.transport.sample_count = 0;
-        if (g_app.transport.playback_state == PLAYING) {
-            g_app.transport.playback_state = PAUSED;
-            audio_stop(&g_app.audio.output_unit);
-        } else {
-            g_app.transport.playback_state = PLAYING;
-            audio_start(&g_app.audio.output_unit);
-        }
-        break;
-    }
-}
-
 void app_init(void) {
     g_app.project = (Project){
         .pattern_len = 16,
@@ -116,23 +132,23 @@ void app_init(void) {
         .duration    = 0.0,
         .pattern =
             {
-                      {57, 16.0, SQUARE},
-                      {60, 16.0, SQUARE},
-                      {64, 16.0, SQUARE},
-                      {68, 16.0, SQUARE},
-                      {69, 16.0, SQUARE},
-                      {72, 16.0, SQUARE},
-                      {76, 16.0, SQUARE},
-                      {80, 16.0, SQUARE},
-                      {81, 16.0, SQUARE},
-                      {80, 16.0, SQUARE},
-                      {76, 16.0, SQUARE},
-                      {72, 16.0, SQUARE},
-                      {69, 16.0, SQUARE},
-                      {68, 16.0, SQUARE},
-                      {64, 16.0, SQUARE},
-                      {60, 16.0, SQUARE},
-                      },
+                {57, 16.0, SQUARE},
+                {60, 16.0, SQUARE},
+                {64, 16.0, SQUARE},
+                {68, 16.0, SQUARE},
+                {69, 16.0, SQUARE},
+                {72, 16.0, SQUARE},
+                {76, 16.0, SQUARE},
+                {80, 16.0, SQUARE},
+                {81, 16.0, SQUARE},
+                {80, 16.0, SQUARE},
+                {76, 16.0, SQUARE},
+                {72, 16.0, SQUARE},
+                {69, 16.0, SQUARE},
+                {68, 16.0, SQUARE},
+                {64, 16.0, SQUARE},
+                {60, 16.0, SQUARE},
+            },
     };
 
     g_app.transport.playback_state  = STOPPED;
@@ -162,73 +178,11 @@ void app_destroy(void) {
 int main(void) {
     app_init();
 
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-
-    NSApplication *NSApp = [NSApplication sharedApplication];
-    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-
-    WindowDelegate *delegate = [[WindowDelegate alloc] init];
-
-    [NSApp setMainMenu:[delegate create_menu]];
-
-    RenderGrid *graphics = [[RenderGrid alloc] init];
-
-    NSWindowStyleMask style_mask =
-        NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskTitled;
-
-    NSRect    frame  = NSMakeRect(500, 400, 600, 400);
-    NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
-                                                   styleMask:style_mask
-                                                     backing:NSBackingStoreBuffered
-                                                       defer:NO];
-
-    [delegate setWindow:window];
-
-    [window setDelegate:delegate];
-    [window makeKeyAndOrderFront:nil];
-    [window setIsVisible:YES];
-    [window setTitle:@"psikat"];
-    [window setContentView:graphics];
-    [window setFrame:[[NSScreen mainScreen] visibleFrame] display:YES];
-
-    [NSApp activateIgnoringOtherApps:YES];
-    [NSApp finishLaunching];
-
-    [pool drain];
-
-    while (running) {
-        // May only want to call this when updates are needed?
-        // [graphics setNeedsDisplay:YES];
-        if (g_app.transport.playback_state == STOPPED) {
-            audio_stop(&g_app.audio.output_unit);
-        }
-        NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
-
-        NSEvent *event = [NSApp nextEventMatchingMask:NSUIntegerMax
-                                            untilDate:nil
-                                               inMode:NSDefaultRunLoopMode
-                                              dequeue:YES];
-
-        if (event) {
-            // Will want to handle NSEventTypeKeyUp later on
-            if (event.type == NSEventTypeKeyDown) {
-                handle_key_down(event.keyCode);
-                // NSLog(@"EVENT: [%@]) [%s] [%d]",
-                //       event.charactersIgnoringModifiers,
-                //       NSEventModifierFlagsToChar(event.modifierFlags),
-                //       event.keyCode);
-            } else {
-                [NSApp sendEvent:event];
-            }
-        }
-        [NSApp updateWindows];
-
-        [loopPool drain];
-    }
+    NSApplication *app      = [NSApplication sharedApplication];
+    AppDelegate   *delegate = [AppDelegate new];
+    app.delegate            = delegate;
+    [app run];
 
     app_destroy();
-    [delegate release];
-    [window release];
-
     return EXIT_SUCCESS;
 }
