@@ -36,4 +36,7 @@ run: $(TARGET)
 clean:
 	$(RM) -r $(BUILD)
 
+png:
+	clang png_format.c -o decoded && ./decoded
+
 -include $(DEP)
