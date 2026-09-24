@@ -9,3 +9,4 @@ build
 output.*
 *.png
 *.wav
+png_write

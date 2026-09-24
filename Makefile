@@ -37,6 +37,6 @@ clean:
 	$(RM) -r $(BUILD)
 
 png:
-	clang png_format.c -o decoded && ./decoded
+	clang png_write.c -o png_write && ./png_write
 
 -include $(DEP)

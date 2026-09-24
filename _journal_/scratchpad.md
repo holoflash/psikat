@@ -9,3 +9,15 @@ for (int i = 0; i < g_app.project.pattern_len; i++) {
     CGContextStrokeRect(ctx, CGRectMake(SIZE_STROKE, curr_y, SIZE_CELL_W, SIZE_CELL_H));
 }
 ```
+**Benchtesting**
+```c
+    struct timespec begin, end;
+    timespec_get(&begin, TIME_UTC);
+
+    int bench_test = expensive_function();
+
+    timespec_get(&end, TIME_UTC);
+
+    double time_spent =
+        (end.tv_sec - begin.tv_sec) * 1000.0 + (end.tv_nsec - begin.tv_nsec) / 1000000.0;
+```
